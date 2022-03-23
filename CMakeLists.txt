@@ -48,6 +48,7 @@ set(INC_DIRS
     ${Vulkan_INCLUDE_DIRS}
     "${PROJECT_SOURCE_DIR}/include"
     "${PROJECT_SOURCE_DIR}/third/graphi-t/include"
+    "${PROJECT_SOURCE_DIR}/third/SPIRV-Headers/include"
 )
 
 # The GraphiT library.

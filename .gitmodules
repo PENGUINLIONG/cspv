@@ -1,3 +1,6 @@
 [submodule "third/graphi-t"]
 	path = third/graphi-t
 	url = https://github.com/PENGUINLIONG/graphi-t
+[submodule "third/SPIRV-Headers"]
+	path = third/SPIRV-Headers
+	url = https://github.com/KhronosGroup/SPIRV-Headers
