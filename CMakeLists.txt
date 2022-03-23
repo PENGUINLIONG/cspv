@@ -1,7 +1,7 @@
 ﻿cmake_minimum_required (VERSION 3.10)
 
 # Replace this with your project name.
-set(PROJECT_NAME "GraphiT-Template")
+set(PROJECT_NAME "cspv")
 
 project (${PROJECT_NAME} LANGUAGES CXX)
 
