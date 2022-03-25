@@ -143,6 +143,25 @@ struct SpirvAbstract {
   std::map<uint32_t, const uint32_t*> result_id2instr_head_map;
 };
 
+void dbg_dump_spirv(const char* path, const SpirvAbstract& abstr) {
+  std::vector<uint32_t> data;
+
+  data.emplace_back(abstr.head.magic);
+  data.emplace_back(abstr.head.version);
+  data.emplace_back(abstr.head.generator_magic);
+  data.emplace_back(abstr.head.bound);
+  data.emplace_back(abstr.head.reserved);
+
+  for (const uint32_t* cur : abstr.instr_heads) {
+    InstructionRef ref(cur);
+    for (uint32_t i = 0; i < ref.len; ++i) {
+      data.emplace_back(cur[i]);
+    }
+  }
+
+  util::save_file(path, data.data(), data.size() * sizeof(uint32_t));
+}
+
 SpirvAbstract scan_spirv(const std::vector<uint32_t>& spv) {
   SpirvAbstract out {};
   out.head.magic = spv[0];
@@ -156,6 +175,11 @@ SpirvAbstract scan_spirv(const std::vector<uint32_t>& spv) {
   while (cur < end) {
     const InstructionRef instr(cur);
 
+    // Ignore source line debug info.
+    if (instr.op == spv::Op::OpLine || instr.op == spv::Op::OpNoLine) {
+      goto done;
+    }
+
     if (instr.has_result_id()) {
       auto it = out.result_id2instr_head_map.find(instr.result_id);
       if (it == out.result_id2instr_head_map.end()) {
@@ -168,6 +192,7 @@ SpirvAbstract scan_spirv(const std::vector<uint32_t>& spv) {
     }
     out.instr_heads.emplace_back(cur);
 
+  done:
     cur += instr.len;
   }
 
@@ -248,8 +273,10 @@ void guarded_main() {
   }
   std::vector<uint32_t> spv = load_spv(CFG.in_file_path.c_str());
   SpirvAbstract abstr = scan_spirv(spv);
+  dbg_dump_spirv("./tmp/dump.spv", abstr);
 
   std::vector<FunctionRecord> func_records = extract_funcs(abstr);
+
 
   log::info("success");
 }
