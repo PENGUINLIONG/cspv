@@ -90,31 +90,39 @@ struct InstructionParameterExtractor {
   }
 };
 struct InstructionRef {
+  spv::Op op_;
+  uint32_t len_;
   const uint32_t* inner;
 
-  inline InstructionRef() : inner(nullptr) {}
-  inline InstructionRef(const uint32_t* inner) : inner(inner) {}
-  inline InstructionRef(const InstructionRef& rhs) : inner(rhs.inner) {}
+  inline InstructionRef() : inner(nullptr), op_(op_), len_(len_) {}
+  inline InstructionRef(const uint32_t* inner) :
+    inner(inner),
+    op_(inner != nullptr ? (spv::Op)(*inner & 0xffff) : spv::Op::OpNop),
+    len_(inner != nullptr ? (*inner >> 16) : 0) {}
+  inline InstructionRef(const InstructionRef& rhs) :
+    inner(rhs.inner),
+    op_(rhs.op_),
+    len_(rhs.len_) {}
   inline InstructionRef(InstructionRef&& rhs) :
-    inner(std::exchange(rhs.inner, nullptr)) {}
+    inner(std::exchange(rhs.inner, nullptr)),
+    op_(std::exchange(rhs.op_, spv::Op::OpNop)),
+    len_(std::exchange(rhs.len_, (uint32_t)0)) {}
 
   inline InstructionRef& operator=(const InstructionRef& rhs) {
     inner = rhs.inner;
+    op_ = rhs.op_;
+    len_ = rhs.len_;
     return *this;
   }
   inline InstructionRef& operator=(InstructionRef&& rhs) {
     inner = std::exchange(rhs.inner, nullptr);
+    op_ = std::exchange(rhs.op_, spv::Op::OpNop);
+    len_ = std::exchange(rhs.len_, (uint32_t)0);
     return *this;
   }
 
-  inline InstructionRef& operator++() {
-    inner += len();
-    return *this;
-  }
-  inline InstructionRef operator++(int) {
-    InstructionRef out(inner);
-    inner += len();
-    return out;
+  inline InstructionRef next() {
+    return inner + len();
   }
 
   constexpr bool operator==(std::nullptr_t) const { return inner == nullptr; }
@@ -222,25 +230,12 @@ SpirvAbstract scan_spirv(const std::vector<uint32_t>& spv) {
     }
 
   done:
-    ++cur;
+    cur = cur.next();
   }
 
   return out;
 }
 
-
-
-struct SpirvInstructionIterator {
-  InstructionRef cur;
-  const InstructionRef end;
-
-  const InstructionRef& peek() const {
-    return cur;
-  }
-  InstructionRef next() {
-    return cur++;
-  }
-};
 
 
 struct SpirvEntryPointExecutionModeCompute {
@@ -276,7 +271,8 @@ struct SpirvFunction {
   spv::FunctionControlMask func_ctrl;
   InstructionRef func_ty;
   InstructionRef entry_block_label;
-  std::map<InstructionRef, SpirvFunctionBlock> label_instr2blocks;
+  std::map<InstructionRef, SpirvFunctionBlock> blocks;
+  std::map<InstructionRef, InstructionRef> doms;
 };
 struct SpirvModule {
   std::map<InstructionRef, std::vector<InstructionRef>> instr2deco_map;
@@ -309,7 +305,9 @@ struct SpirvVisitor {
 
   inline InstructionRef fetch_any_instr() {
     if (!ate()) {
-      return cur++;
+      InstructionRef out = cur;
+      cur = cur.next();
+      return out;
     } else {
       return nullptr;
     }
@@ -318,7 +316,9 @@ struct SpirvVisitor {
     if (!ate()) {
       InstructionRef out(cur);
       if (cur.op() == expected_op) {
-        return cur++;
+        InstructionRef out = cur;
+        cur = cur.next();
+        return out;
       } else {
         return nullptr;
       }
@@ -517,9 +517,13 @@ struct SpirvVisitor {
   }
   void visit_declrs() {
     // TODO: (penguinliong) Deal with non-semantic instructions.
-    while (
-      visit_ty_declrs() || visit_const_declrs() || visit_global_var_declrs()
-    ) {}
+    for (;;) {
+      bool success = false;
+      success |= visit_ty_declrs();
+      success |= visit_const_declrs();
+      success |= visit_global_var_declrs();
+      if (!success) { break; }
+    }
   }
 
 
@@ -529,50 +533,69 @@ struct SpirvVisitor {
       // TODO: (penguinliong) Do something with parameters? Do we need that?
     }
   }
-  bool visit_func_block_term() {
+  bool visit_func_merge_term(SpirvFunctionBlock& block) {
     InstructionRef instr;
     assert(!ate());
 
-    if (instr = fetch_instr(spv::Op::OpSelectionMerge)) {
-    } else if (instr = fetch_instr(spv::Op::OpLoopMerge)) {
+    if (instr = fetch_instr({
+      spv::Op::OpLoopMerge, spv::Op::OpSelectionMerge
+    })) {
+      assert(!block.merge, "already found a merge instruction");
+      block.merge = instr;
+      return true;
     }
 
-    if (instr = fetch_instr(spv::Op::OpBranch)) {
-      return true;
-    } else if (instr = fetch_instr(spv::Op::OpBranchConditional)) {
-      return true;
-    } else if (instr = fetch_instr(spv::Op::OpSwitch)) {
-      return true;
-    } else if (instr = fetch_instr(spv::Op::OpReturn)) {
-      return true;
-    } else if (instr = fetch_instr(spv::Op::OpReturnValue)) {
+    return false;
+  }
+  bool visit_func_block_term(SpirvFunctionBlock& block) {
+    InstructionRef instr;
+    assert(!ate());
+    assert(!block.term, "already found a termination instruction");
+
+    if (instr = fetch_instr({
+      spv::Op::OpBranch, spv::Op::OpBranchConditional, spv::Op::OpSwitch,
+      spv::Op::OpReturn, spv::Op::OpReturnValue
+    })) {
+      block.term = instr;
       return true;
     }
-      
+
     assert(!fetch_instr({
       spv::Op::OpKill, spv::Op::OpTerminateInvocation, spv::Op::OpUnreachable
     }), "unsupported termination instruction");
     return false;
   }
-  void visit_func_stmt() {
+  void visit_func_stmt(SpirvFunctionBlock& block) {
     InstructionRef instr;
     assert(instr = fetch_any_instr(), "unexpected end of spirv");
+    block.instrs.emplace_back(instr);
   }
-  void visit_func_block() {
+  SpirvFunctionBlock visit_func_block(SpirvFunction& func) {
     InstructionRef instr;
-    assert(instr = fetch_instr(spv::Op::OpLabel),
-      "function block label not found");
+    if (instr = fetch_instr(spv::Op::OpLabel)) {
+      if (!func.entry_block_label) {
+        func.entry_block_label = instr;
+      }
+    } else {
+      panic("function block label not found");
+    }
+
+    SpirvFunctionBlock block {};
+    block.label = instr;
 
     while (!ate()) {
-      if (visit_func_block_term()) { return; }
-      visit_func_stmt();
+      if (visit_func_merge_term(block)) { continue; }
+      if (visit_func_block_term(block)) { break; }
+      visit_func_stmt(block);
     }
+
+    return block;
   }
   void visit_func_body(SpirvFunction& func) {
     InstructionRef instr;
     while (!ate()) {
-      if (instr = fetch_instr(spv::Op::OpFunctionEnd)) { return; }
-      visit_func_block();
+      if (instr = fetch_instr(spv::Op::OpFunctionEnd)) { break; }
+      visit_func_block(func);
     }
   }
   void visit_funcs() {
@@ -588,6 +611,8 @@ struct SpirvVisitor {
 
         visit_func_params();
         visit_func_body(func);
+
+        out.funcs.emplace(std::make_pair(instr, std::move(func)));
       } else {
         panic("unexpected instruction");
       }
