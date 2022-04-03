@@ -94,7 +94,7 @@ struct InstructionRef {
   uint32_t len_;
   const uint32_t* inner;
 
-  inline InstructionRef() : inner(nullptr), op_(op_), len_(len_) {}
+  inline InstructionRef() : inner(nullptr), op_(spv::Op::OpNop), len_(0) {}
   inline InstructionRef(const uint32_t* inner) :
     inner(inner),
     op_(inner != nullptr ? (spv::Op)(*inner & 0xffff) : spv::Op::OpNop),
@@ -149,10 +149,10 @@ struct InstructionRef {
   }
 
   constexpr spv::Op op() const {
-    return spv::Op(*inner & 0xFFFF);
+    return op_;
   }
   constexpr size_t len() const {
-    return *inner >> 16;
+    return len_;
   }
 
   inline spv::Id result_ty_id() const {
@@ -260,7 +260,7 @@ struct SpirvVariable {
   InstructionRef init_value;
 };
 
-struct SpirvFunctionBlock {
+struct SpirvBlock {
   InstructionRef label;
   std::vector<InstructionRef> instrs;
   InstructionRef merge;
@@ -271,7 +271,8 @@ struct SpirvFunction {
   spv::FunctionControlMask func_ctrl;
   InstructionRef func_ty;
   InstructionRef entry_block_label;
-  std::map<InstructionRef, SpirvFunctionBlock> blocks;
+  InstructionRef return_block_label;
+  std::map<InstructionRef, SpirvBlock> blocks;
   std::map<InstructionRef, InstructionRef> doms;
 };
 struct SpirvModule {
@@ -533,7 +534,7 @@ struct SpirvVisitor {
       // TODO: (penguinliong) Do something with parameters? Do we need that?
     }
   }
-  bool visit_func_merge_term(SpirvFunctionBlock& block) {
+  bool visit_func_merge_term(SpirvBlock& block) {
     InstructionRef instr;
     assert(!ate());
 
@@ -547,7 +548,7 @@ struct SpirvVisitor {
 
     return false;
   }
-  bool visit_func_block_term(SpirvFunctionBlock& block) {
+  bool visit_func_block_term(SpirvBlock& block) {
     InstructionRef instr;
     assert(!ate());
     assert(!block.term, "already found a termination instruction");
@@ -565,12 +566,12 @@ struct SpirvVisitor {
     }), "unsupported termination instruction");
     return false;
   }
-  void visit_func_stmt(SpirvFunctionBlock& block) {
+  void visit_func_stmt(SpirvBlock& block) {
     InstructionRef instr;
     assert(instr = fetch_any_instr(), "unexpected end of spirv");
     block.instrs.emplace_back(instr);
   }
-  SpirvFunctionBlock visit_func_block(SpirvFunction& func) {
+  SpirvBlock visit_func_block(SpirvFunction& func) {
     InstructionRef instr;
     if (instr = fetch_instr(spv::Op::OpLabel)) {
       if (!func.entry_block_label) {
@@ -580,7 +581,7 @@ struct SpirvVisitor {
       panic("function block label not found");
     }
 
-    SpirvFunctionBlock block {};
+    SpirvBlock block {};
     block.label = instr;
 
     while (!ate()) {
@@ -589,13 +590,24 @@ struct SpirvVisitor {
       visit_func_stmt(block);
     }
 
+    {
+      spv::Op term_op = block.term.op();
+      if (term_op == spv::Op::OpReturn || term_op == spv::Op::OpReturnValue) {
+        assert(func.return_block_label == nullptr,
+          "a function with multiple returns is unsupported");
+        func.return_block_label = instr;
+      }
+    }
+
     return block;
   }
   void visit_func_body(SpirvFunction& func) {
     InstructionRef instr;
     while (!ate()) {
       if (instr = fetch_instr(spv::Op::OpFunctionEnd)) { break; }
-      visit_func_block(func);
+      SpirvBlock block = visit_func_block(func);
+      InstructionRef label = block.label;
+      func.blocks.emplace(std::make_pair(label, std::move(block)));
     }
   }
   void visit_funcs() {
@@ -636,6 +648,204 @@ struct SpirvVisitor {
   }
 };
 
+SpirvModule parse_spirv_module(const SpirvAbstract& abstr) {
+  SpirvVisitor visitor(abstr);
+  visitor.visit();
+  return visitor.out;
+}
+
+
+enum PredicateOp {
+  L_PREDICATE_OP_EQUAL,
+  L_PREDICATE_OP_NOT_EQUAL,
+  L_PREDICATE_OP_ALWAYS,
+};
+struct ControlFlowEdge {
+  PredicateOp pred_op;
+  InstructionRef src;
+  InstructionRef dst;
+};
+struct FunctionControlFlowGraph {
+  InstructionRef func;
+  PredicateOp pred_op;
+  std::vector<ControlFlowEdge> edges;
+};
+
+enum SpirvControlFlowType {
+  L_CONTROL_FLOW_TYPE_JUMP,
+  L_CONTROL_FLOW_TYPE_SELECTION,
+  L_CONTROL_FLOW_TYPE_LOOP,
+  L_CONTROL_FLOW_TYPE_RETURN,
+};
+struct SpirvControlFlow {
+  SpirvControlFlowType ctrl_flow_ty;
+  InstructionRef header_block_label;
+  InstructionRef merge_block_label;
+  std::vector<struct SpirvBranch> branches;
+  std::unique_ptr<SpirvControlFlow> next;
+};
+enum SpirvBranchType {
+  L_BRANCH_TYPE_NEVER,
+  L_BRANCH_TYPE_CONDITION_THEN,
+  L_BRANCH_TYPE_CONDITION_ELSE,
+  L_BRANCH_TYPE_ALWAYS,
+};
+struct SpirvBranch {
+  SpirvBranchType branch_ty;
+  InstructionRef cond;
+  std::unique_ptr<SpirvControlFlow> sub_ctrl_flow;
+};
+
+std::unique_ptr<SpirvControlFlow> parse_ctrl_flow(
+  const SpirvAbstract& abstr,
+  const SpirvFunction& func,
+  InstructionRef head_block_label,
+  InstructionRef merge_block_label
+);
+
+SpirvControlFlow parse_jump(
+  const SpirvAbstract& abstr,
+  const SpirvFunction& func,
+  InstructionRef head_block_label,
+  InstructionRef merge_block_label
+) {
+  const SpirvBlock& head_block = func.blocks.at(head_block_label);
+
+  {
+    assert(head_block.merge.op() == spv::Op::OpNop);
+  }
+
+  InstructionRef target_label;
+  {
+    assert(head_block.term.op() == spv::Op::OpBranch);
+    auto e = head_block.term.extract_params();
+    target_label = abstr.id2instr_map.at(e.read_id());
+  }
+
+  SpirvControlFlow out;
+  out.ctrl_flow_ty = L_CONTROL_FLOW_TYPE_JUMP;
+  out.header_block_label = head_block_label;
+  out.merge_block_label = target_label;
+  out.next = parse_ctrl_flow(abstr, func, target_label, merge_block_label);
+  return out;
+}
+SpirvControlFlow parse_if_then_else(
+  const SpirvAbstract& abstr,
+  const SpirvFunction& func,
+  InstructionRef head_block_label,
+  InstructionRef merge_block_label
+) {
+  const SpirvBlock& head_block = func.blocks.at(head_block_label);
+
+  InstructionRef target_label;
+  {
+    assert(head_block.merge.op() == spv::Op::OpSelectionMerge);
+    auto e = head_block.merge.extract_params();
+    target_label = abstr.id2instr_map.at(e.read_id());
+  }
+
+  InstructionRef cond;
+  InstructionRef then_target_label;
+  InstructionRef else_target_label;
+  {
+    assert(head_block.term.op() == spv::Op::OpBranchConditional);
+    auto e = head_block.term.extract_params();
+    cond = abstr.id2instr_map.at(e.read_id());
+    then_target_label = abstr.id2instr_map.at(e.read_id());
+    else_target_label = abstr.id2instr_map.at(e.read_id());
+  }
+
+  SpirvBranch then_branch;
+  {
+    then_branch.branch_ty = L_BRANCH_TYPE_CONDITION_THEN;
+    then_branch.cond = cond;
+    then_branch.sub_ctrl_flow =
+      parse_ctrl_flow(abstr, func, then_target_label, target_label);
+  }
+  SpirvBranch else_branch;
+  {
+    else_branch.branch_ty = L_BRANCH_TYPE_CONDITION_ELSE;
+    then_branch.cond = cond;
+    then_branch.sub_ctrl_flow =
+      parse_ctrl_flow(abstr, func, else_target_label, target_label);
+  }
+
+  SpirvControlFlow out;
+  out.ctrl_flow_ty = L_CONTROL_FLOW_TYPE_SELECTION;
+  out.header_block_label = head_block_label;
+  out.merge_block_label = target_label;
+  out.branches.emplace_back(std::move(then_branch));
+  out.branches.emplace_back(std::move(else_branch));
+  out.next = parse_ctrl_flow(abstr, func, target_label, merge_block_label);
+  return out;
+}
+SpirvControlFlow parse_return(
+  const SpirvAbstract& abstr,
+  const SpirvFunction& func,
+  InstructionRef head_block_label,
+  InstructionRef merge_block_label
+) {
+  const SpirvBlock& head_block = func.blocks.at(head_block_label);
+
+  InstructionRef rv = nullptr;
+  {
+    spv::Op term_op = head_block.term.op();
+    assert(term_op == spv::Op::OpReturn || term_op == spv::Op::OpReturnValue);
+    if (term_op == spv::Op::OpReturnValue) {
+      auto e = head_block.term.extract_params();
+      rv = abstr.id2instr_map.at(e.read_id());
+    }
+  }
+
+  SpirvControlFlow out;
+  out.ctrl_flow_ty = L_CONTROL_FLOW_TYPE_RETURN;
+  out.header_block_label = head_block_label;
+  return out;
+}
+
+std::unique_ptr<SpirvControlFlow> parse_ctrl_flow(
+  const SpirvAbstract& abstr,
+  const SpirvFunction& func,
+  InstructionRef head_block_label,
+  InstructionRef merge_block_label
+) {
+  if (!head_block_label || head_block_label == merge_block_label) {
+    return nullptr;
+  }
+
+  const SpirvBlock& head_block = func.blocks.at(head_block_label);
+  spv::Op merge_op = head_block.merge.op();
+  spv::Op term_op = head_block.term.op();
+
+  if (merge_op == spv::Op::OpNop) {
+    // Non-divergence.
+    if (term_op == spv::Op::OpBranch) {
+      // Simply a jump.
+      return std::make_unique<SpirvControlFlow>(
+        parse_jump(abstr, func, head_block_label, merge_block_label));
+    } else if (term_op == spv::Op::OpReturn) {
+      return std::make_unique<SpirvControlFlow>(
+        parse_return(abstr, func, head_block_label, merge_block_label));
+    } else {
+      panic("unsupported non-divergence branch");
+    }
+  } else if (merge_op == spv::Op::OpSelectionMerge) {
+    if (term_op == spv::Op::OpBranchConditional) {
+      return std::make_unique<SpirvControlFlow>(
+        parse_if_then_else(abstr, func, head_block_label, merge_block_label));
+    } else {
+      panic("unsupported conditional branch");
+    }
+  } else if (merge_op == spv::Op::OpLoopMerge) {
+    unimplemented();
+  } else {
+    panic("unexpected merge instruction");
+  }
+
+  return nullptr;
+}
+
+
 
 void guarded_main() {
   if (CFG.in_file_path.empty()) {
@@ -643,8 +853,11 @@ void guarded_main() {
   }
   std::vector<uint32_t> spv = load_spv(CFG.in_file_path.c_str());
   SpirvAbstract abstr = scan_spirv(spv);
-  SpirvVisitor visitor(abstr);
-  visitor.visit();
+  SpirvModule mod = parse_spirv_module(abstr);
+
+  const auto& entry_point = mod.funcs.begin()->second;
+  std::unique_ptr<SpirvControlFlow> ctrl_flow =
+    parse_ctrl_flow(abstr, entry_point, entry_point.entry_block_label, nullptr);
 
   log::info("success");
 }
