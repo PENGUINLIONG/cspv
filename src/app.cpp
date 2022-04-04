@@ -671,39 +671,42 @@ struct FunctionControlFlowGraph {
   std::vector<ControlFlowEdge> edges;
 };
 
-enum SpirvControlFlowType {
-  L_CONTROL_FLOW_TYPE_JUMP,
-  L_CONTROL_FLOW_TYPE_SELECTION,
-  L_CONTROL_FLOW_TYPE_LOOP,
-  L_CONTROL_FLOW_TYPE_RETURN,
-};
-struct SpirvControlFlow {
-  SpirvControlFlowType ctrl_flow_ty;
-  InstructionRef header_block_label;
-  InstructionRef merge_block_label;
-  std::vector<struct SpirvBranch> branches;
-  std::unique_ptr<SpirvControlFlow> next;
-};
-enum SpirvBranchType {
+struct ControlFlow;
+
+enum BranchType {
   L_BRANCH_TYPE_NEVER,
   L_BRANCH_TYPE_CONDITION_THEN,
   L_BRANCH_TYPE_CONDITION_ELSE,
   L_BRANCH_TYPE_ALWAYS,
 };
-struct SpirvBranch {
-  SpirvBranchType branch_ty;
+struct Branch {
+  BranchType branch_ty;
   InstructionRef cond;
-  std::unique_ptr<SpirvControlFlow> sub_ctrl_flow;
+  std::unique_ptr<ControlFlow> sub_ctrl_flow;
 };
 
-std::unique_ptr<SpirvControlFlow> parse_ctrl_flow(
+struct ControlFlowSelection {
+  std::vector<Branch> branches;
+};
+struct ControlFlowReturn {
+  InstructionRef rv;
+};
+struct ControlFlow {
+  InstructionRef block_label;
+  std::unique_ptr<ControlFlow> next;
+  // Extra parameters.
+  std::unique_ptr<ControlFlowSelection> sel;
+  std::unique_ptr<ControlFlowReturn> ret;
+};
+
+std::unique_ptr<ControlFlow> parse_ctrl_flow(
   const SpirvAbstract& abstr,
   const SpirvFunction& func,
   InstructionRef head_block_label,
   InstructionRef merge_block_label
 );
 
-SpirvControlFlow parse_jump(
+ControlFlow parse_jump(
   const SpirvAbstract& abstr,
   const SpirvFunction& func,
   InstructionRef head_block_label,
@@ -722,14 +725,12 @@ SpirvControlFlow parse_jump(
     target_label = abstr.id2instr_map.at(e.read_id());
   }
 
-  SpirvControlFlow out;
-  out.ctrl_flow_ty = L_CONTROL_FLOW_TYPE_JUMP;
-  out.header_block_label = head_block_label;
-  out.merge_block_label = target_label;
+  ControlFlow out {};
+  out.block_label = head_block_label;
   out.next = parse_ctrl_flow(abstr, func, target_label, merge_block_label);
   return out;
 }
-SpirvControlFlow parse_if_then_else(
+ControlFlow parse_if_then_else(
   const SpirvAbstract& abstr,
   const SpirvFunction& func,
   InstructionRef head_block_label,
@@ -755,31 +756,32 @@ SpirvControlFlow parse_if_then_else(
     else_target_label = abstr.id2instr_map.at(e.read_id());
   }
 
-  SpirvBranch then_branch;
+  Branch then_branch;
   {
     then_branch.branch_ty = L_BRANCH_TYPE_CONDITION_THEN;
     then_branch.cond = cond;
     then_branch.sub_ctrl_flow =
       parse_ctrl_flow(abstr, func, then_target_label, target_label);
   }
-  SpirvBranch else_branch;
+  Branch else_branch;
   {
     else_branch.branch_ty = L_BRANCH_TYPE_CONDITION_ELSE;
-    then_branch.cond = cond;
-    then_branch.sub_ctrl_flow =
+    else_branch.cond = cond;
+    else_branch.sub_ctrl_flow =
       parse_ctrl_flow(abstr, func, else_target_label, target_label);
   }
 
-  SpirvControlFlow out;
-  out.ctrl_flow_ty = L_CONTROL_FLOW_TYPE_SELECTION;
-  out.header_block_label = head_block_label;
-  out.merge_block_label = target_label;
-  out.branches.emplace_back(std::move(then_branch));
-  out.branches.emplace_back(std::move(else_branch));
+  ControlFlowSelection sel {};
+  sel.branches.emplace_back(std::move(then_branch));
+  sel.branches.emplace_back(std::move(else_branch));
+
+  ControlFlow out {};
+  out.block_label = head_block_label;
   out.next = parse_ctrl_flow(abstr, func, target_label, merge_block_label);
+  out.sel = std::make_unique<ControlFlowSelection>(std::move(sel));
   return out;
 }
-SpirvControlFlow parse_return(
+ControlFlow parse_return(
   const SpirvAbstract& abstr,
   const SpirvFunction& func,
   InstructionRef head_block_label,
@@ -797,13 +799,17 @@ SpirvControlFlow parse_return(
     }
   }
 
-  SpirvControlFlow out;
-  out.ctrl_flow_ty = L_CONTROL_FLOW_TYPE_RETURN;
-  out.header_block_label = head_block_label;
+  ControlFlowReturn ret {};
+  ret.rv = std::move(rv);
+
+  ControlFlow out;
+  out.block_label = head_block_label;
+  out.next = nullptr;
+  out.ret = std::make_unique<ControlFlowReturn>(std::move(ret));
   return out;
 }
 
-std::unique_ptr<SpirvControlFlow> parse_ctrl_flow(
+std::unique_ptr<ControlFlow> parse_ctrl_flow(
   const SpirvAbstract& abstr,
   const SpirvFunction& func,
   InstructionRef head_block_label,
@@ -821,17 +827,17 @@ std::unique_ptr<SpirvControlFlow> parse_ctrl_flow(
     // Non-divergence.
     if (term_op == spv::Op::OpBranch) {
       // Simply a jump.
-      return std::make_unique<SpirvControlFlow>(
+      return std::make_unique<ControlFlow>(
         parse_jump(abstr, func, head_block_label, merge_block_label));
     } else if (term_op == spv::Op::OpReturn) {
-      return std::make_unique<SpirvControlFlow>(
+      return std::make_unique<ControlFlow>(
         parse_return(abstr, func, head_block_label, merge_block_label));
     } else {
       panic("unsupported non-divergence branch");
     }
   } else if (merge_op == spv::Op::OpSelectionMerge) {
     if (term_op == spv::Op::OpBranchConditional) {
-      return std::make_unique<SpirvControlFlow>(
+      return std::make_unique<ControlFlow>(
         parse_if_then_else(abstr, func, head_block_label, merge_block_label));
     } else {
       panic("unsupported conditional branch");
@@ -856,7 +862,7 @@ void guarded_main() {
   SpirvModule mod = parse_spirv_module(abstr);
 
   const auto& entry_point = mod.funcs.begin()->second;
-  std::unique_ptr<SpirvControlFlow> ctrl_flow =
+  std::unique_ptr<ControlFlow> ctrl_flow =
     parse_ctrl_flow(abstr, entry_point, entry_point.entry_block_label, nullptr);
 
   log::info("success");
