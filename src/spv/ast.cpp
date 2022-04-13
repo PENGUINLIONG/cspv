@@ -145,6 +145,16 @@ struct ControlFlowGraphParser {
         lits.emplace_back(e.read_u32());
       }
       out = std::shared_ptr<Expr>(new ExprConstant(ty, std::move(lits)));
+    } else if (op == spv::Op::OpConstantTrue) {
+      auto ty = parse_ty(instr.result_ty_id());
+      std::vector<uint32_t> lits;
+      lits.emplace_back(1);
+      out = std::shared_ptr<Expr>(new ExprConstant(ty, std::move(lits)));
+    } else if (op == spv::Op::OpConstantFalse) {
+      auto ty = parse_ty(instr.result_ty_id());
+      std::vector<uint32_t> lits;
+      lits.emplace_back(0);
+      out = std::shared_ptr<Expr>(new ExprConstant(ty, std::move(lits)));
     } else if (op == spv::Op::OpLoad) {
       auto ty = parse_ty(instr.result_ty_id());
       auto e = instr.extract_params();
@@ -227,10 +237,10 @@ struct ControlFlowGraphParser {
         "unexpected merge instruction");
     }
 
-    assert(merge_states.size() == 1);
+    //assert(merge_states.size() == 1);
   }
   void pop_merge_state() {
-    assert(merge_states.size() == 1);
+    //assert(merge_states.size() == 1);
     merge_states.pop_back();
   }
 
@@ -245,7 +255,7 @@ struct ControlFlowGraphParser {
 
     ControlFlow out {};
     out.label = block.label;
-    out.next = parse(merge_state.merge_target_label);
+    InstructionRef merge_target_label = merge_state.merge_target_label;
     for (const InstructionRef& instr : block.instrs) {
       std::shared_ptr<Stmt> stmt = parse_stmt(instr);
       if (stmt != nullptr) {
@@ -255,19 +265,24 @@ struct ControlFlowGraphParser {
     if (merge_state.sel) {
       std::shared_ptr<Expr> cond_expr = parse_expr(cond);
 
-      Branch then_branch {};
-      then_branch.branch_ty = L_BRANCH_TYPE_CONDITION_THEN;
-      then_branch.cond = cond_expr;
-      then_branch.ctrl_flow = parse(then_target_label);
-
-      Branch else_branch {};
-      else_branch.branch_ty = L_BRANCH_TYPE_CONDITION_ELSE;
-      else_branch.cond = cond_expr;
-      else_branch.ctrl_flow = parse(else_target_label);
-
       ControlFlowSelection sel {};
-      sel.branches.emplace_back(std::move(then_branch));
-      sel.branches.emplace_back(std::move(else_branch));
+      if (then_target_label != merge_state.merge_target_label) {
+        Branch then_branch {};
+        then_branch.branch_ty = L_BRANCH_TYPE_CONDITION_THEN;
+        then_branch.cond = cond_expr;
+        then_branch.ctrl_flow = parse(then_target_label);
+
+        sel.branches.emplace_back(std::move(then_branch));
+      }
+      if (else_target_label != merge_state.merge_target_label) {
+        Branch else_branch {};
+        else_branch.branch_ty = L_BRANCH_TYPE_CONDITION_ELSE;
+        else_branch.cond = cond_expr;
+        else_branch.ctrl_flow = parse(else_target_label);
+
+        sel.branches.emplace_back(std::move(else_branch));
+      }
+
       out.sel = std::make_unique<ControlFlowSelection>(std::move(sel));
     } else if (merge_state.loop) {
       assert(else_target_label == merge_state.merge_target_label);
@@ -278,6 +293,7 @@ struct ControlFlowGraphParser {
       out.loop = std::make_unique<ControlFlowLoop>(std::move(loop));
     }
     pop_merge_state();
+    out.next = parse(merge_target_label);
     return std::make_unique<ControlFlow>(std::move(out));
   }
   std::unique_ptr<ControlFlow> parse_branch(const Block& block) {

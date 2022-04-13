@@ -353,6 +353,8 @@ struct ExprConstant : public Expr {
       } else {
         liong::unimplemented();
       }
+    } else if (ty->cls == L_TYPE_CLASS_BOOL) {
+      s << (lits[0] != 0 ? "true" : "false");
     }
     s << ":" << *ty;
   }
