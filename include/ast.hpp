@@ -11,6 +11,7 @@ enum TypeClass {
   L_TYPE_CLASS_BOOL,
   L_TYPE_CLASS_INT,
   L_TYPE_CLASS_FLOAT,
+  L_TYPE_CLASS_STRUCT,
   L_TYPE_CLASS_POINTER,
 };
 struct Type {
@@ -51,6 +52,26 @@ struct TypeFloat : public Type {
     if (other.cls != cls) { return false; }
     const auto& other2 = (const TypeFloat&)other;
     return other2.nbit == nbit;
+  }
+};
+// For structs specifically, we assume that the memory layout for uniform
+// buffers are in `std140` and storage buffers in `std430`. The layout depends
+// on where the struct type is used.
+struct TypeStruct : public Type {
+  std::vector<std::shared_ptr<Type>> members;
+  TypeStruct(
+    std::vector<std::shared_ptr<Type>>&& members
+  ) : Type(L_TYPE_CLASS_STRUCT),
+    members(std::forward<std::vector<std::shared_ptr<Type>>>(members)) {}
+  virtual bool is_same_as(const Type& other) const override final {
+    if (other.cls != cls) { return false; }
+    const auto& other2 = (const TypeStruct&)other;
+    for (size_t i = 0; i < members.size(); ++i) {
+      if (!members.at(i)->is_same_as(*other2.members.at(i))) {
+        return false;
+      }
+    }
+    return true;
   }
 };
 struct TypePointer : public Type {

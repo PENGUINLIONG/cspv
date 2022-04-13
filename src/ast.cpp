@@ -48,6 +48,13 @@ struct ControlFlowGraphParser {
       auto e = instr.extract_params();
       uint32_t nbit = e.read_u32();
       return std::shared_ptr<Type>(new TypeFloat(nbit));
+    } else if (op == spv::Op::OpTypeStruct) {
+      auto e = instr.extract_params();
+      std::vector<std::shared_ptr<Type>> members;
+      while (e) {
+        members.emplace_back(parse_ty(e.read_id()));
+      }
+      return std::shared_ptr<Type>(new TypeStruct(std::move(members)));
     } else if (op == spv::Op::OpTypePointer) {
       auto e = instr.extract_params();
       spv::StorageClass storage_cls = e.read_u32_as<spv::StorageClass>();
