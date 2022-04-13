@@ -94,6 +94,8 @@ struct SpirvFunction {
   std::map<InstructionRef, InstructionRef> doms;
 };
 struct SpirvModule {
+  SpirvAbstract abstr;
+
   std::map<InstructionRef, std::vector<InstructionRef>> instr2deco_map;
 
   std::vector<spv::Capability> caps;
@@ -107,19 +109,19 @@ struct SpirvModule {
 
   std::map<InstructionRef, SpirvVariable> vars;
   std::map<InstructionRef, SpirvFunction> funcs;
+
+  SpirvModule(SpirvAbstract&& abstr) : abstr(std::forward<SpirvAbstract>(abstr)) {}
 };
 
 struct SpirvVisitor {
-  const SpirvAbstract& abstr;
+  SpirvModule out;
   InstructionRef cur;
 
-  SpirvModule out;
-
-  SpirvVisitor(const SpirvAbstract& abstr) :
-    abstr(abstr), cur(abstr.beg), out() {}
+  SpirvVisitor(SpirvAbstract&& abstr) :
+    out(std::forward<SpirvAbstract>(abstr)), cur(abstr.beg) {}
 
   constexpr bool ate() const {
-    return cur >= abstr.end;
+    return cur.inner >= out.abstr.end;
   }
 
   inline InstructionRef fetch_any_instr() {
@@ -158,7 +160,7 @@ struct SpirvVisitor {
   }
 
   inline InstructionRef lookup_instr_id(spv::Id id) {
-    return abstr.id2instr_map.at(id);
+    return out.abstr.id2instr_map.at(id);
   }
 
   void visit_caps() {
@@ -466,8 +468,8 @@ struct SpirvVisitor {
   }
 };
 
-SpirvModule parse_spirv_module(const SpirvAbstract& abstr) {
-  SpirvVisitor visitor(abstr);
+SpirvModule parse_spirv_module(SpirvAbstract&& abstr) {
+  SpirvVisitor visitor(std::forward<SpirvAbstract>(abstr));
   visitor.visit();
   return visitor.out;
 }
@@ -526,18 +528,18 @@ struct MergeState {
 };
 
 struct ControlFlowGraphParser {
-  const SpirvAbstract& abstr;
+  const SpirvModule& mod;
   const SpirvFunction& func;
   std::vector<MergeState> merge_states;
 
-  ControlFlowGraphParser(const SpirvAbstract& abstr, const SpirvFunction& func)
-    : abstr(abstr), func(func), merge_states()
+  ControlFlowGraphParser(const SpirvModule& mod, const SpirvFunction& func)
+    : mod(mod), func(func), merge_states()
   {
     merge_states.reserve(1); // Has at most 1 element.
   }
 
   inline const InstructionRef& fetch_instr(spv::Id id) const {
-    return abstr.id2instr_map.at(id);
+    return mod.abstr.id2instr_map.at(id);
   }
 
   void push_merge_state(
@@ -600,13 +602,13 @@ struct ControlFlowGraphParser {
     out.label = block.label;
     out.next = parse(merge_state.merge_target_label);
     for (const InstructionRef& instr : block.instrs) {
-      std::shared_ptr<Stmt> stmt = parse_stmt(abstr, instr);
+      std::shared_ptr<Stmt> stmt = parse_stmt(mod.abstr, instr);
       if (stmt != nullptr) {
         out.stmts.emplace_back(std::move(stmt));
       }
     }
     if (merge_state.sel) {
-      std::shared_ptr<Expr> cond_expr = parse_expr(abstr, cond);
+      std::shared_ptr<Expr> cond_expr = parse_expr(mod.abstr, cond);
 
       Branch then_branch {};
       then_branch.branch_ty = L_BRANCH_TYPE_CONDITION_THEN;
@@ -626,7 +628,7 @@ struct ControlFlowGraphParser {
       assert(else_target_label == merge_state.merge_target_label);
 
       ControlFlowLoop loop {};
-      loop.cond = parse_expr(abstr, cond);
+      loop.cond = parse_expr(mod.abstr, cond);
       loop.body = parse(then_target_label);
       out.loop = std::make_unique<ControlFlowLoop>(std::move(loop));
     }
@@ -640,7 +642,7 @@ struct ControlFlowGraphParser {
     out.label = block.label;
     out.next = parse(fetch_instr(e.read_id()));
     for (const InstructionRef& instr : block.instrs) {
-      std::shared_ptr<Stmt> stmt = parse_stmt(abstr, instr);
+      std::shared_ptr<Stmt> stmt = parse_stmt(mod.abstr, instr);
       if (stmt != nullptr) {
         out.stmts.emplace_back(std::move(stmt));
       }
@@ -651,7 +653,7 @@ struct ControlFlowGraphParser {
     ControlFlow out {};
     out.label = block.label;
     for (const InstructionRef& instr : block.instrs) {
-      std::shared_ptr<Stmt> stmt = parse_stmt(abstr, instr);
+      std::shared_ptr<Stmt> stmt = parse_stmt(mod.abstr, instr);
       if (stmt != nullptr) {
         out.stmts.emplace_back(std::move(stmt));
       }
@@ -696,11 +698,11 @@ void guarded_main() {
   }
   std::vector<uint32_t> spv = load_spv(CFG.in_file_path.c_str());
   SpirvAbstract abstr = scan_spirv(spv);
-  SpirvModule mod = parse_spirv_module(abstr);
+  SpirvModule mod = parse_spirv_module(std::move(abstr));
 
   const auto& entry_point = mod.funcs.begin()->second;
   std::unique_ptr<ControlFlow> ctrl_flow =
-    ControlFlowGraphParser(abstr, entry_point).parse(entry_point.entry_label);
+    ControlFlowGraphParser(mod, entry_point).parse(entry_point.entry_label);
 
    log::info("success");
 }

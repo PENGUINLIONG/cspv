@@ -16,8 +16,8 @@ struct SpirvHeader {
 struct SpirvAbstract {
   SpirvHeader head;
   std::map<spv::Id, InstructionRef> id2instr_map;
-  InstructionRef beg;
-  InstructionRef end;
+  const uint32_t* beg;
+  const uint32_t* end;
 };
 
 SpirvAbstract scan_spirv(const std::vector<uint32_t>& spv);
