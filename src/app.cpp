@@ -8,7 +8,8 @@
 #include "gft/assert.hpp"
 #include "spv/abstr.hpp"
 #include "spv/instr.hpp"
-#include "ast.hpp"
+#include "spv/ast.hpp"
+#include "spv/dbg.hpp"
 
 using namespace liong;
 
@@ -63,6 +64,12 @@ void guarded_main() {
   SpirvAbstract abstr = scan_spirv(spv);
   SpirvModule mod = parse_spirv_module(std::move(abstr));
   auto entry_points = extract_entry_points(mod);
+
+  for (const auto& pair : entry_points) {
+    std::stringstream ss;
+    ss << *pair.second;
+    log::info("entry point '", pair.first, "': \n", ss.str());
+  }
 
    log::info("success");
 }

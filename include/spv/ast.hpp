@@ -2,6 +2,7 @@
 // @PENGUINLIONG
 #pragma once
 #include <memory>
+#include <ostream>
 #include <utility>
 #include "gft/assert.hpp"
 #include "spv/mod.hpp"
@@ -20,6 +21,8 @@ struct Type {
   virtual bool is_same_as(const Type& other) const {
     liong::unimplemented();
   }
+
+  virtual void dbg_print(std::ostream& s) const { s << "type?"; }
 
 protected:
   inline Type(TypeClass cls) : cls(cls) {}
@@ -50,20 +53,14 @@ struct Expr {
   const ExprOp op;
   const std::shared_ptr<Type> ty;
 
-protected:
-  inline Expr(ExprOp op, const std::shared_ptr<Type>& ty) : op(op), ty(ty) {}
-
   virtual bool is_same_as(const Type& other) const {
     liong::unimplemented();
   }
-};
-struct ExprConstant : public Expr {
-  const std::vector<uint32_t> lits;
 
-  inline ExprConstant(
-    const std::shared_ptr<Type>& ty,
-    std::vector<uint32_t>&& lits
-  ) : Expr(L_EXPR_OP_CONSTANT, ty), lits(lits) {}
+  virtual void dbg_print(std::ostream& s) const { s << "expr?"; }
+
+protected:
+  inline Expr(ExprOp op, const std::shared_ptr<Type>& ty) : op(op), ty(ty) {}
 };
 
 
@@ -86,6 +83,8 @@ struct Memory {
   const std::shared_ptr<Type> ty;
   const AccessChain ac;
 
+  virtual void dbg_print(std::ostream& s) const { s << "memory?"; }
+
 protected:
   Memory(
     MemoryClass cls,
@@ -106,18 +105,45 @@ struct Stmt {
     liong::unimplemented();
   }
 
+  virtual void dbg_print(std::ostream& s) const { s << "stmt?"; }
+
 protected:
   inline Stmt(StmtOp op) : op(op) {}
 };
-struct StmtStore : public Stmt {
-  const std::shared_ptr<Memory> dst_ptr;
-  const std::shared_ptr<Expr> value;
 
-  inline StmtStore(
-    const std::shared_ptr<Memory>& dst_ptr,
-    const std::shared_ptr<Expr>& value
-  ) : Stmt(L_STMT_OP_STORE), dst_ptr(dst_ptr), value(value) {}
-};
+
+
+inline std::ostream& operator<<(std::ostream& s, const Type& x) {
+  x.dbg_print(s);
+  return s;
+}
+inline std::ostream& operator<<(std::ostream& s, const Expr& x) {
+  x.dbg_print(s);
+  return s;
+}
+inline std::ostream& operator<<(std::ostream& s, const AccessChain& x) {
+  bool first = true;
+  for (const auto& idx : x.idxs) {
+    if (first) {
+      first = false;
+    } else {
+      s << ",";
+    }
+    s << *idx;
+  }
+  return s;
+}
+inline std::ostream& operator<<(std::ostream& s, const Memory& x) {
+  x.dbg_print(s);
+  return s;
+}
+inline std::ostream& operator<<(std::ostream& s, const Stmt& x) {
+  x.dbg_print(s);
+  return s;
+}
+
+
+
 
 
 
@@ -128,11 +154,19 @@ struct TypeVoid : public Type {
   virtual bool is_same_as(const Type& other) const override final {
     return other.cls == cls;
   }
+
+  virtual void dbg_print(std::ostream& s) const override final {
+    s << "void";
+  }
 };
 struct TypeBool : public Type {
   TypeBool() : Type(L_TYPE_CLASS_BOOL) {}
   virtual bool is_same_as(const Type& other) const override final {
     return other.cls == cls;
+  }
+
+  virtual void dbg_print(std::ostream& s) const override final {
+    s << "bool";
   }
 };
 struct TypeInt : public Type {
@@ -145,6 +179,10 @@ struct TypeInt : public Type {
     const auto& other2 = (const TypeInt&)other;
     return other2.nbit == nbit && other2.is_signed == is_signed;
   }
+
+  virtual void dbg_print(std::ostream& s) const override final {
+    s << (is_signed ? "i" : "u") << nbit;
+  }
 };
 struct TypeFloat : public Type {
   uint32_t nbit;
@@ -153,6 +191,10 @@ struct TypeFloat : public Type {
     if (other.cls != cls) { return false; }
     const auto& other2 = (const TypeFloat&)other;
     return other2.nbit == nbit;
+  }
+
+  virtual void dbg_print(std::ostream& s) const override final {
+    s << "f" << nbit;
   }
 };
 // For structs specifically, we assume that the memory layout for uniform
@@ -174,6 +216,20 @@ struct TypeStruct : public Type {
     }
     return true;
   }
+
+  virtual void dbg_print(std::ostream& s) const override final {
+    s << "Struct<";
+    bool first = true;
+    for (const auto& member : members) {
+      if (first) {
+        first = false;
+      } else {
+        s << ",";
+      }
+      s << *member;
+    }
+    s << ">";
+  }
 };
 struct TypePointer : public Type {
   std::shared_ptr<Type> inner;
@@ -184,16 +240,27 @@ struct TypePointer : public Type {
     const auto& other2 = (const TypePointer&)other;
     return is_same_as(*other2.inner);
   }
+
+  virtual void dbg_print(std::ostream& s) const override final {
+    s << "Pointer<" << *inner << ">";
+  }
 };
 
 
 
 struct MemoryFunctionVariable : public Memory {
+  const void* handle;
+
   inline MemoryFunctionVariable(
     const std::shared_ptr<Type>& ty,
-    AccessChain&& ac
+    AccessChain&& ac,
+    const void* handle // Used to identify same-source local variable accesses.
   ) : Memory(L_MEMORY_CLASS_FUNCTION_VARIABLE, ty,
-    std::forward<AccessChain>(ac)) {}
+    std::forward<AccessChain>(ac)), handle(handle) {}
+
+  virtual void dbg_print(std::ostream& s) const override final {
+    s << "$" << handle << ":" << *ty;
+  }
 };
 
 struct MemoryDescriptor : public Memory {
@@ -219,6 +286,10 @@ struct MemoryUniformBuffer : public MemoryDescriptor {
     uint32_t set
   ) : MemoryDescriptor(L_MEMORY_CLASS_UNIFORM_BUFFER, ty,
     std::forward<AccessChain>(ac), binding, set) {}
+
+  virtual void dbg_print(std::ostream& s) const override final {
+    s << "UniformBuffer@" << binding << "," << set << "[" << ac << "]:" << *ty;
+  }
 };
 struct MemoryStorageBuffer : public MemoryDescriptor {
   size_t offset;
@@ -251,6 +322,42 @@ struct MemorStorageImage : public MemoryDescriptor {
 
 
 
+struct ExprConstant : public Expr {
+  const std::vector<uint32_t> lits;
+
+  inline ExprConstant(
+    const std::shared_ptr<Type>& ty,
+    std::vector<uint32_t>&& lits
+  ) : Expr(L_EXPR_OP_CONSTANT, ty), lits(lits) {}
+
+  virtual void dbg_print(std::ostream& s) const override final {
+    if (ty->cls == L_TYPE_CLASS_INT) {
+      const auto& ty2 = *(const TypeInt*)ty.get();
+      if (ty2.is_signed) {
+        if (ty2.nbit == 32) {
+          s << *(const int32_t*)&lits[0];
+        } else {
+          liong::unimplemented();
+        }
+      } else {
+        if (ty2.nbit == 32) {
+          s << *(const uint32_t*)&lits[0];
+        } else {
+          liong::unimplemented();
+        }
+      }
+    } else if (ty->cls == L_TYPE_CLASS_FLOAT) {
+      const auto& ty2 = *(const TypeFloat*)ty.get();
+      if (ty2.nbit == 32) {
+        s << *(const float*)&lits[0];
+      } else {
+        liong::unimplemented();
+      }
+    }
+    s << ":" << *ty;
+  }
+};
+
 struct ExprLoad : public Expr {
   const std::shared_ptr<Memory> src_ptr;
 
@@ -258,6 +365,10 @@ struct ExprLoad : public Expr {
     const std::shared_ptr<Type>& ty,
     const std::shared_ptr<Memory>& src_ptr
   ) : Expr(L_EXPR_OP_LOAD, ty), src_ptr(src_ptr) {}
+
+  virtual void dbg_print(std::ostream& s) const override final {
+    s << "Load(" << *src_ptr << ")";
+  }
 };
 
 struct ExprBinaryOp : public Expr {
@@ -282,6 +393,10 @@ struct ExprAdd : public ExprBinaryOp {
   ) : ExprBinaryOp(L_EXPR_OP_ADD, ty, a, b) {
     liong::assert(ty->is_same_as(*a->ty));
   }
+
+  virtual void dbg_print(std::ostream& s) const override final {
+    s << "(" << *a << " + " << *b << ")";
+  }
 };
 struct ExprSub : public ExprBinaryOp {
   inline ExprSub(
@@ -290,6 +405,10 @@ struct ExprSub : public ExprBinaryOp {
     const std::shared_ptr<Expr>& b
   ) : ExprBinaryOp(L_EXPR_OP_SUB, ty, a, b) {
     liong::assert(ty->is_same_as(*a->ty));
+  }
+
+  virtual void dbg_print(std::ostream& s) const override final {
+    s << "(" << *a << " - " << *b << ")";
   }
 };
 
@@ -300,6 +419,24 @@ struct ExprLt : public ExprBinaryOp {
     const std::shared_ptr<Expr>& b
   ) : ExprBinaryOp(L_EXPR_OP_LT, ty, a, b) {
     liong::assert(ty->cls == L_TYPE_CLASS_BOOL);
+  }
+
+  virtual void dbg_print(std::ostream& s) const override final {
+    s << "(" << *a << " < " << *b<< ")";
+  }
+};
+
+struct StmtStore : public Stmt {
+  const std::shared_ptr<Memory> dst_ptr;
+  const std::shared_ptr<Expr> value;
+
+  inline StmtStore(
+    const std::shared_ptr<Memory>& dst_ptr,
+    const std::shared_ptr<Expr>& value
+  ) : Stmt(L_STMT_OP_STORE), dst_ptr(dst_ptr), value(value) {}
+
+  virtual void dbg_print(std::ostream& s) const override final {
+    s << "Store(" << *dst_ptr << ", " << *value << ")";
   }
 };
 

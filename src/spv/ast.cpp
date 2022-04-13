@@ -1,4 +1,4 @@
-#include "ast.hpp"
+#include "spv/ast.hpp"
 
 using namespace liong;
 
@@ -81,7 +81,7 @@ struct ControlFlowGraphParser {
       spv::StorageClass store_cls = e.read_u32_as<spv::StorageClass>();
       // Merely function vairables.
       if (store_cls == spv::StorageClass::Function) {
-        return std::shared_ptr<Memory>(new MemoryFunctionVariable(var_ty, {}));
+        return std::shared_ptr<Memory>(new MemoryFunctionVariable(var_ty, {}, ptr.inner));
       }
 
       // Descriptor resources.
@@ -111,7 +111,8 @@ struct ControlFlowGraphParser {
       }
 
       if (base->cls == L_MEMORY_CLASS_FUNCTION_VARIABLE) {
-        return std::shared_ptr<Memory>(new MemoryFunctionVariable(ty, std::move(ac)));
+        const auto& base2 = *(const MemoryFunctionVariable*)base.get();
+        return std::shared_ptr<Memory>(new MemoryFunctionVariable(ty, std::move(ac), base2.handle));
       } else if (base->cls == L_MEMORY_CLASS_UNIFORM_BUFFER) {
         const auto& base2 = *(const MemoryUniformBuffer*)base.get();
         return std::shared_ptr<Memory>(new MemoryUniformBuffer(ty, std::move(ac), base2.binding, base2.set));
@@ -149,7 +150,7 @@ struct ControlFlowGraphParser {
       auto e = instr.extract_params();
       auto src_ptr = parse_mem(e.read_id());
       out = std::shared_ptr<Expr>(new ExprLoad(ty, src_ptr));
-    } else if (op == spv::Op::OpIAdd) {
+    } else if (op == spv::Op::OpIAdd || op == spv::Op::OpFAdd) {
       auto ty = parse_ty(instr.result_ty_id());
       auto e = instr.extract_params();
       auto a = parse_expr(e.read_id());
