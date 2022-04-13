@@ -82,13 +82,21 @@ struct SpirvModule {
     }
     return nullptr;
   }
+  inline bool has_deco(
+    spv::Decoration deco,
+    const InstructionRef& instr
+  ) const {
+    return get_deco_instr(deco, instr) != nullptr;
+  }
   inline uint32_t get_deco_u32(
     spv::Decoration deco,
     const InstructionRef& instr
-  ) {
+  ) const {
     InstructionRef deco_instr = get_deco_instr(deco, instr);
     liong::assert(deco_instr);
     auto e = deco_instr.extract_params();
+    e.read_id();
+    e.read_u32();
     return e.read_u32();
   }
 };

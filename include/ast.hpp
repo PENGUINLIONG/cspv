@@ -17,11 +17,112 @@ enum TypeClass {
 struct Type {
   const TypeClass cls;
 
-  virtual bool is_same_as(const Type& other) const { return false; }
+  virtual bool is_same_as(const Type& other) const {
+    liong::unimplemented();
+  }
 
 protected:
   inline Type(TypeClass cls) : cls(cls) {}
 };
+
+
+
+enum ExprOp {
+  L_EXPR_OP_CONSTANT,
+
+  L_EXPR_OP_LOAD,
+
+  L_EXPR_OP_NEG,
+  L_EXPR_OP_ADD,
+  L_EXPR_OP_SUB,
+  L_EXPR_OP_MUL,
+  L_EXPR_OP_DIV,
+  L_EXPR_OP_MOD,
+
+  L_EXPR_OP_LT,
+
+  L_EXPR_OP_AND,
+  L_EXPR_OP_OR,
+  L_EXPR_OP_NOT,
+  L_EXPR_OP_XOR,
+};
+struct Expr {
+  const ExprOp op;
+  const std::shared_ptr<Type> ty;
+
+protected:
+  inline Expr(ExprOp op, const std::shared_ptr<Type>& ty) : op(op), ty(ty) {}
+
+  virtual bool is_same_as(const Type& other) const {
+    liong::unimplemented();
+  }
+};
+struct ExprConstant : public Expr {
+  const std::vector<uint32_t> lits;
+
+  inline ExprConstant(
+    const std::shared_ptr<Type>& ty,
+    std::vector<uint32_t>&& lits
+  ) : Expr(L_EXPR_OP_CONSTANT, ty), lits(lits) {}
+};
+
+
+
+struct AccessChain {
+  std::vector<std::shared_ptr<Expr>> idxs;
+};
+
+
+
+enum MemoryClass {
+  L_MEMORY_CLASS_FUNCTION_VARIABLE,
+  L_MEMORY_CLASS_UNIFORM_BUFFER,
+  L_MEMORY_CLASS_STORAGE_BUFFER,
+  L_MEMORY_CLASS_SAMPLED_IMAGE,
+  L_MEMORY_CLASS_STORAGE_IMAGE,
+};
+struct Memory {
+  const MemoryClass cls;
+  const std::shared_ptr<Type> ty;
+  const AccessChain ac;
+
+protected:
+  Memory(
+    MemoryClass cls,
+    const std::shared_ptr<Type>& ty,
+    AccessChain&& ac
+  ) : cls(cls), ty(ty), ac(std::forward<AccessChain>(ac)) {}
+};
+
+
+
+enum StmtOp {
+  L_STMT_OP_STORE,
+};
+struct Stmt {
+  const StmtOp op;
+
+  virtual bool is_same_as(const Type& other) const {
+    liong::unimplemented();
+  }
+
+protected:
+  inline Stmt(StmtOp op) : op(op) {}
+};
+struct StmtStore : public Stmt {
+  const std::shared_ptr<Memory> dst_ptr;
+  const std::shared_ptr<Expr> value;
+
+  inline StmtStore(
+    const std::shared_ptr<Memory>& dst_ptr,
+    const std::shared_ptr<Expr>& value
+  ) : Stmt(L_STMT_OP_STORE), dst_ptr(dst_ptr), value(value) {}
+};
+
+
+
+
+
 struct TypeVoid : public Type {
   TypeVoid() : Type(L_TYPE_CLASS_VOID) {}
   virtual bool is_same_as(const Type& other) const override final {
@@ -87,56 +188,75 @@ struct TypePointer : public Type {
 
 
 
-enum ExprOp {
-  L_EXPR_OP_CONSTANT,
-  L_EXPR_OP_VARIABLE,
-
-  L_EXPR_OP_LOAD,
-
-  L_EXPR_OP_NEG,
-  L_EXPR_OP_ADD,
-  L_EXPR_OP_SUB,
-  L_EXPR_OP_MUL,
-  L_EXPR_OP_DIV,
-  L_EXPR_OP_MOD,
-
-  L_EXPR_OP_LT,
-
-  L_EXPR_OP_AND,
-  L_EXPR_OP_OR,
-  L_EXPR_OP_NOT,
-  L_EXPR_OP_XOR,
+struct MemoryFunctionVariable : public Memory {
+  inline MemoryFunctionVariable(
+    const std::shared_ptr<Type>& ty,
+    AccessChain&& ac
+  ) : Memory(L_MEMORY_CLASS_FUNCTION_VARIABLE, ty,
+    std::forward<AccessChain>(ac)) {}
 };
-struct Expr {
-  const ExprOp op;
-  const std::shared_ptr<Type> ty;
+
+struct MemoryDescriptor : public Memory {
+  uint32_t binding;
+  uint32_t set;
 
 protected:
-  inline Expr(ExprOp op, const std::shared_ptr<Type>& ty) : op(op), ty(ty) {}
-};
-struct ExprConstant : public Expr {
-  const std::vector<uint32_t> lits;
-
-  inline ExprConstant(
+  inline MemoryDescriptor(
+    MemoryClass cls,
     const std::shared_ptr<Type>& ty,
-    std::vector<uint32_t>&& lits
-  ) : Expr(L_EXPR_OP_CONSTANT, ty), lits(lits) {}
+    AccessChain&& ac,
+    uint32_t binding,
+    uint32_t set
+  ) : Memory(cls, ty, std::forward<AccessChain>(ac)),
+    binding(binding), set(set) {}
 };
-struct ExprVariable : public Expr {
-  spv::StorageClass store_cls;
 
-  inline ExprVariable(
+struct MemoryUniformBuffer : public MemoryDescriptor {
+  inline MemoryUniformBuffer(
     const std::shared_ptr<Type>& ty,
-    spv::StorageClass store_cls
-  ) : Expr(L_EXPR_OP_VARIABLE, ty), store_cls(store_cls) {}
+    AccessChain&& ac,
+    uint32_t binding,
+    uint32_t set
+  ) : MemoryDescriptor(L_MEMORY_CLASS_UNIFORM_BUFFER, ty,
+    std::forward<AccessChain>(ac), binding, set) {}
 };
+struct MemoryStorageBuffer : public MemoryDescriptor {
+  size_t offset;
+  inline MemoryStorageBuffer(
+    const std::shared_ptr<Type>& ty,
+    AccessChain&& ac,
+    uint32_t binding,
+    uint32_t set
+  ) : MemoryDescriptor(L_MEMORY_CLASS_STORAGE_BUFFER, ty,
+    std::forward<AccessChain>(ac), binding, set) {}
+};
+struct MemorySampledImage : public MemoryDescriptor {
+  inline MemorySampledImage(
+    const std::shared_ptr<Type>& ty,
+    AccessChain&& ac,
+    uint32_t binding,
+    uint32_t set
+  ) : MemoryDescriptor(L_MEMORY_CLASS_SAMPLED_IMAGE, ty,
+    std::forward<AccessChain>(ac), binding, set) {}
+};
+struct MemorStorageImage : public MemoryDescriptor {
+  inline MemorStorageImage(
+    const std::shared_ptr<Type>& ty,
+    AccessChain&& ac,
+    uint32_t binding,
+    uint32_t set
+  ) : MemoryDescriptor(L_MEMORY_CLASS_STORAGE_IMAGE, ty,
+    std::forward<AccessChain>(ac), binding, set) {}
+};
+
+
 
 struct ExprLoad : public Expr {
-  const std::shared_ptr<Expr> src_ptr;
+  const std::shared_ptr<Memory> src_ptr;
 
   inline ExprLoad(
     const std::shared_ptr<Type>& ty,
-    const std::shared_ptr<Expr>& src_ptr
+    const std::shared_ptr<Memory>& src_ptr
   ) : Expr(L_EXPR_OP_LOAD, ty), src_ptr(src_ptr) {}
 };
 
@@ -183,25 +303,6 @@ struct ExprLt : public ExprBinaryOp {
   }
 };
 
-
-enum StmtOp {
-  L_STMT_OP_STORE,
-};
-struct Stmt {
-  const StmtOp op;
-
-protected:
-  inline Stmt(StmtOp op) : op(op) {}
-};
-struct StmtStore : public Stmt {
-  const std::shared_ptr<Expr> dst_ptr;
-  const std::shared_ptr<Expr> value;
-
-  inline StmtStore(
-    const std::shared_ptr<Expr>& dst_ptr,
-    const std::shared_ptr<Expr>& value
-  ) : Stmt(L_STMT_OP_STORE), dst_ptr(dst_ptr), value(value) {}
-};
 
 
 struct ControlFlow;
