@@ -6,8 +6,9 @@
 #include "gft/args.hpp"
 #include "gft/util.hpp"
 #include "gft/assert.hpp"
-#define SPV_ENABLE_UTILITY_CODE
-#include "spirv/unified1/spirv.hpp11"
+#include "spv/abstr.hpp"
+#include "spv/instr.hpp"
+#include "ast.hpp"
 
 using namespace liong;
 
@@ -51,189 +52,6 @@ std::vector<uint32_t> load_spv(const char* path) {
   const uint32_t* end = beg + n;
   std::vector<uint32_t> spv(beg, end);
   return spv;
-}
-
-const spv::Id L_INVALID_ID = spv::Id(0);
-
-struct SpirvHeader {
-  uint32_t magic;
-  uint32_t version;
-  uint32_t generator_magic;
-  uint32_t bound;
-  uint32_t reserved;
-};
-struct InstructionParameterExtractor {
-  const uint32_t* cur;
-  const uint32_t* end;
-
-  inline InstructionParameterExtractor(
-    const uint32_t* cur,
-    const uint32_t* end
-  ) : cur(cur), end(end) {}
-
-  inline uint32_t read_u32() {
-    assert(cur < end);
-    return *(cur++);
-  }
-  inline spv::Id read_id() {
-    return spv::Id(read_u32());
-  }
-  inline const char* read_str() {
-    const char* out = (const char*)cur;
-    size_t size = std::strlen((const char*)cur) + 1;
-    cur += util::div_up(size, sizeof(uint32_t));
-    return out;
-  }
-  template<typename T>
-  inline T read_u32_as() {
-    return T(read_u32());
-  }
-};
-struct InstructionRef {
-  spv::Op op_;
-  uint32_t len_;
-  const uint32_t* inner;
-
-  inline InstructionRef() : inner(nullptr), op_(spv::Op::OpNop), len_(0) {}
-  inline InstructionRef(const uint32_t* inner) :
-    inner(inner),
-    op_(inner != nullptr ? (spv::Op)(*inner & 0xffff) : spv::Op::OpNop),
-    len_(inner != nullptr ? (*inner >> 16) : 0) {}
-  inline InstructionRef(const InstructionRef& rhs) :
-    inner(rhs.inner),
-    op_(rhs.op_),
-    len_(rhs.len_) {}
-  inline InstructionRef(InstructionRef&& rhs) :
-    inner(std::exchange(rhs.inner, nullptr)),
-    op_(std::exchange(rhs.op_, spv::Op::OpNop)),
-    len_(std::exchange(rhs.len_, (uint32_t)0)) {}
-
-  inline InstructionRef& operator=(const InstructionRef& rhs) {
-    inner = rhs.inner;
-    op_ = rhs.op_;
-    len_ = rhs.len_;
-    return *this;
-  }
-  inline InstructionRef& operator=(InstructionRef&& rhs) {
-    inner = std::exchange(rhs.inner, nullptr);
-    op_ = std::exchange(rhs.op_, spv::Op::OpNop);
-    len_ = std::exchange(rhs.len_, (uint32_t)0);
-    return *this;
-  }
-
-  inline InstructionRef next() {
-    return inner + len();
-  }
-
-  constexpr bool operator==(std::nullptr_t) const { return inner == nullptr; }
-  constexpr bool operator!=(std::nullptr_t) const { return inner != nullptr; }
-  constexpr bool operator==(const InstructionRef& rhs) const {
-    return inner == rhs.inner;
-  }
-  constexpr bool operator!=(const InstructionRef& rhs) const {
-    return inner != rhs.inner;
-  }
-  constexpr bool operator<(const InstructionRef& rhs) const {
-    return inner < rhs.inner;
-  }
-  constexpr bool operator>=(const InstructionRef& rhs) const {
-    return inner >= rhs.inner;
-  }
-
-  constexpr operator bool() const {
-    return *this != nullptr;
-  }
-
-  constexpr const uint32_t* words() const {
-    return inner;
-  }
-
-  constexpr spv::Op op() const {
-    return op_;
-  }
-  constexpr size_t len() const {
-    return len_;
-  }
-
-  inline spv::Id result_ty_id() const {
-    bool has_result_ty_id, has_result_id;
-    spv::HasResultAndType(op(), &has_result_id, &has_result_ty_id);
-
-    if (has_result_ty_id) {
-      return inner[1];
-    } else {
-      return L_INVALID_ID;
-    }
-  }
-  inline spv::Id result_id() const {
-    bool has_result_ty_id, has_result_id;
-    spv::HasResultAndType(op(), &has_result_id, &has_result_ty_id);
-
-    if (has_result_id) {
-      return has_result_ty_id ? inner[2] : inner[1];
-    } else {
-      return L_INVALID_ID;
-    }
-  }
-
-  inline InstructionParameterExtractor extract_params() const {
-    bool has_result_ty_id, has_result_id;
-    spv::HasResultAndType(op(), &has_result_id, &has_result_ty_id);
-
-    const uint32_t* param_beg;
-    if (has_result_id) {
-      param_beg = has_result_ty_id ? inner + 3 : inner + 2;
-    } else {
-      param_beg = inner + 1;
-    }
-    const uint32_t* param_end = inner + len();
-
-    return InstructionParameterExtractor(param_beg, param_end);
-  }
-};
-struct SpirvAbstract {
-  SpirvHeader head;
-  std::map<spv::Id, InstructionRef> id2instr_map;
-  InstructionRef beg;
-  InstructionRef end;
-};
-
-SpirvAbstract scan_spirv(const std::vector<uint32_t>& spv) {
-  SpirvAbstract out {};
-  out.head.magic = spv[0];
-  out.head.version = spv[1];
-  out.head.generator_magic = spv[2];
-  out.head.bound = spv[3];
-  out.head.reserved = spv[4];
-
-  out.beg = spv.data() + 5;
-  out.end = spv.data() + spv.size();
-  InstructionRef cur = out.beg;
-  while (cur < out.end) {
-    const InstructionRef instr(cur);
-    spv::Op op = instr.op();
-
-    // Ignore source line debug info.
-    if (op == spv::Op::OpLine || op == spv::Op::OpNoLine) {
-      goto done;
-    }
-
-    spv::Id result_id = instr.result_id();
-    if (result_id) {
-      auto it = out.id2instr_map.find(result_id);
-      if (it == out.id2instr_map.end()) {
-        out.id2instr_map.emplace(std::make_pair(result_id, cur));
-      } else {
-        panic("result id #", result_id, " is assigned by more than one "
-          "instructions");
-      }
-    }
-
-  done:
-    cur = cur.next();
-  }
-
-  return out;
 }
 
 
@@ -666,7 +484,7 @@ enum BranchType {
 };
 struct Branch {
   BranchType branch_ty;
-  InstructionRef cond;
+  std::shared_ptr<Expr> cond;
   std::unique_ptr<ControlFlow> ctrl_flow;
 };
 
@@ -677,7 +495,7 @@ struct ControlFlowInitLoop {
   std::unique_ptr<ControlFlow> body;
 };
 struct ControlFlowLoop {
-  InstructionRef cond;
+  std::shared_ptr<Expr> cond;
   std::unique_ptr<ControlFlow> body;
 };
 struct ControlFlowReturn {
@@ -686,6 +504,7 @@ struct ControlFlowReturn {
 struct ControlFlow {
   InstructionRef label;
   std::unique_ptr<ControlFlow> next;
+  std::vector<std::shared_ptr<Stmt>> stmts;
   // Extra parameters.
   std::unique_ptr<ControlFlowSelection> sel;
   std::unique_ptr<ControlFlowReturn> ret;
@@ -780,15 +599,23 @@ struct ControlFlowGraphParser {
     ControlFlow out {};
     out.label = block.label;
     out.next = parse(merge_state.merge_target_label);
+    for (const InstructionRef& instr : block.instrs) {
+      std::shared_ptr<Stmt> stmt = parse_stmt(abstr, instr);
+      if (stmt != nullptr) {
+        out.stmts.emplace_back(std::move(stmt));
+      }
+    }
     if (merge_state.sel) {
+      std::shared_ptr<Expr> cond_expr = parse_expr(abstr, cond);
+
       Branch then_branch {};
       then_branch.branch_ty = L_BRANCH_TYPE_CONDITION_THEN;
-      then_branch.cond = cond;
+      then_branch.cond = cond_expr;
       then_branch.ctrl_flow = parse(then_target_label);
 
       Branch else_branch {};
       else_branch.branch_ty = L_BRANCH_TYPE_CONDITION_ELSE;
-      else_branch.cond = cond;
+      else_branch.cond = cond_expr;
       else_branch.ctrl_flow = parse(else_target_label);
 
       ControlFlowSelection sel {};
@@ -799,7 +626,7 @@ struct ControlFlowGraphParser {
       assert(else_target_label == merge_state.merge_target_label);
 
       ControlFlowLoop loop {};
-      loop.cond = cond;
+      loop.cond = parse_expr(abstr, cond);
       loop.body = parse(then_target_label);
       out.loop = std::make_unique<ControlFlowLoop>(std::move(loop));
     }
@@ -812,11 +639,23 @@ struct ControlFlowGraphParser {
     ControlFlow out {};
     out.label = block.label;
     out.next = parse(fetch_instr(e.read_id()));
+    for (const InstructionRef& instr : block.instrs) {
+      std::shared_ptr<Stmt> stmt = parse_stmt(abstr, instr);
+      if (stmt != nullptr) {
+        out.stmts.emplace_back(std::move(stmt));
+      }
+    }
     return std::make_unique<ControlFlow>(std::move(out));
   }
   std::unique_ptr<ControlFlow> parse_return(const Block& block) {
     ControlFlow out {};
     out.label = block.label;
+    for (const InstructionRef& instr : block.instrs) {
+      std::shared_ptr<Stmt> stmt = parse_stmt(abstr, instr);
+      if (stmt != nullptr) {
+        out.stmts.emplace_back(std::move(stmt));
+      }
+    }
     return std::make_unique<ControlFlow>(std::move(out));
   }
 
@@ -863,7 +702,7 @@ void guarded_main() {
   std::unique_ptr<ControlFlow> ctrl_flow =
     ControlFlowGraphParser(abstr, entry_point).parse(entry_point.entry_label);
 
-  log::info("success");
+   log::info("success");
 }
 
 
