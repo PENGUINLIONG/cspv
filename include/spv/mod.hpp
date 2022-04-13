@@ -35,10 +35,20 @@ struct SpirvFunction {
   InstructionRef return_label;
   std::map<InstructionRef, Block> blocks;
 };
+struct Decoration {
+  spv::Decoration deco;
+  InstructionRef instr;
+};
+struct MemberDecoration {
+  spv::Decoration deco;
+  uint32_t imember;
+  InstructionRef instr;
+};
 struct SpirvModule {
   SpirvAbstract abstr;
 
-  std::map<InstructionRef, std::vector<InstructionRef>> instr2deco_map;
+  std::map<InstructionRef, std::vector<Decoration>> instr2deco_map;
+  std::map<InstructionRef, std::vector<MemberDecoration>> instr2member_deco_map;
 
   std::vector<spv::Capability> caps;
   std::vector<std::string> exts;
@@ -50,7 +60,37 @@ struct SpirvModule {
   std::map<InstructionRef, SpirvEntryPoint> entry_points;
   std::map<InstructionRef, SpirvFunction> funcs;
 
-  SpirvModule(SpirvAbstract&& abstr) : abstr(std::forward<SpirvAbstract>(abstr)) {}
+  inline SpirvModule(SpirvAbstract&& abstr) :
+    abstr(std::forward<SpirvAbstract>(abstr)) {}
+
+  inline InstructionRef get_deco_instr(
+    spv::Decoration deco,
+    const InstructionRef& instr
+  ) const {
+    for (const auto& x : instr2deco_map.at(instr)) {
+      if (x.deco == deco) { return x.instr; }
+    }
+    return nullptr;
+  }
+  inline InstructionRef get_member_deco_instr(
+    spv::Decoration deco,
+    uint32_t imember,
+    const InstructionRef& instr
+  ) const {
+    for (const auto& x : instr2member_deco_map.at(instr)) {
+      if (x.imember == imember && x.deco == deco) { return x.instr; }
+    }
+    return nullptr;
+  }
+  inline uint32_t get_deco_u32(
+    spv::Decoration deco,
+    const InstructionRef& instr
+  ) {
+    InstructionRef deco_instr = get_deco_instr(deco, instr);
+    liong::assert(deco_instr);
+    auto e = deco_instr.extract_params();
+    return e.read_u32();
+  }
 };
 
 SpirvModule parse_spirv_module(SpirvAbstract&& abstr);

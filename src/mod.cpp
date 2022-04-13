@@ -154,11 +154,26 @@ struct SpirvVisitor {
       spv::Op::OpDecorate, spv::Op::OpMemberDecorate, spv::Op::OpDecorateId
       })) {
       spv::Op op = instr.op();
+      if (op == spv::Op::OpMemberDecorate) {
+        auto e = instr.extract_params();
+        InstructionRef target = lookup_instr(e.read_id());
+        uint32_t imember = e.read_u32();
+        spv::Decoration deco = e.read_u32_as<spv::Decoration>();
+        MemberDecoration record {};
+        record.deco = deco;
+        record.imember = imember;
+        record.instr = instr;
+        out.instr2member_deco_map[target].emplace_back(std::move(record));
+      } else {
+        auto e = instr.extract_params();
+        InstructionRef target = lookup_instr(e.read_id());
+        spv::Decoration deco = e.read_u32_as<spv::Decoration>();
+        Decoration record {};
+        record.deco = deco;
+        record.instr = instr;
+        out.instr2deco_map[target].emplace_back(std::move(record));
+      }
 
-      // Allowed decoration instructions.
-      auto e = instr.extract_params();
-      InstructionRef target = lookup_instr(e.read_id());
-      out.instr2deco_map[target].emplace_back(instr);
     }
 
     // Group and string decorations are unsupported.
