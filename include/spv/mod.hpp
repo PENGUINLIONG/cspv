@@ -1,4 +1,5 @@
-// Structured parsing or SPIR-V module.
+// Semantical segmentation of the order-dependent executable portion of SPIR-V
+// module.
 // @PENGUINLIONG
 #pragma once
 #include "spv/abstr.hpp"
@@ -19,11 +20,6 @@ struct SpirvEntryPoint {
 
   SpirvEntryPointExecutionModeCompute exec_mode_comp;
 };
-struct SpirvVariable {
-  spv::StorageClass storage_class;
-  InstructionRef ty;
-  InstructionRef init_value;
-};
 
 struct Block {
   InstructionRef label;
@@ -38,7 +34,6 @@ struct SpirvFunction {
   InstructionRef entry_label;
   InstructionRef return_label;
   std::map<InstructionRef, Block> blocks;
-  std::map<InstructionRef, InstructionRef> doms;
 };
 struct SpirvModule {
   SpirvAbstract abstr;
@@ -53,8 +48,6 @@ struct SpirvModule {
   spv::MemoryModel mem_model;
 
   std::map<InstructionRef, SpirvEntryPoint> entry_points;
-
-  std::map<InstructionRef, SpirvVariable> vars;
   std::map<InstructionRef, SpirvFunction> funcs;
 
   SpirvModule(SpirvAbstract&& abstr) : abstr(std::forward<SpirvAbstract>(abstr)) {}

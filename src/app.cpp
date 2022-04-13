@@ -62,6 +62,7 @@ void guarded_main() {
   std::vector<uint32_t> spv = load_spv(CFG.in_file_path.c_str());
   SpirvAbstract abstr = scan_spirv(spv);
   SpirvModule mod = parse_spirv_module(std::move(abstr));
+  auto entry_points = extract_entry_points(mod);
 
    log::info("success");
 }

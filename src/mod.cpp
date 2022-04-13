@@ -210,18 +210,6 @@ struct SpirvVisitor {
   bool visit_global_var_declrs() {
     InstructionRef instr {};
     if (instr = fetch_instr(spv::Op::OpVariable)) {
-      SpirvVariable var;
-      auto e = instr.extract_params();
-
-      var.storage_class = e.read_u32_as<spv::StorageClass>();
-      var.ty = lookup_instr(instr.result_ty_id());
-      if (e.cur < e.end) {
-        var.init_value = lookup_instr(e.read_id());
-      }
-
-      assert(var.storage_class != spv::StorageClass::Function,
-        "function variable cannot be declared at a global scope");
-      out.vars.emplace(std::make_pair(instr, std::move(var)));
       return true;
     }
 

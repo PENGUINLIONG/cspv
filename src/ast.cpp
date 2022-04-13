@@ -61,10 +61,7 @@ struct ControlFlowGraphParser {
     return parse_ty(lookup_instr(id));
   }
 
-  std::shared_ptr<Expr> parse_expr(
-    const SpirvAbstract& abstr,
-    const InstructionRef& instr
-  ) {
+  std::shared_ptr<Expr> parse_expr(const InstructionRef& instr) {
     std::shared_ptr<Expr> out;
     spv::Op op = instr.op();
     if (op == spv::Op::OpConstant) {
@@ -104,10 +101,7 @@ struct ControlFlowGraphParser {
     return parse_expr(lookup_instr(id));
   }
 
-  std::shared_ptr<Stmt> parse_stmt(
-    const SpirvAbstract& abstr,
-    const InstructionRef& instr
-  ) {
+  std::shared_ptr<Stmt> parse_stmt(const InstructionRef& instr) {
     std::shared_ptr<Stmt> out;
     spv::Op op = instr.op();
     if (op == spv::Op::OpStore) {
@@ -185,13 +179,13 @@ struct ControlFlowGraphParser {
     out.label = block.label;
     out.next = parse(merge_state.merge_target_label);
     for (const InstructionRef& instr : block.instrs) {
-      std::shared_ptr<Stmt> stmt = parse_stmt(mod.abstr, instr);
+      std::shared_ptr<Stmt> stmt = parse_stmt(instr);
       if (stmt != nullptr) {
         out.stmts.emplace_back(std::move(stmt));
       }
     }
     if (merge_state.sel) {
-      std::shared_ptr<Expr> cond_expr = parse_expr(mod.abstr, cond);
+      std::shared_ptr<Expr> cond_expr = parse_expr(cond);
 
       Branch then_branch {};
       then_branch.branch_ty = L_BRANCH_TYPE_CONDITION_THEN;
@@ -211,7 +205,7 @@ struct ControlFlowGraphParser {
       assert(else_target_label == merge_state.merge_target_label);
 
       ControlFlowLoop loop {};
-      loop.cond = parse_expr(mod.abstr, cond);
+      loop.cond = parse_expr(cond);
       loop.body = parse(then_target_label);
       out.loop = std::make_unique<ControlFlowLoop>(std::move(loop));
     }
@@ -225,7 +219,7 @@ struct ControlFlowGraphParser {
     out.label = block.label;
     out.next = parse(lookup_instr(e.read_id()));
     for (const InstructionRef& instr : block.instrs) {
-      std::shared_ptr<Stmt> stmt = parse_stmt(mod.abstr, instr);
+      std::shared_ptr<Stmt> stmt = parse_stmt(instr);
       if (stmt != nullptr) {
         out.stmts.emplace_back(std::move(stmt));
       }
@@ -236,7 +230,7 @@ struct ControlFlowGraphParser {
     ControlFlow out {};
     out.label = block.label;
     for (const InstructionRef& instr : block.instrs) {
-      std::shared_ptr<Stmt> stmt = parse_stmt(mod.abstr, instr);
+      std::shared_ptr<Stmt> stmt = parse_stmt(instr);
       if (stmt != nullptr) {
         out.stmts.emplace_back(std::move(stmt));
       }

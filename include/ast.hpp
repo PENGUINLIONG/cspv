@@ -219,3 +219,5 @@ struct ControlFlow {
   std::unique_ptr<ControlFlowReturn> ret;
   std::unique_ptr<ControlFlowLoop> loop;
 };
+
+extern std::map<std::string, std::unique_ptr<ControlFlow>> extract_entry_points(const SpirvModule& mod);

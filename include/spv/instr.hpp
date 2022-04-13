@@ -1,4 +1,4 @@
-// SPIR-V instructions.
+// SPIR-V syntactic segmentation and parsing.
 // @PENGUINLIONG
 #pragma once
 #include "gft/log.hpp"
