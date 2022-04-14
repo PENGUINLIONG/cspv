@@ -166,12 +166,32 @@ struct ControlFlowGraphParser {
       auto a = parse_expr(e.read_id());
       auto b = parse_expr(e.read_id());
       out = std::shared_ptr<Expr>(new ExprAdd(ty, a, b));
-    } else if (op == spv::Op::OpSLessThan) {
+    } else if (
+      op == spv::Op::OpSLessThan ||
+      op == spv::Op::OpULessThan ||
+      op == spv::Op::OpFOrdLessThan
+      ) {
       auto ty = parse_ty(instr.result_ty_id());
       auto e = instr.extract_params();
       auto a = parse_expr(e.read_id());
       auto b = parse_expr(e.read_id());
       out = std::shared_ptr<Expr>(new ExprLt(ty, a, b));
+    } else if (
+      op == spv::Op::OpConvertFToS ||
+      op == spv::Op::OpConvertSToF ||
+      op == spv::Op::OpConvertFToU ||
+      op == spv::Op::OpConvertUToF
+      ) {
+      auto dst_ty = parse_ty(instr.result_ty_id());
+      auto e = instr.extract_params();
+      auto src = parse_expr(e.read_id());
+      out = std::shared_ptr<Expr>(new ExprTypeCast(dst_ty, src));
+    } else if (op == spv::Op::OpIEqual || op == spv::Op::OpFOrdEqual) {
+      auto ty = parse_ty(instr.result_ty_id());
+      auto e = instr.extract_params();
+      auto a = parse_expr(e.read_id());
+      auto b = parse_expr(e.read_id());
+      out = std::shared_ptr<Expr>(new ExprEq(ty, a, b));
     }
     return out;
   }

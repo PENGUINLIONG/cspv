@@ -44,11 +44,14 @@ enum ExprOp {
   L_EXPR_OP_MOD,
 
   L_EXPR_OP_LT,
+  L_EXPR_OP_EQ,
 
   L_EXPR_OP_AND,
   L_EXPR_OP_OR,
   L_EXPR_OP_NOT,
   L_EXPR_OP_XOR,
+
+  L_EXPR_OP_TYPE_CAST,
 };
 struct Expr {
   const ExprOp op;
@@ -456,9 +459,35 @@ struct ExprLt : public ExprBinaryOp {
   }
 
   virtual void dbg_print(Debug& s) const override final {
-    s << "(" << *a << " < " << *b<< ")";
+    s << "(" << *a << " < " << *b << ")";
   }
 };
+struct ExprEq : public ExprBinaryOp {
+  inline ExprEq(
+    const std::shared_ptr<Type>& ty,
+    const std::shared_ptr<Expr>& a,
+    const std::shared_ptr<Expr>& b
+  ) : ExprBinaryOp(L_EXPR_OP_EQ, ty, a, b) {
+    liong::assert(ty->cls == L_TYPE_CLASS_BOOL);
+  }
+
+  virtual void dbg_print(Debug& s) const override final {
+    s << "(" << *a << " < " << *b << ")";
+  }
+};
+struct ExprTypeCast : public Expr {
+  std::shared_ptr<Expr> src;
+  inline ExprTypeCast(
+    const std::shared_ptr<Type>& dst_ty,
+    const std::shared_ptr<Expr>& src
+  ) : Expr(L_EXPR_OP_TYPE_CAST, dst_ty), src(src) {}
+
+  virtual void dbg_print(Debug& s) const override final {
+    s << "(" << *src << ":" << *ty << ")";
+  }
+};
+
+
 
 struct StmtStore : public Stmt {
   const std::shared_ptr<Memory> dst_ptr;
