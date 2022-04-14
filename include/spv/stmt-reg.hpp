@@ -1,7 +1,7 @@
 // Statements op registry.
 // @PENGUINLIONG
 #pragma once
-#include "spv/memory-reg.hpp"
+#include "spv/mem-reg.hpp"
 #include "spv/expr-reg.hpp"
 
 enum StmtOp {

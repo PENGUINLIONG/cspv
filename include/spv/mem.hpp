@@ -1,7 +1,7 @@
 // Memory class implementations.
 // @PENGUINLIONG
 #pragma once
-#include "memory-reg.hpp"
+#include "mem-reg.hpp"
 
 struct MemoryFunctionVariable : public Memory {
   const void* handle;

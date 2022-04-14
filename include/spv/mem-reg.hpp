@@ -19,7 +19,7 @@ struct Memory {
   const std::shared_ptr<Type> ty;
   const AccessChain ac;
 
-  virtual void dbg_print(Debug& s) const { s << "memory?"; }
+  virtual void dbg_print(Debug& s) const { s << "mem?"; }
 
 protected:
   Memory(

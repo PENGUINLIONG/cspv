@@ -7,7 +7,7 @@
 #include "gft/assert.hpp"
 #include "spv/mod.hpp"
 #include "spv/type.hpp"
-#include "spv/memory.hpp"
+#include "spv/mem.hpp"
 #include "spv/expr.hpp"
 #include "spv/stmt.hpp"
 #include "spv/ctrl-flow.hpp"
