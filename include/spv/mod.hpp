@@ -99,6 +99,10 @@ struct SpirvModule {
     e.read_u32();
     return e.read_u32();
   }
+
+  inline const InstructionRef& lookup_instr(spv::Id id) const {
+    return abstr.id2instr_map.at(id);
+  }
 };
 
 SpirvModule parse_spirv_module(SpirvAbstract&& abstr);

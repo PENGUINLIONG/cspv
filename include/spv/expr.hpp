@@ -133,3 +133,6 @@ struct ExprTypeCast : public Expr {
     s << "(" << *src << ":" << *ty << ")";
   }
 };
+
+std::shared_ptr<Expr> parse_expr(const SpirvModule& mod, const InstructionRef& instr);
+std::shared_ptr<Expr> parse_expr(const SpirvModule& mod, spv::Id id);

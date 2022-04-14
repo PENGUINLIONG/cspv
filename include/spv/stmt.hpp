@@ -16,3 +16,6 @@ struct StmtStore : public Stmt {
     s << "Store(" << *dst_ptr << ", " << *value << ")";
   }
 };
+
+std::shared_ptr<Stmt> parse_stmt(const SpirvModule& mod, const InstructionRef& ptr);
+std::shared_ptr<Stmt> parse_stmt(const SpirvModule& mod, spv::Id id);

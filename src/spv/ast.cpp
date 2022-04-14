@@ -33,215 +33,6 @@ struct ControlFlowGraphParser {
 
 
 
-  std::shared_ptr<Type> parse_ty(const InstructionRef& instr) {
-    spv::Op op = instr.op();
-    if (op == spv::Op::OpTypeVoid) {
-      return std::shared_ptr<Type>(new TypeVoid);
-    } else if (op == spv::Op::OpTypeBool) {
-      return std::shared_ptr<Type>(new TypeBool);
-    } else if (op == spv::Op::OpTypeInt) {
-      auto e = instr.extract_params();
-      uint32_t nbit = e.read_u32();
-      bool is_signed = e.read_bool();
-      return std::shared_ptr<Type>(new TypeInt(nbit, is_signed));
-    } else if (op == spv::Op::OpTypeFloat) {
-      auto e = instr.extract_params();
-      uint32_t nbit = e.read_u32();
-      return std::shared_ptr<Type>(new TypeFloat(nbit));
-    } else if (op == spv::Op::OpTypeStruct) {
-      auto e = instr.extract_params();
-      std::vector<std::shared_ptr<Type>> members;
-      while (e) {
-        members.emplace_back(parse_ty(e.read_id()));
-      }
-      return std::shared_ptr<Type>(new TypeStruct(std::move(members)));
-    } else if (op == spv::Op::OpTypePointer) {
-      auto e = instr.extract_params();
-      spv::StorageClass storage_cls = e.read_u32_as<spv::StorageClass>();
-      auto inner = parse_ty(e.read_id());
-      return std::shared_ptr<Type>(new TypePointer(inner));
-    } else {
-      panic("unsupported type");
-    }
-  }
-  std::shared_ptr<Type> parse_ty(spv::Id id) {
-    return parse_ty(lookup_instr(id));
-  }
-
-  std::shared_ptr<Memory> parse_mem(const InstructionRef& ptr) {
-    std::shared_ptr<Memory> out;
-
-    auto op = ptr.op();
-    if (op == spv::Op::OpVariable) {
-      auto ptr_ty = parse_ty(ptr.result_ty_id());
-      assert(ptr_ty->cls == L_TYPE_CLASS_POINTER);
-      auto var_ty = ((const TypePointer*)ptr_ty.get())->inner;
-
-      auto e = ptr.extract_params();
-      spv::StorageClass store_cls = e.read_u32_as<spv::StorageClass>();
-      // Merely function vairables.
-      if (store_cls == spv::StorageClass::Function) {
-        return std::shared_ptr<Memory>(new MemoryFunctionVariable(var_ty, {}, ptr.inner));
-      }
-
-      // Descriptor resources.
-      if (mod.has_deco(spv::Decoration::BufferBlock, ptr)) {
-        store_cls = spv::StorageClass::StorageBuffer;
-      }
-      uint32_t binding = mod.get_deco_u32(spv::Decoration::Binding, ptr);
-      uint32_t set = mod.get_deco_u32(spv::Decoration::DescriptorSet, ptr);
-      if (store_cls == spv::StorageClass::Uniform) {
-        return std::shared_ptr<Memory>(new MemoryUniformBuffer(var_ty, {}, binding, set));
-      } else if (store_cls == spv::StorageClass::StorageBuffer) {
-        return std::shared_ptr<Memory>(new MemoryStorageBuffer(var_ty, {}, binding, set));
-      } else {
-        panic("unsupported memory allocation");
-      }
-
-    } else if (op == spv::Op::OpAccessChain) {
-      auto ptr_ty = parse_ty(ptr.result_ty_id());
-      assert(ptr_ty->cls == L_TYPE_CLASS_POINTER);
-      auto ty = ((const TypePointer*)ptr_ty.get())->inner;
-
-      auto e = ptr.extract_params();
-      auto base = parse_mem(e.read_id());
-      AccessChain ac = base->ac;
-      while (e) {
-        ac.idxs.emplace_back(parse_expr(e.read_id()));
-      }
-
-      if (base->cls == L_MEMORY_CLASS_FUNCTION_VARIABLE) {
-        const auto& base2 = *(const MemoryFunctionVariable*)base.get();
-        return std::shared_ptr<Memory>(new MemoryFunctionVariable(ty, std::move(ac), base2.handle));
-      } else if (base->cls == L_MEMORY_CLASS_UNIFORM_BUFFER) {
-        const auto& base2 = *(const MemoryUniformBuffer*)base.get();
-        return std::shared_ptr<Memory>(new MemoryUniformBuffer(ty, std::move(ac), base2.binding, base2.set));
-      } else if (base->cls == L_MEMORY_CLASS_STORAGE_BUFFER) {
-        const auto& base2 = *(const MemoryUniformBuffer*)base.get();
-        return std::shared_ptr<Memory>(new MemoryStorageBuffer(ty, std::move(ac), base2.binding, base2.set));
-      } else {
-        panic("unsupported access chain base");
-      }
-
-
-    } else {
-      panic("unsupported memory indirection");
-    }
-
-    return out;
-  }
-  std::shared_ptr<Memory> parse_mem(spv::Id id) {
-    return parse_mem(lookup_instr(id));
-  }
-
-  std::shared_ptr<Expr> parse_expr(const InstructionRef& instr) {
-    std::shared_ptr<Expr> out;
-    spv::Op op = instr.op();
-    switch (op) {
-    case spv::Op::OpConstant:
-    {
-      auto e = instr.extract_params();
-      std::vector<uint32_t> lits;
-      auto ty = parse_ty(instr.result_ty_id());
-      while (e) {
-        lits.emplace_back(e.read_u32());
-      }
-      out = std::shared_ptr<Expr>(new ExprConstant(ty, std::move(lits)));
-      break;
-    }
-    case spv::Op::OpConstantTrue:
-    {
-      auto ty = parse_ty(instr.result_ty_id());
-      std::vector<uint32_t> lits;
-      lits.emplace_back(1);
-      out = std::shared_ptr<Expr>(new ExprConstant(ty, std::move(lits)));
-      break;
-    }
-    case spv::Op::OpConstantFalse:
-    {
-      auto ty = parse_ty(instr.result_ty_id());
-      std::vector<uint32_t> lits;
-      lits.emplace_back(0);
-      out = std::shared_ptr<Expr>(new ExprConstant(ty, std::move(lits)));
-      break;
-    }
-    case spv::Op::OpLoad:
-    {
-      auto ty = parse_ty(instr.result_ty_id());
-      auto e = instr.extract_params();
-      auto src_ptr = parse_mem(e.read_id());
-      out = std::shared_ptr<Expr>(new ExprLoad(ty, src_ptr));
-      break;
-    }
-    case spv::Op::OpIAdd:
-    case spv::Op::OpFAdd:
-    {
-      auto ty = parse_ty(instr.result_ty_id());
-      auto e = instr.extract_params();
-      auto a = parse_expr(e.read_id());
-      auto b = parse_expr(e.read_id());
-      out = std::shared_ptr<Expr>(new ExprAdd(ty, a, b));
-      break;
-    }
-    case spv::Op::OpSLessThan:
-    case spv::Op::OpULessThan:
-    case spv::Op::OpFOrdLessThan:
-    {
-      auto ty = parse_ty(instr.result_ty_id());
-      auto e = instr.extract_params();
-      auto a = parse_expr(e.read_id());
-      auto b = parse_expr(e.read_id());
-      out = std::shared_ptr<Expr>(new ExprLt(ty, a, b));
-      break;
-    }
-    case spv::Op::OpConvertFToS:
-    case spv::Op::OpConvertSToF:
-    case spv::Op::OpConvertFToU:
-    case spv::Op::OpConvertUToF:
-    {
-      auto dst_ty = parse_ty(instr.result_ty_id());
-      auto e = instr.extract_params();
-      auto src = parse_expr(e.read_id());
-      out = std::shared_ptr<Expr>(new ExprTypeCast(dst_ty, src));
-      break;
-    }
-    case spv::Op::OpIEqual:
-    case spv::Op::OpFOrdEqual:
-    {
-      auto ty = parse_ty(instr.result_ty_id());
-      auto e = instr.extract_params();
-      auto a = parse_expr(e.read_id());
-      auto b = parse_expr(e.read_id());
-      out = std::shared_ptr<Expr>(new ExprEq(ty, a, b));
-      break;
-    }
-    default:
-      panic("unexpected expr op (", uint32_t(op), ")");
-    }
-    return out;
-  }
-  std::shared_ptr<Expr> parse_expr(spv::Id id) {
-    return parse_expr(lookup_instr(id));
-  }
-
-  std::shared_ptr<Stmt> parse_stmt(const InstructionRef& instr) {
-    std::shared_ptr<Stmt> out;
-    spv::Op op = instr.op();
-    if (op == spv::Op::OpStore) {
-      auto e = instr.extract_params();
-      auto dst_ptr = parse_mem(e.read_id());
-      auto value = parse_expr(e.read_id());
-      assert(dst_ptr != nullptr);
-      assert(value != nullptr);
-      out = (std::shared_ptr<Stmt>)(Stmt*)new StmtStore(dst_ptr, value);
-    }
-    return out;
-  }
-
-
-
-
-
   void push_merge_state(
     const InstructionRef& head_label,
     const InstructionRef& merge_instr
@@ -301,7 +92,7 @@ struct ControlFlowGraphParser {
     std::unique_ptr<ControlFlow> out {};
     InstructionRef merge_target_label = merge_state.merge_target_label;
     if (merge_state.sel) {
-      std::shared_ptr<Expr> cond_expr = parse_expr(cond);
+      std::shared_ptr<Expr> cond_expr = parse_expr(mod, cond);
 
       std::vector<Branch> branches;
       branches.reserve(2);
@@ -331,7 +122,7 @@ struct ControlFlowGraphParser {
 
       Branch body_branch {};
       body_branch.branch_ty = L_BRANCH_TYPE_CONDITION_THEN;
-      body_branch.cond = parse_expr(cond);
+      body_branch.cond = parse_expr(mod, cond);
       body_branch.ctrl_flow = parse(then_target_label);
 
       pop_merge_state();
@@ -358,7 +149,7 @@ struct ControlFlowGraphParser {
 
     std::vector<std::shared_ptr<Stmt>> stmts;
     for (const auto& instr : block.instrs) {
-      std::shared_ptr<Stmt> stmt = parse_stmt(instr);
+      std::shared_ptr<Stmt> stmt = parse_stmt(mod, instr);
       if (stmt != nullptr) {
         stmts.emplace_back(std::move(stmt));
       }

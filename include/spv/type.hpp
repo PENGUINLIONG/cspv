@@ -99,3 +99,6 @@ struct TypePointer : public Type {
     s << "Pointer<" << *inner << ">";
   }
 };
+
+std::shared_ptr<Type> parse_ty(const SpirvModule& mod, const InstructionRef& instr);
+std::shared_ptr<Type> parse_ty(const SpirvModule& mod, spv::Id id);

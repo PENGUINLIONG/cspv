@@ -74,3 +74,6 @@ struct MemorStorageImage : public MemoryDescriptor {
   ) : MemoryDescriptor(L_MEMORY_CLASS_STORAGE_IMAGE, ty,
     std::forward<AccessChain>(ac), binding, set) {}
 };
+
+std::shared_ptr<Memory> parse_mem(const SpirvModule& mod, const InstructionRef& ptr);
+std::shared_ptr<Memory> parse_mem(const SpirvModule& mod, spv::Id id);
