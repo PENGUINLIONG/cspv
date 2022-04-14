@@ -114,6 +114,33 @@ protected:
 
 
 
+enum ControlFlowClass {
+  L_CONTROL_FLOW_CLASS_EXECUTABLE,
+  L_CONTROL_FLOW_CLASS_JUMP,
+  L_CONTROL_FLOW_CLASS_SELECT,
+  L_CONTROL_FLOW_CLASS_LOOP,
+  L_CONTROL_FLOW_CLASS_RETURN,
+  L_CONTROL_FLOW_CLASS_BACK_EDGE,
+  L_CONTROL_FLOW_CLASS_MERGE_SELECT,
+  L_CONTROL_FLOW_CLASS_MERGE_LOOP,
+};
+struct ControlFlow {
+  ControlFlowClass cls;
+  const InstructionRef label;
+  const std::unique_ptr<ControlFlow> next;
+
+  virtual void dbg_print(Debug& s) const { s << "ctrlflow?"; }
+
+protected:
+  inline ControlFlow(
+    ControlFlowClass cls,
+    const InstructionRef& label,
+    std::unique_ptr<ControlFlow>&& next
+  ) : label(label), next(std::forward<std::unique_ptr<ControlFlow>>(next)) {}
+};
+
+
+
 inline Debug& operator<<(Debug& s, const Type& x) {
   x.dbg_print(s);
   return s;
@@ -139,6 +166,10 @@ inline Debug& operator<<(Debug& s, const Memory& x) {
   return s;
 }
 inline Debug& operator<<(Debug& s, const Stmt& x) {
+  x.dbg_print(s);
+  return s;
+}
+inline Debug& operator<<(Debug& s, const ControlFlow& x) {
   x.dbg_print(s);
   return s;
 }
@@ -445,8 +476,6 @@ struct StmtStore : public Stmt {
 
 
 
-struct ControlFlow;
-
 enum BranchType {
   L_BRANCH_TYPE_NEVER,
   L_BRANCH_TYPE_CONDITION_THEN,
@@ -457,31 +486,138 @@ struct Branch {
   BranchType branch_ty;
   std::shared_ptr<Expr> cond;
   std::unique_ptr<ControlFlow> ctrl_flow;
+
+  inline void dbg_print_cond(Debug& s) const {
+    if (branch_ty == L_BRANCH_TYPE_ALWAYS) {
+      s << "(true)";
+    } else if (branch_ty == L_BRANCH_TYPE_NEVER) {
+      s << "(false)";
+    } else if (branch_ty == L_BRANCH_TYPE_CONDITION_THEN) {
+      s << *cond;
+    } else if (branch_ty == L_BRANCH_TYPE_CONDITION_ELSE) {
+      s << "(!" << *cond << ")";
+    } else {
+      liong::unreachable();
+    }
+  }
 };
 
-struct ControlFlowSelection {
-  std::vector<Branch> branches;
-};
-struct ControlFlowInitLoop {
-  std::unique_ptr<ControlFlow> body;
-};
-struct ControlFlowLoop {
-  std::shared_ptr<Expr> cond;
-  std::unique_ptr<ControlFlow> body;
-};
-struct ControlFlowReturn {
-  InstructionRef rv;
-};
-struct ControlFlow {
-  InstructionRef label;
-  std::unique_ptr<ControlFlow> next;
-  std::vector<std::shared_ptr<Stmt>> stmts;
-  // Extra parameters.
-  std::unique_ptr<ControlFlowSelection> sel;
-  std::unique_ptr<ControlFlowReturn> ret;
-  std::unique_ptr<ControlFlowLoop> loop;
+struct ControlFlowExecutable : public ControlFlow {
+  const std::vector<std::shared_ptr<Stmt>> stmts;
 
-  friend Debug& operator<<(Debug& s, const ControlFlow& x);
+  inline ControlFlowExecutable(
+    const InstructionRef& label,
+    std::unique_ptr<ControlFlow>&& next,
+    std::vector<std::shared_ptr<Stmt>>&& stmts
+  ) : ControlFlow(L_CONTROL_FLOW_CLASS_EXECUTABLE, label,
+    std::forward<std::unique_ptr<ControlFlow>>(next)),
+    stmts(std::forward<std::vector<std::shared_ptr<Stmt>>>(stmts)) {}
+
+  virtual void dbg_print(Debug& s) const override final {
+    for (const auto& stmt : stmts) {
+      s << *stmt << std::endl;
+    }
+    s << *next;
+  }
+};
+
+struct ControlFlowJump : public ControlFlow {
+  inline ControlFlowJump(
+    const InstructionRef& label,
+    std::unique_ptr<ControlFlow>&& next
+  ) : ControlFlow(L_CONTROL_FLOW_CLASS_SELECT, label,
+    std::forward<std::unique_ptr<ControlFlow>>(next)) {}
+
+  virtual void dbg_print(Debug& s) const override final {
+    s << *next;
+  }
+};
+struct ControlFlowSelect : public ControlFlow {
+  const std::vector<Branch> branches;
+
+  inline ControlFlowSelect(
+    const InstructionRef& label,
+    std::unique_ptr<ControlFlow>&& next,
+    std::vector<Branch>&& branches
+  ) : ControlFlow(L_CONTROL_FLOW_CLASS_SELECT, label,
+    std::forward<std::unique_ptr<ControlFlow>>(next)),
+    branches(std::forward<std::vector<Branch>>(branches)) {}
+
+  virtual void dbg_print(Debug& s) const override final {
+    for (const auto& branch : branches) {
+      s << "if ";
+      branch.dbg_print_cond(s);
+      s << " {" << std::endl;
+      s.push_indent();
+      s << *branch.ctrl_flow;
+      s.pop_indent();
+      s << "}" << std::endl;
+    }
+    s << *next;
+  }
+};
+struct ControlFlowLoop : public ControlFlow {
+  const Branch body;
+
+  inline ControlFlowLoop(
+    const InstructionRef& label,
+    std::unique_ptr<ControlFlow>&& next,
+    Branch&& body
+  ) : ControlFlow(L_CONTROL_FLOW_CLASS_LOOP, label,
+    std::forward<std::unique_ptr<ControlFlow>>(next)),
+    body(std::forward<Branch>(body)) {}
+
+  virtual void dbg_print(Debug& s) const override final {
+    s << "while ";
+    body.dbg_print_cond(s);
+    s << " {" << std::endl;
+    s.push_indent();
+    s << *body.ctrl_flow;
+    s.pop_indent();
+    s << "}" << std::endl;
+    s << *next;
+  }
+};
+struct ControlFlowReturn : public ControlFlow {
+  const std::shared_ptr<Expr> rv;
+
+  inline ControlFlowReturn(
+    const InstructionRef& label,
+    const std::shared_ptr<Expr>& rv
+  ) : ControlFlow(L_CONTROL_FLOW_CLASS_RETURN, label, {}), rv(rv) {}
+
+  virtual void dbg_print(Debug& s) const override final {
+    s << "return";
+    if (rv) {
+      s << " " << *rv;
+    }
+    s << std::endl;
+  }
+};
+struct ControlFlowBackEdge: public ControlFlow {
+  inline ControlFlowBackEdge(
+    const InstructionRef& label
+  ) : ControlFlow(L_CONTROL_FLOW_CLASS_BACK_EDGE, label, {}) {}
+
+  virtual void dbg_print(Debug& s) const override final {
+    s << "continue" << std::endl;
+  }
+};
+struct ControlFlowMergeSelect : public ControlFlow {
+  inline ControlFlowMergeSelect(
+    const InstructionRef& label
+  ) : ControlFlow(L_CONTROL_FLOW_CLASS_MERGE_SELECT, label, {}) {}
+
+  virtual void dbg_print(Debug& s) const override final {}
+};
+struct ControlFlowMergeLoop : public ControlFlow {
+  inline ControlFlowMergeLoop(
+    const InstructionRef& label
+  ) : ControlFlow(L_CONTROL_FLOW_CLASS_MERGE_LOOP, label, {}) {}
+
+  virtual void dbg_print(Debug& s) const override final {
+    s << "break" << std::endl;
+  }
 };
 
 extern std::map<std::string, std::unique_ptr<ControlFlow>> extract_entry_points(const SpirvModule& mod);
