@@ -66,9 +66,9 @@ void guarded_main() {
   auto entry_points = extract_entry_points(mod);
 
   for (const auto& pair : entry_points) {
-    std::stringstream ss;
-    ss << *pair.second;
-    log::info("entry point '", pair.first, "': \n", ss.str());
+    Debug s;
+    s << *pair.second;
+    log::info("entry point '", pair.first, "': \n", s.str());
   }
 
    log::info("success");
