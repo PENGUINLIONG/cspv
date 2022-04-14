@@ -3,12 +3,23 @@
 #pragma once
 #include <sstream>
 #include "gft/assert.hpp"
-#include "spv/ast.hpp"
 
 struct Debug {
   bool line_start = false;
   std::stringstream s;
   std::string indent;
+
+  std::map<const void*, std::string> var_handle2name_map;
+
+  inline const std::string& get_var_name_by_handle(const void* handle) {
+    auto it = var_handle2name_map.find(handle);
+    if (it == var_handle2name_map.end()) {
+      std::string name = "_";
+      name += std::to_string(var_handle2name_map.size());
+      var_handle2name_map.emplace(handle, std::move(name));
+    }
+    return var_handle2name_map.at(handle);
+  }
 
   inline void push_indent() { indent += "  "; }
   inline void pop_indent() { indent.resize(indent.size() - 2); }
@@ -34,42 +45,3 @@ struct Debug {
 
   inline std::string str() const { return s.str(); }
 };
-
-
-
-inline Debug& operator<<(Debug& s, const ControlFlow& x) {
-  //s << x.label.inner << ": " << std::endl;
-  for (const auto& stmt : x.stmts) {
-    s << *stmt << std::endl;
-  }
-  if (x.sel) {
-    for (const auto& branch : x.sel->branches) {
-      if (branch.branch_ty == L_BRANCH_TYPE_ALWAYS) {
-        s << "if (true) {" << std::endl;
-      } else if (branch.branch_ty == L_BRANCH_TYPE_NEVER) {
-        s << "if (false) {" << std::endl;
-      } else if (branch.branch_ty == L_BRANCH_TYPE_CONDITION_THEN) {
-        s << "if " << *branch.cond << " {" << std::endl;
-      } else if (branch.branch_ty == L_BRANCH_TYPE_CONDITION_ELSE) {
-        s << "if (!" << *branch.cond << ") {" << std::endl;
-      } else {
-        liong::unreachable();
-      }
-      s.push_indent();
-      s << *branch.ctrl_flow;
-      s.pop_indent();
-      s << "}" << std::endl;
-    }
-  }
-  if (x.loop) {
-    s << "while " << *x.loop->cond << " {" << std::endl;
-    s.push_indent();
-    s << *x.loop->body;
-    s.pop_indent();
-    s << "}" << std::endl;
-  }
-  if (x.next) {
-    s << *x.next;
-  }
-  return s;
-}

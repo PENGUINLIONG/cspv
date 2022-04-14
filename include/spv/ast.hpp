@@ -6,6 +6,7 @@
 #include <utility>
 #include "gft/assert.hpp"
 #include "spv/mod.hpp"
+#include "spv/dbg.hpp"
 
 enum TypeClass {
   L_TYPE_CLASS_VOID,
@@ -22,7 +23,7 @@ struct Type {
     liong::unimplemented();
   }
 
-  virtual void dbg_print(std::ostream& s) const { s << "type?"; }
+  virtual void dbg_print(Debug& s) const { s << "type?"; }
 
 protected:
   inline Type(TypeClass cls) : cls(cls) {}
@@ -57,7 +58,7 @@ struct Expr {
     liong::unimplemented();
   }
 
-  virtual void dbg_print(std::ostream& s) const { s << "expr?"; }
+  virtual void dbg_print(Debug& s) const { s << "expr?"; }
 
 protected:
   inline Expr(ExprOp op, const std::shared_ptr<Type>& ty) : op(op), ty(ty) {}
@@ -83,7 +84,7 @@ struct Memory {
   const std::shared_ptr<Type> ty;
   const AccessChain ac;
 
-  virtual void dbg_print(std::ostream& s) const { s << "memory?"; }
+  virtual void dbg_print(Debug& s) const { s << "memory?"; }
 
 protected:
   Memory(
@@ -105,7 +106,7 @@ struct Stmt {
     liong::unimplemented();
   }
 
-  virtual void dbg_print(std::ostream& s) const { s << "stmt?"; }
+  virtual void dbg_print(Debug& s) const { s << "stmt?"; }
 
 protected:
   inline Stmt(StmtOp op) : op(op) {}
@@ -113,15 +114,15 @@ protected:
 
 
 
-inline std::ostream& operator<<(std::ostream& s, const Type& x) {
+inline Debug& operator<<(Debug& s, const Type& x) {
   x.dbg_print(s);
   return s;
 }
-inline std::ostream& operator<<(std::ostream& s, const Expr& x) {
+inline Debug& operator<<(Debug& s, const Expr& x) {
   x.dbg_print(s);
   return s;
 }
-inline std::ostream& operator<<(std::ostream& s, const AccessChain& x) {
+inline Debug& operator<<(Debug& s, const AccessChain& x) {
   bool first = true;
   for (const auto& idx : x.idxs) {
     if (first) {
@@ -133,11 +134,11 @@ inline std::ostream& operator<<(std::ostream& s, const AccessChain& x) {
   }
   return s;
 }
-inline std::ostream& operator<<(std::ostream& s, const Memory& x) {
+inline Debug& operator<<(Debug& s, const Memory& x) {
   x.dbg_print(s);
   return s;
 }
-inline std::ostream& operator<<(std::ostream& s, const Stmt& x) {
+inline Debug& operator<<(Debug& s, const Stmt& x) {
   x.dbg_print(s);
   return s;
 }
@@ -155,7 +156,7 @@ struct TypeVoid : public Type {
     return other.cls == cls;
   }
 
-  virtual void dbg_print(std::ostream& s) const override final {
+  virtual void dbg_print(Debug& s) const override final {
     s << "void";
   }
 };
@@ -165,7 +166,7 @@ struct TypeBool : public Type {
     return other.cls == cls;
   }
 
-  virtual void dbg_print(std::ostream& s) const override final {
+  virtual void dbg_print(Debug& s) const override final {
     s << "bool";
   }
 };
@@ -180,7 +181,7 @@ struct TypeInt : public Type {
     return other2.nbit == nbit && other2.is_signed == is_signed;
   }
 
-  virtual void dbg_print(std::ostream& s) const override final {
+  virtual void dbg_print(Debug& s) const override final {
     s << (is_signed ? "i" : "u") << nbit;
   }
 };
@@ -193,7 +194,7 @@ struct TypeFloat : public Type {
     return other2.nbit == nbit;
   }
 
-  virtual void dbg_print(std::ostream& s) const override final {
+  virtual void dbg_print(Debug& s) const override final {
     s << "f" << nbit;
   }
 };
@@ -217,7 +218,7 @@ struct TypeStruct : public Type {
     return true;
   }
 
-  virtual void dbg_print(std::ostream& s) const override final {
+  virtual void dbg_print(Debug& s) const override final {
     s << "Struct<";
     bool first = true;
     for (const auto& member : members) {
@@ -241,7 +242,7 @@ struct TypePointer : public Type {
     return is_same_as(*other2.inner);
   }
 
-  virtual void dbg_print(std::ostream& s) const override final {
+  virtual void dbg_print(Debug& s) const override final {
     s << "Pointer<" << *inner << ">";
   }
 };
@@ -258,8 +259,8 @@ struct MemoryFunctionVariable : public Memory {
   ) : Memory(L_MEMORY_CLASS_FUNCTION_VARIABLE, ty,
     std::forward<AccessChain>(ac)), handle(handle) {}
 
-  virtual void dbg_print(std::ostream& s) const override final {
-    s << "$" << handle << ":" << *ty;
+  virtual void dbg_print(Debug& s) const override final {
+    s << "$" << s.get_var_name_by_handle(handle) << ":" << *ty;
   }
 };
 
@@ -287,7 +288,7 @@ struct MemoryUniformBuffer : public MemoryDescriptor {
   ) : MemoryDescriptor(L_MEMORY_CLASS_UNIFORM_BUFFER, ty,
     std::forward<AccessChain>(ac), binding, set) {}
 
-  virtual void dbg_print(std::ostream& s) const override final {
+  virtual void dbg_print(Debug& s) const override final {
     s << "UniformBuffer@" << binding << "," << set << "[" << ac << "]:" << *ty;
   }
 };
@@ -330,7 +331,7 @@ struct ExprConstant : public Expr {
     std::vector<uint32_t>&& lits
   ) : Expr(L_EXPR_OP_CONSTANT, ty), lits(lits) {}
 
-  virtual void dbg_print(std::ostream& s) const override final {
+  virtual void dbg_print(Debug& s) const override final {
     if (ty->cls == L_TYPE_CLASS_INT) {
       const auto& ty2 = *(const TypeInt*)ty.get();
       if (ty2.is_signed) {
@@ -368,7 +369,7 @@ struct ExprLoad : public Expr {
     const std::shared_ptr<Memory>& src_ptr
   ) : Expr(L_EXPR_OP_LOAD, ty), src_ptr(src_ptr) {}
 
-  virtual void dbg_print(std::ostream& s) const override final {
+  virtual void dbg_print(Debug& s) const override final {
     s << "Load(" << *src_ptr << ")";
   }
 };
@@ -396,7 +397,7 @@ struct ExprAdd : public ExprBinaryOp {
     liong::assert(ty->is_same_as(*a->ty));
   }
 
-  virtual void dbg_print(std::ostream& s) const override final {
+  virtual void dbg_print(Debug& s) const override final {
     s << "(" << *a << " + " << *b << ")";
   }
 };
@@ -409,7 +410,7 @@ struct ExprSub : public ExprBinaryOp {
     liong::assert(ty->is_same_as(*a->ty));
   }
 
-  virtual void dbg_print(std::ostream& s) const override final {
+  virtual void dbg_print(Debug& s) const override final {
     s << "(" << *a << " - " << *b << ")";
   }
 };
@@ -423,7 +424,7 @@ struct ExprLt : public ExprBinaryOp {
     liong::assert(ty->cls == L_TYPE_CLASS_BOOL);
   }
 
-  virtual void dbg_print(std::ostream& s) const override final {
+  virtual void dbg_print(Debug& s) const override final {
     s << "(" << *a << " < " << *b<< ")";
   }
 };
@@ -437,7 +438,7 @@ struct StmtStore : public Stmt {
     const std::shared_ptr<Expr>& value
   ) : Stmt(L_STMT_OP_STORE), dst_ptr(dst_ptr), value(value) {}
 
-  virtual void dbg_print(std::ostream& s) const override final {
+  virtual void dbg_print(Debug& s) const override final {
     s << "Store(" << *dst_ptr << ", " << *value << ")";
   }
 };
@@ -479,6 +480,8 @@ struct ControlFlow {
   std::unique_ptr<ControlFlowSelection> sel;
   std::unique_ptr<ControlFlowReturn> ret;
   std::unique_ptr<ControlFlowLoop> loop;
+
+  friend Debug& operator<<(Debug& s, const ControlFlow& x);
 };
 
 extern std::map<std::string, std::unique_ptr<ControlFlow>> extract_entry_points(const SpirvModule& mod);
