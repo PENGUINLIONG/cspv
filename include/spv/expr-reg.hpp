@@ -20,8 +20,6 @@ struct Expr {
   const ExprOp op;
   const std::shared_ptr<Type> ty;
 
-  virtual void visit(struct ExprVisitor*) const {}
-
   virtual bool is_same_as(const Type& other) const {
     liong::unimplemented();
   }

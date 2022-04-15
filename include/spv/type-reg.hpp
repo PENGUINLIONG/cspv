@@ -14,8 +14,6 @@ enum TypeClass {
 struct Type {
   const TypeClass cls;
 
-  virtual void visit(struct TypeVisitor*) const {}
-
   virtual bool is_same_as(const Type& other) const {
     liong::unimplemented();
   }
