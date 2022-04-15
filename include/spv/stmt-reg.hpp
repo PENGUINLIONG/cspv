@@ -10,6 +10,8 @@ enum StmtOp {
 struct Stmt {
   const StmtOp op;
 
+  virtual void visit(struct StmtVisitor*) const {}
+
   virtual bool is_same_as(const Type& other) const {
     liong::unimplemented();
   }

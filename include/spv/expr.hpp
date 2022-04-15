@@ -40,6 +40,9 @@ struct ExprConstant : public Expr {
     }
     s << ":" << *ty;
   }
+  virtual bool is_constexpr() const override final {
+    return true;
+  }
 };
 
 struct ExprLoad : public Expr {
@@ -52,6 +55,9 @@ struct ExprLoad : public Expr {
 
   virtual void dbg_print(Debug& s) const override final {
     s << "Load(" << *src_ptr << ")";
+  }
+  virtual bool is_constexpr() const override final {
+    return src_ptr->cls == L_MEMORY_CLASS_UNIFORM_BUFFER;
   }
 };
 
@@ -66,6 +72,9 @@ struct ExprBinaryOp : public Expr {
     const std::shared_ptr<Expr>& b
   ) : Expr(op, ty), a(a), b(b) {
     liong::assert(a && b && a->ty->is_same_as(*b->ty));
+  }
+  virtual bool is_constexpr() const override final {
+    return a->is_constexpr() && b->is_constexpr();
   }
 };
 
@@ -119,7 +128,7 @@ struct ExprEq : public ExprBinaryOp {
   }
 
   virtual void dbg_print(Debug& s) const override final {
-    s << "(" << *a << " < " << *b << ")";
+    s << "(" << *a << " == " << *b << ")";
   }
 };
 struct ExprTypeCast : public Expr {
@@ -131,6 +140,9 @@ struct ExprTypeCast : public Expr {
 
   virtual void dbg_print(Debug& s) const override final {
     s << "(" << *src << ":" << *ty << ")";
+  }
+  virtual bool is_constexpr() const override final {
+    return src->is_constexpr();
   }
 };
 
