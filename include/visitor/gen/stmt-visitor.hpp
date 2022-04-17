@@ -14,6 +14,7 @@ struct StmtVisitor {
     case L_STMT_OP_RETURN: visit_stmt(*(const StmtReturn*)&stmt); break;
     case L_STMT_OP_IF_THEN_ELSE_MERGE: visit_stmt(*(const StmtIfThenElseMerge*)&stmt); break;
     case L_STMT_OP_LOOP_MERGE: visit_stmt(*(const StmtLoopMerge*)&stmt); break;
+    case L_STMT_OP_LOOP_CONTINUE: visit_stmt(*(const StmtLoopContinue*)&stmt); break;
     case L_STMT_OP_LOOP_BACK_EDGE: visit_stmt(*(const StmtLoopBackEdge*)&stmt); break;
     case L_STMT_OP_STORE: visit_stmt(*(const StmtStore*)&stmt); break;
     default: liong::unreachable();
@@ -26,6 +27,7 @@ struct StmtVisitor {
   virtual void visit_stmt(const StmtReturn&) {}
   virtual void visit_stmt(const StmtIfThenElseMerge&) {}
   virtual void visit_stmt(const StmtLoopMerge&) {}
+  virtual void visit_stmt(const StmtLoopContinue&) {}
   virtual void visit_stmt(const StmtLoopBackEdge&) {}
   virtual void visit_stmt(const StmtStore&) {}
 };

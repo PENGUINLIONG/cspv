@@ -213,6 +213,8 @@ struct DebugPrintVisitor : public Visitor {
   virtual void visit_stmt(const StmtLoop& x) override final {
     s << "loop " << std::endl;
     visit(*x.body_block);
+    s << "continue " << std::endl;
+    visit(*x.continue_block);
   }
   virtual void visit_stmt(const StmtReturn& x) override final {
     s << "return ";
@@ -220,6 +222,9 @@ struct DebugPrintVisitor : public Visitor {
       visit(*x.rv);
     }
     s << std::endl;
+  }
+  virtual void visit_stmt(const StmtLoopContinue& x) override final {
+    s << "continue" << std::endl;
   }
   virtual void visit_stmt(const StmtLoopBackEdge& x) override final {}
   virtual void visit_stmt(const StmtIfThenElseMerge& x) override final {}

@@ -82,8 +82,10 @@ struct ControlFlowParser {
       auto stmt = std::shared_ptr<Stmt>(new StmtLoopMerge);
       stmts.emplace_back(std::move(stmt));
       parser_state.cur = nullptr;
-    //} else if (instr == parser_state.loop_continue_target) {
-    //  unimplemented();
+    } else if (instr == parser_state.loop_continue_target) {
+      auto stmt = std::shared_ptr<Stmt>(new StmtLoopContinue);
+      stmts.emplace_back(std::move(stmt));
+      parser_state.cur = nullptr;
     } else if (instr == parser_state.loop_back_edge_target) {
       auto stmt = std::shared_ptr<Stmt>(new StmtLoopBackEdge);
       stmts.emplace_back(stmt);
@@ -242,15 +244,23 @@ struct ControlFlowParser {
     {
       LoopMerge sr(instr);
       merge_target = mod.lookup_instr(sr.merge_target);
+      auto continue_target = mod.lookup_instr(sr.continue_target);
 
-      ParserState parser_state2 = parser_state;
-      parser_state2.cur = instr.next();
-      parser_state2.loop_merge_target = merge_target;
-      parser_state2.loop_continue_target = mod.lookup_instr(sr.continue_target);
-      parser_state2.loop_back_edge_target = parser_state.cur_block_label;
-      auto body_stmt = parse(mod, std::move(parser_state2));
+      ParserState body_parser_state2 = parser_state;
+      body_parser_state2.cur = instr.next();
+      body_parser_state2.loop_merge_target = merge_target;
+      body_parser_state2.loop_continue_target = continue_target;
+      body_parser_state2.loop_back_edge_target = parser_state.cur_block_label;
+      auto body_stmt = parse(mod, std::move(body_parser_state2));
 
-      auto stmt = std::shared_ptr<Stmt>(new StmtLoop(body_stmt));
+      ParserState continue_parser_state2 = parser_state;
+      continue_parser_state2.cur = continue_target.next();
+      continue_parser_state2.loop_merge_target = merge_target;
+      continue_parser_state2.loop_continue_target = continue_target;
+      continue_parser_state2.loop_back_edge_target = parser_state.cur_block_label;
+      auto continue_stmt = parse(mod, std::move(continue_parser_state2));
+
+      auto stmt = std::shared_ptr<Stmt>(new StmtLoop(body_stmt, continue_stmt));
       stmts.emplace_back(std::move(stmt));
       break;
     }

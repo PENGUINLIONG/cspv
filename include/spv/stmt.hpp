@@ -37,10 +37,13 @@ struct StmtIfThenElse : public Stmt {
 };
 struct StmtLoop : public Stmt {
   std::shared_ptr<Stmt> body_block;
+  std::shared_ptr<Stmt> continue_block;
 
   inline StmtLoop(
-    const std::shared_ptr<Stmt>& body_block
-  ) : Stmt(L_STMT_OP_LOOP), body_block(body_block) {}
+    const std::shared_ptr<Stmt>& body_block,
+    const std::shared_ptr<Stmt>& continue_block
+  ) : Stmt(L_STMT_OP_LOOP), body_block(body_block),
+    continue_block(continue_block) {}
 };
 struct StmtReturn : public Stmt {
   const std::shared_ptr<Expr> rv;
@@ -54,8 +57,11 @@ struct StmtIfThenElseMerge : public Stmt {
 struct StmtLoopMerge : public Stmt {
   inline StmtLoopMerge() : Stmt(L_STMT_OP_LOOP_MERGE) {}
 };
+struct StmtLoopContinue : public Stmt {
+  inline StmtLoopContinue() : Stmt(L_STMT_OP_LOOP_CONTINUE) {}
+};
 struct StmtLoopBackEdge : public Stmt {
-    inline StmtLoopBackEdge() : Stmt(L_STMT_OP_LOOP_BACK_EDGE) {}
+  inline StmtLoopBackEdge() : Stmt(L_STMT_OP_LOOP_BACK_EDGE) {}
 };
 
 
