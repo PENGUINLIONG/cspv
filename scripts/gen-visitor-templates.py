@@ -39,12 +39,12 @@ def compose_visitor(ty_prefix, enum_prefix, abbr, enum_field, enums):
     """
     out = [
         f"struct {ty_prefix}Visitor {{",
-        f"  void visit_{abbr}(const {ty_prefix}& {abbr}) {{",
+        f"  virtual void visit_{abbr}(const {ty_prefix}& {abbr}) {{",
         f"    switch ({abbr}.{enum_field}) {{",
     ]
     for x in enums:
         out += [
-            f"    case {enum_prefix}{x}: visit_{abbr}(*(const {ty_prefix}{screaming_snake2pascal(x)}*)&{abbr}); break;",
+            f"    case {enum_prefix}{x}: visit_{abbr}_(*(const {ty_prefix}{screaming_snake2pascal(x)}*)&{abbr}); break;",
         ]
     out += [
         "    default: liong::unreachable();",
@@ -53,10 +53,34 @@ def compose_visitor(ty_prefix, enum_prefix, abbr, enum_field, enums):
     ]
     for x in enums:
         out += [
-            f"  virtual void visit_{abbr}(const {ty_prefix}{screaming_snake2pascal(x)}&) {{}}",
+            f"  virtual void visit_{abbr}_(const {ty_prefix}{screaming_snake2pascal(x)}&);",
         ]
     out += [
         "};",
+        "",
+    ]
+    return out
+def compose_functor_visitor(ty_prefix, abbr):
+    out = [
+        f"template<typename T{ty_prefix}>",
+        f"struct {ty_prefix}FunctorVisitor : public {ty_prefix}Visitor {{",
+        f"  std::function<void(const T{ty_prefix}&)> f;",
+        f"  {ty_prefix}FunctorVisitor(std::function<void(const T{ty_prefix}&)>&& f) :",
+        f"    f(std::forward<std::function<void(const T{ty_prefix}&)>>(f)) {{}}",
+        "",
+        f"  virtual void visit_{abbr}_(const T{ty_prefix}& {abbr}) override final {{",
+        f"    f({abbr});",
+        "  }",
+        "};",
+        f"template<typename T{ty_prefix}>",
+        f"void visit_{abbr}_functor(",
+        f"  std::function<void(const T{ty_prefix}&)>&& f,",
+        f"  const {ty_prefix}& x",
+        ") {",
+        f"  {ty_prefix}FunctorVisitor<T{ty_prefix}> visitor(",
+        f"    std::forward<std::function<void(const T{ty_prefix}&)>>(f));",
+        f"  visitor.visit_{abbr}(x);",
+        "}",
         "",
     ]
     return out
@@ -69,18 +93,21 @@ with open("./include/visitor/gen/mem-visitor.hpp", "w") as f:
 
 TYPES = extract_enums_from_file("./include/spv/type-reg.hpp", "L_TYPE_CLASS_")
 out = compose_general_header("type", "Type class visitor.") + \
-    compose_visitor("Type", "L_TYPE_CLASS_", "ty", "cls", TYPES)
+    compose_visitor("Type", "L_TYPE_CLASS_", "ty", "cls", TYPES) + \
+    compose_functor_visitor("Type", "ty")
 with open("./include/visitor/gen/type-visitor.hpp", "w") as f:
     f.write('\n'.join(out))
 
 EXPRS = extract_enums_from_file("./include/spv/expr-reg.hpp", "L_EXPR_OP_")
 out = compose_general_header("expr", "Expression tree visitor.") + \
-    compose_visitor("Expr", "L_EXPR_OP_", "expr", "op", EXPRS)
+    compose_visitor("Expr", "L_EXPR_OP_", "expr", "op", EXPRS) + \
+    compose_functor_visitor("Expr", "expr")
 with open("./include/visitor/gen/expr-visitor.hpp", "w") as f:
     f.write('\n'.join(out))
 
 STMTS = extract_enums_from_file("./include/spv/stmt-reg.hpp", "L_STMT_OP_")
 out = compose_general_header("stmt", "Statement tree visitor.") + \
-    compose_visitor("Stmt", "L_STMT_OP_", "stmt", "op", STMTS)
+    compose_visitor("Stmt", "L_STMT_OP_", "stmt", "op", STMTS) + \
+    compose_functor_visitor("Stmt", "stmt")
 with open("./include/visitor/gen/stmt-visitor.hpp", "w") as f:
     f.write('\n'.join(out))

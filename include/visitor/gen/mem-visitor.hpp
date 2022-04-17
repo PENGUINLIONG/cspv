@@ -5,19 +5,19 @@
 #include "spv/mem.hpp"
 
 struct MemoryVisitor {
-  void visit_mem(const Memory& mem) {
+  virtual void visit_mem(const Memory& mem) {
     switch (mem.cls) {
-    case L_MEMORY_CLASS_FUNCTION_VARIABLE: visit_mem(*(const MemoryFunctionVariable*)&mem); break;
-    case L_MEMORY_CLASS_UNIFORM_BUFFER: visit_mem(*(const MemoryUniformBuffer*)&mem); break;
-    case L_MEMORY_CLASS_STORAGE_BUFFER: visit_mem(*(const MemoryStorageBuffer*)&mem); break;
-    case L_MEMORY_CLASS_SAMPLED_IMAGE: visit_mem(*(const MemorySampledImage*)&mem); break;
-    case L_MEMORY_CLASS_STORAGE_IMAGE: visit_mem(*(const MemoryStorageImage*)&mem); break;
+    case L_MEMORY_CLASS_FUNCTION_VARIABLE: visit_mem_(*(const MemoryFunctionVariable*)&mem); break;
+    case L_MEMORY_CLASS_UNIFORM_BUFFER: visit_mem_(*(const MemoryUniformBuffer*)&mem); break;
+    case L_MEMORY_CLASS_STORAGE_BUFFER: visit_mem_(*(const MemoryStorageBuffer*)&mem); break;
+    case L_MEMORY_CLASS_SAMPLED_IMAGE: visit_mem_(*(const MemorySampledImage*)&mem); break;
+    case L_MEMORY_CLASS_STORAGE_IMAGE: visit_mem_(*(const MemoryStorageImage*)&mem); break;
     default: liong::unreachable();
     }
   }
-  virtual void visit_mem(const MemoryFunctionVariable&) {}
-  virtual void visit_mem(const MemoryUniformBuffer&) {}
-  virtual void visit_mem(const MemoryStorageBuffer&) {}
-  virtual void visit_mem(const MemorySampledImage&) {}
-  virtual void visit_mem(const MemoryStorageImage&) {}
+  virtual void visit_mem_(const MemoryFunctionVariable&);
+  virtual void visit_mem_(const MemoryUniformBuffer&);
+  virtual void visit_mem_(const MemoryStorageBuffer&);
+  virtual void visit_mem_(const MemorySampledImage&);
+  virtual void visit_mem_(const MemoryStorageImage&);
 };

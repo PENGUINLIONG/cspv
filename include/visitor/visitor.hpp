@@ -22,4 +22,8 @@ struct Visitor :
     default: liong::unimplemented();
     }
   }
+  inline void visit(const Memory& mem) { visit_mem(mem); }
+  inline void visit(const Type& ty) { visit_ty(ty); }
+  inline void visit(const Expr& expr) { visit_expr(expr); }
+  inline void visit(const Stmt& stmt) { visit_stmt(stmt); }
 };

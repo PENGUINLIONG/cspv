@@ -19,6 +19,16 @@ struct Memory : public Node {
   const std::shared_ptr<Type> ty;
   const AccessChain ac;
 
+  template<typename T>
+  const T& as() const {
+    liong::assert(is<T>(), "memory class mismatched");
+    return *(const T*)this;
+  }
+  template<typename T>
+  bool is() const {
+    return cls == T::CLS;
+  }
+
 protected:
   Memory(
     MemoryClass cls,

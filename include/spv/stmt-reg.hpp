@@ -19,6 +19,16 @@ enum StmtOp {
 struct Stmt : public Node {
   const StmtOp op;
 
+  template<typename T>
+  const T& as() const {
+    liong::assert(is<T>(), "statement op mismatched");
+    return *(const T*)this;
+  }
+  template<typename T>
+  bool is() const {
+    return op == T::OP;
+  }
+
 protected:
   inline Stmt(StmtOp op) : Node(L_NODE_VARIANT_STMT), op(op) {}
 };

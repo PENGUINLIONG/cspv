@@ -5,29 +5,49 @@
 #include "spv/stmt.hpp"
 
 struct StmtVisitor {
-  void visit_stmt(const Stmt& stmt) {
+  virtual void visit_stmt(const Stmt& stmt) {
     switch (stmt.op) {
-    case L_STMT_OP_BLOCK: visit_stmt(*(const StmtBlock*)&stmt); break;
-    case L_STMT_OP_CONDITIONAL_BRANCH: visit_stmt(*(const StmtConditionalBranch*)&stmt); break;
-    case L_STMT_OP_IF_THEN_ELSE: visit_stmt(*(const StmtIfThenElse*)&stmt); break;
-    case L_STMT_OP_LOOP: visit_stmt(*(const StmtLoop*)&stmt); break;
-    case L_STMT_OP_RETURN: visit_stmt(*(const StmtReturn*)&stmt); break;
-    case L_STMT_OP_IF_THEN_ELSE_MERGE: visit_stmt(*(const StmtIfThenElseMerge*)&stmt); break;
-    case L_STMT_OP_LOOP_MERGE: visit_stmt(*(const StmtLoopMerge*)&stmt); break;
-    case L_STMT_OP_LOOP_CONTINUE: visit_stmt(*(const StmtLoopContinue*)&stmt); break;
-    case L_STMT_OP_LOOP_BACK_EDGE: visit_stmt(*(const StmtLoopBackEdge*)&stmt); break;
-    case L_STMT_OP_STORE: visit_stmt(*(const StmtStore*)&stmt); break;
+    case L_STMT_OP_BLOCK: visit_stmt_(*(const StmtBlock*)&stmt); break;
+    case L_STMT_OP_CONDITIONAL_BRANCH: visit_stmt_(*(const StmtConditionalBranch*)&stmt); break;
+    case L_STMT_OP_IF_THEN_ELSE: visit_stmt_(*(const StmtIfThenElse*)&stmt); break;
+    case L_STMT_OP_LOOP: visit_stmt_(*(const StmtLoop*)&stmt); break;
+    case L_STMT_OP_RETURN: visit_stmt_(*(const StmtReturn*)&stmt); break;
+    case L_STMT_OP_IF_THEN_ELSE_MERGE: visit_stmt_(*(const StmtIfThenElseMerge*)&stmt); break;
+    case L_STMT_OP_LOOP_MERGE: visit_stmt_(*(const StmtLoopMerge*)&stmt); break;
+    case L_STMT_OP_LOOP_CONTINUE: visit_stmt_(*(const StmtLoopContinue*)&stmt); break;
+    case L_STMT_OP_LOOP_BACK_EDGE: visit_stmt_(*(const StmtLoopBackEdge*)&stmt); break;
+    case L_STMT_OP_STORE: visit_stmt_(*(const StmtStore*)&stmt); break;
     default: liong::unreachable();
     }
   }
-  virtual void visit_stmt(const StmtBlock&) {}
-  virtual void visit_stmt(const StmtConditionalBranch&) {}
-  virtual void visit_stmt(const StmtIfThenElse&) {}
-  virtual void visit_stmt(const StmtLoop&) {}
-  virtual void visit_stmt(const StmtReturn&) {}
-  virtual void visit_stmt(const StmtIfThenElseMerge&) {}
-  virtual void visit_stmt(const StmtLoopMerge&) {}
-  virtual void visit_stmt(const StmtLoopContinue&) {}
-  virtual void visit_stmt(const StmtLoopBackEdge&) {}
-  virtual void visit_stmt(const StmtStore&) {}
+  virtual void visit_stmt_(const StmtBlock&);
+  virtual void visit_stmt_(const StmtConditionalBranch&);
+  virtual void visit_stmt_(const StmtIfThenElse&);
+  virtual void visit_stmt_(const StmtLoop&);
+  virtual void visit_stmt_(const StmtReturn&);
+  virtual void visit_stmt_(const StmtIfThenElseMerge&);
+  virtual void visit_stmt_(const StmtLoopMerge&);
+  virtual void visit_stmt_(const StmtLoopContinue&);
+  virtual void visit_stmt_(const StmtLoopBackEdge&);
+  virtual void visit_stmt_(const StmtStore&);
 };
+
+template<typename TStmt>
+struct StmtFunctorVisitor : public StmtVisitor {
+  std::function<void(const TStmt&)> f;
+  StmtFunctorVisitor(std::function<void(const TStmt&)>&& f) :
+    f(std::forward<std::function<void(const TStmt&)>>(f)) {}
+
+  virtual void visit_stmt_(const TStmt& stmt) override final {
+    f(stmt);
+  }
+};
+template<typename TStmt>
+void visit_stmt_functor(
+  std::function<void(const TStmt&)>&& f,
+  const Stmt& x
+) {
+  StmtFunctorVisitor<TStmt> visitor(
+    std::forward<std::function<void(const TStmt&)>>(f));
+  visitor.visit_stmt(x);
+}

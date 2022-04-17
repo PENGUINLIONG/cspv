@@ -28,6 +28,16 @@ struct Expr : public Node {
     liong::unimplemented();
   }
 
+  template<typename T>
+  const T& as() const {
+    liong::assert(is<T>(), "expression op mismatched");
+    return *(const T*)this;
+  }
+  template<typename T>
+  bool is() const {
+    return op == T::OP;
+  }
+
 protected:
   inline Expr(ExprOp op, const std::shared_ptr<Type>& ty) :
     Node(L_NODE_VARIANT_EXPR), op(op), ty(ty) {}

@@ -10,6 +10,7 @@
 #include "spv/instr.hpp"
 #include "spv/ast.hpp"
 #include "visitor/util.hpp"
+#include "pass/ranged-loop-elevation.hpp"
 
 using namespace liong;
 
@@ -68,6 +69,7 @@ void guarded_main() {
   for (const auto& pair : entry_points) {
     auto code = dbg_print(*pair.second);
     log::info("entry point '", pair.first, "': \n", code);
+    ranged_loop_elevation(pair.second);
   }
 
    log::info("success");
