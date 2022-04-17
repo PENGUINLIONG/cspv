@@ -75,7 +75,7 @@ struct InstructionRef {
     return *this;
   }
 
-  inline InstructionRef next() {
+  inline InstructionRef next() const {
     return inner + len();
   }
 
@@ -96,6 +96,9 @@ struct InstructionRef {
 
   constexpr operator bool() const {
     return *this != nullptr;
+  }
+  inline operator spv::Id() const {
+    return result_id();
   }
 
   constexpr const uint32_t* words() const {

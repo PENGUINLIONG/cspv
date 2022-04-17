@@ -61,6 +61,12 @@ def compose_visitor(ty_prefix, enum_prefix, abbr, enum_field, enums):
     ]
     return out
 
+MEMS = extract_enums_from_file("./include/spv/mem-reg.hpp", "L_MEMORY_CLASS_")
+out = compose_general_header("mem", "Memory class visitor.") + \
+    compose_visitor("Memory", "L_MEMORY_CLASS_", "mem", "cls", MEMS)
+with open("./include/visitor/gen/mem-visitor.hpp", "w") as f:
+    f.write('\n'.join(out))
+
 TYPES = extract_enums_from_file("./include/spv/type-reg.hpp", "L_TYPE_CLASS_")
 out = compose_general_header("type", "Type class visitor.") + \
     compose_visitor("Type", "L_TYPE_CLASS_", "ty", "cls", TYPES)

@@ -2,221 +2,405 @@
 
 using namespace liong;
 
-struct SelectionMergeState {
+struct SelectionMerge {
+  spv::Id merge_target;
   spv::SelectionControlMask sel_ctrl;
+  SelectionMerge(const InstructionRef& instr) {
+    auto e = instr.extract_params();
+    merge_target = e.read_id();
+    sel_ctrl = e.read_u32_as<spv::SelectionControlMask>();
+  }
 };
-struct LoopMergeState {
+struct LoopMerge {
+  spv::Id merge_target;
+  spv::Id continue_target;
   spv::LoopControlMask loop_ctrl;
-  InstructionRef continue_target_label;
+  LoopMerge(const InstructionRef& instr) {
+    auto e = instr.extract_params();
+    merge_target = e.read_id();
+    continue_target = e.read_id();
+    loop_ctrl = e.read_u32_as<spv::LoopControlMask>();
+  }
 };
-struct MergeState {
-  InstructionRef merge_target_label;
-  InstructionRef head_label;
-  std::unique_ptr<SelectionMergeState> sel;
-  std::unique_ptr<LoopMergeState> loop;
+struct Branch {
+  spv::Id target_label;
+  Branch(const InstructionRef& instr) {
+    auto e = instr.extract_params();
+    target_label = e.read_id();
+  }
+};
+struct BranchConditional {
+  spv::Id cond;
+  spv::Id then_label;
+  spv::Id else_label;
+  BranchConditional(const InstructionRef& instr) {
+    auto e = instr.extract_params();
+    cond = e.read_id();
+    then_label = e.read_id();
+    else_label = e.read_id();
+  }
 };
 
-struct ControlFlowGraphParser {
-  const SpirvModule& mod;
-  const SpirvFunction& func;
-  std::vector<MergeState> merge_states;
+struct ParserState {
+  InstructionRef cur;
+  InstructionRef cur_block_label;
 
-  ControlFlowGraphParser(const SpirvModule& mod, const SpirvFunction& func) :
-    mod(mod), func(func), merge_states()
-  {
-    merge_states.reserve(1); // Has at most 1 element.
-  }
+  InstructionRef loop_continue_target;
+  InstructionRef loop_merge_target;
+  InstructionRef loop_back_edge_target;
+  InstructionRef sel_merge_target;
 
-  inline const InstructionRef& lookup_instr(spv::Id id) const {
-    return mod.abstr.id2instr_map.at(id);
-  }
+  bool is_inside_block = false;
+  bool is_first_block = true;
+};
+
+struct ControlFlowParser {
+  SpirvModule& mod;
+  ParserState parser_state;
+
+  std::vector<std::shared_ptr<Stmt>> stmts;
 
 
 
-  void push_merge_state(
-    const InstructionRef& head_label,
-    const InstructionRef& merge_instr
-  ) {
-    if (merge_instr.op() == spv::Op::OpSelectionMerge) {
-      auto e = merge_instr.extract_params();
-      const InstructionRef& merge_target_label = lookup_instr(e.read_id());
-      spv::SelectionControlMask sel_ctrl =
-        e.read_u32_as<spv::SelectionControlMask>();
 
-      SelectionMergeState sel {};
-      sel.sel_ctrl = sel_ctrl;
+  ControlFlowParser(
+    SpirvModule& mod,
+    ParserState&& parser_state
+  ) : mod(mod), parser_state(std::forward<ParserState>(parser_state)), stmts() {}
 
-      MergeState merge_state {};
-      merge_state.head_label = head_label;
-      merge_state.merge_target_label = merge_target_label;
-      merge_state.sel = std::make_unique<SelectionMergeState>(std::move(sel));
-      merge_states.emplace_back(std::move(merge_state));
 
-    } else if (merge_instr.op() == spv::Op::OpLoopMerge) {
-      auto e = merge_instr.extract_params();
-      const InstructionRef& merge_target_label = lookup_instr(e.read_id());
-      const InstructionRef& continue_target_label = lookup_instr(e.read_id());
-      spv::LoopControlMask loop_ctrl = e.read_u32_as<spv::LoopControlMask>();
 
-      LoopMergeState loop {};
-      loop.continue_target_label = continue_target_label;
-      loop.loop_ctrl = loop_ctrl;
+  void parse_label() {
+    const InstructionRef& instr = parser_state.cur;
+    assert(instr.op() == spv::Op::OpLabel);
 
-      MergeState merge_state {};
-      merge_state.head_label = head_label;
-      merge_state.merge_target_label = merge_target_label;
-      merge_state.loop = std::make_unique<LoopMergeState>(std::move(loop));
-      merge_states.emplace_back(std::move(merge_state));
-
+    if (instr == parser_state.sel_merge_target) {
+      auto stmt = std::shared_ptr<Stmt>(new StmtIfThenElseMerge);
+      stmts.emplace_back(std::move(stmt));
+      parser_state.cur = nullptr;
+    } else if (instr == parser_state.loop_merge_target) {
+      auto stmt = std::shared_ptr<Stmt>(new StmtLoopMerge);
+      stmts.emplace_back(std::move(stmt));
+      parser_state.cur = nullptr;
+    //} else if (instr == parser_state.loop_continue_target) {
+    //  unimplemented();
+    } else if (instr == parser_state.loop_back_edge_target) {
+      auto stmt = std::shared_ptr<Stmt>(new StmtLoopBackEdge);
+      stmts.emplace_back(stmt);
+      parser_state.cur = nullptr;
     } else {
-      assert(merge_instr.op() == spv::Op::OpNop,
-        "unexpected merge instruction");
-    }
-
-    //assert(merge_states.size() == 1);
-  }
-  void pop_merge_state() {
-    //assert(merge_states.size() == 1);
-    merge_states.pop_back();
-  }
-
-  std::unique_ptr<ControlFlow> parse_branch_conditional(const Block& block) {
-    assert(!merge_states.empty());
-    MergeState& merge_state = merge_states.back();
-
-    auto e = block.term.extract_params();
-    const InstructionRef& cond = lookup_instr(e.read_id());
-    const InstructionRef& then_target_label = lookup_instr(e.read_id());
-    const InstructionRef& else_target_label = lookup_instr(e.read_id());
-
-    std::unique_ptr<ControlFlow> out {};
-    InstructionRef merge_target_label = merge_state.merge_target_label;
-    if (merge_state.sel) {
-      std::shared_ptr<Expr> cond_expr = parse_expr(mod, cond);
-
-      std::vector<Branch> branches;
-      branches.reserve(2);
-      if (then_target_label != merge_state.merge_target_label) {
-        Branch then_branch {};
-        then_branch.branch_ty = L_BRANCH_TYPE_CONDITION_THEN;
-        then_branch.cond = cond_expr;
-        then_branch.ctrl_flow = parse(then_target_label);
-
-        branches.emplace_back(std::move(then_branch));
-      }
-      if (else_target_label != merge_state.merge_target_label) {
-        Branch else_branch {};
-        else_branch.branch_ty = L_BRANCH_TYPE_CONDITION_ELSE;
-        else_branch.cond = cond_expr;
-        else_branch.ctrl_flow = parse(else_target_label);
-
-        branches.emplace_back(std::move(else_branch));
-      }
-
-      pop_merge_state();
-      auto next = parse(merge_target_label);
-      return std::make_unique<ControlFlowSelect>(block.label, std::move(next), std::move(branches));
-
-    } else if (merge_state.loop) {
-      assert(else_target_label == merge_state.merge_target_label);
-
-      Branch body_branch {};
-      body_branch.branch_ty = L_BRANCH_TYPE_CONDITION_THEN;
-      body_branch.cond = parse_expr(mod, cond);
-      body_branch.ctrl_flow = parse(then_target_label);
-
-      pop_merge_state();
-      auto next = parse(merge_target_label);
-      return std::make_unique<ControlFlowLoop>(block.label, std::move(next), std::move(body_branch));
-
-    } else {
-      unreachable();
+      parser_state.cur_block_label = instr;
+      parser_state.cur = instr.next();
+      parser_state.is_inside_block = true;
     }
   }
-  std::unique_ptr<ControlFlow> parse_branch(const Block& block) {
-    auto e = block.term.extract_params();
-    auto next = parse(lookup_instr(e.read_id()));
-    return std::make_unique<ControlFlowJump>(block.label, std::move(next));
+  void parse_func_var() {
+    const InstructionRef& instr = parser_state.cur;
+    if (instr.op() != spv::Op::OpVariable) {
+      parser_state.is_first_block = false;
+      return;
+    }
+
+    auto ptr_ty = mod.ty_map.at(instr.result_ty_id());
+    assert(ptr_ty->cls == L_TYPE_CLASS_POINTER);
+    auto var_ty = ((const TypePointer*)ptr_ty.get())->inner;
+
+    auto e = instr.extract_params();
+    spv::StorageClass store_cls = e.read_u32_as<spv::StorageClass>();
+    // Merely function vairables.
+    assert(store_cls == spv::StorageClass::Function);
+    auto mem = std::shared_ptr<Memory>(new MemoryFunctionVariable(var_ty, {}, instr.inner));
+    mod.mem_map.emplace(instr, mem);
+
+    parser_state.cur = instr.next();
   }
-  std::unique_ptr<ControlFlow> parse_return(const Block& block) {
-    return std::make_unique<ControlFlowReturn>(block.label, nullptr);
-  }
+  bool parse_access_chain() {
+    const InstructionRef& instr = parser_state.cur;
+    if (instr.op() != spv::Op::OpAccessChain) { return false; }
 
-  std::unique_ptr<ControlFlow> parse_executable(const Block& block, std::unique_ptr<ControlFlow>&& inner) {
-    if (block.instrs.empty()) {
-      return std::forward<std::unique_ptr<ControlFlow>>(inner);
+    auto ptr_ty = mod.ty_map.at(instr.result_ty_id());
+    assert(ptr_ty->cls == L_TYPE_CLASS_POINTER);
+    auto ty = ((const TypePointer*)ptr_ty.get())->inner;
+
+    auto e = instr.extract_params();
+    auto base = mod.mem_map.at(e.read_id());
+    AccessChain ac = base->ac;
+    while (e) {
+      ac.idxs.emplace_back(mod.expr_map.at(e.read_id()));
     }
 
-    std::vector<std::shared_ptr<Stmt>> stmts;
-    for (const auto& instr : block.instrs) {
-      std::shared_ptr<Stmt> stmt = parse_stmt(mod, instr);
-      if (stmt != nullptr) {
-        stmts.emplace_back(std::move(stmt));
-      }
-    }
-    return std::make_unique<ControlFlowExecutable>(block.label,
-      std::forward<std::unique_ptr<ControlFlow>>(inner), std::move(stmts));
-  }
-
-  std::unique_ptr<ControlFlow> parse_block(const Block& block) {
-    if (!merge_states.empty()) {
-      for (auto it = merge_states.rbegin(); it != merge_states.rend(); ++it) {
-        const MergeState& merge_state = *it;
-        if (merge_state.loop) {
-          if (block.label == merge_state.merge_target_label) {
-            return std::make_unique<ControlFlowMergeLoop>(block.label);
-          } else if (merge_state.head_label == block.label) {
-            return std::make_unique<ControlFlowBackEdge>(block.label);
-          }
-        } else if (merge_state.sel) {
-          if (block.label == merge_state.merge_target_label) {
-            return std::make_unique<ControlFlowMergeSelect>(block.label);
-          }
-        } else {
-          unreachable();
-        }
-      }
-    }
-
-    if (block.merge != nullptr) {
-      push_merge_state(block.label, block.merge);
-    }
-
-    std::unique_ptr<ControlFlow> out;
-    switch (block.term.op()) {
-    case spv::Op::OpBranchConditional:
-      out = parse_branch_conditional(block);
+    std::shared_ptr<Memory> mem = nullptr;
+    switch (base->cls) {
+    case L_MEMORY_CLASS_FUNCTION_VARIABLE:
+    {
+      const auto& base2 = *(const MemoryFunctionVariable*)base.get();
+      mem = std::shared_ptr<Memory>(new MemoryFunctionVariable(ty, std::move(ac), base2.handle));
       break;
+    }
+    case L_MEMORY_CLASS_UNIFORM_BUFFER:
+    {
+      const auto& base2 = *(const MemoryUniformBuffer*)base.get();
+      mem = std::shared_ptr<Memory>(new MemoryUniformBuffer(ty, std::move(ac), base2.binding, base2.set));
+      break;
+    }
+    case L_MEMORY_CLASS_STORAGE_BUFFER:
+    {
+      const auto& base2 = *(const MemoryUniformBuffer*)base.get();
+      mem = std::shared_ptr<Memory>(new MemoryStorageBuffer(ty, std::move(ac), base2.binding, base2.set));
+      break;
+    }
+    default: unimplemented();
+    }
+    mod.mem_map.emplace(instr, std::move(mem));
+
+    parser_state.cur = instr.next();
+    return true;
+  }
+  bool parse_func_expr() {
+    const InstructionRef& instr = parser_state.cur;
+
+    std::shared_ptr<Expr> expr;
+    switch (instr.op()) {
+    case spv::Op::OpLoad:
+    {
+      auto ty = mod.ty_map.at(instr.result_ty_id());
+      auto e = instr.extract_params();
+      auto src_ptr = mod.mem_map.at(e.read_id());
+      expr = std::shared_ptr<Expr>(new ExprLoad(ty, src_ptr));
+      break;
+    }
+    case spv::Op::OpIAdd:
+    case spv::Op::OpFAdd:
+    {
+      auto ty = mod.ty_map.at(instr.result_ty_id());
+      auto e = instr.extract_params();
+      auto a = mod.expr_map.at(e.read_id());
+      auto b = mod.expr_map.at(e.read_id());
+      expr = std::shared_ptr<Expr>(new ExprAdd(ty, a, b));
+      break;
+    }
+    case spv::Op::OpSLessThan:
+    case spv::Op::OpULessThan:
+    case spv::Op::OpFOrdLessThan:
+    {
+      auto ty = mod.ty_map.at(instr.result_ty_id());
+      auto e = instr.extract_params();
+      auto a = mod.expr_map.at(e.read_id());
+      auto b = mod.expr_map.at(e.read_id());
+      expr = std::shared_ptr<Expr>(new ExprLt(ty, a, b));
+      break;
+    }
+    case spv::Op::OpConvertFToS:
+    case spv::Op::OpConvertSToF:
+    case spv::Op::OpConvertFToU:
+    case spv::Op::OpConvertUToF:
+    {
+      auto dst_ty = mod.ty_map.at(instr.result_ty_id());
+      auto e = instr.extract_params();
+      auto src = mod.expr_map.at(e.read_id());
+      expr = std::shared_ptr<Expr>(new ExprTypeCast(dst_ty, src));
+      break;
+    }
+    case spv::Op::OpIEqual:
+    case spv::Op::OpFOrdEqual:
+    {
+      auto ty = mod.ty_map.at(instr.result_ty_id());
+      auto e = instr.extract_params();
+      auto a = mod.expr_map.at(e.read_id());
+      auto b = mod.expr_map.at(e.read_id());
+      expr = std::shared_ptr<Expr>(new ExprEq(ty, a, b));
+      break;
+    }
+    default:
+      return false;
+    }
+    mod.expr_map.emplace(instr, expr);
+
+    parser_state.cur = instr.next();
+    return true;
+  }
+  bool parse_func_ctrl_flow_merge_stmt() {
+    const InstructionRef& instr = parser_state.cur;
+
+    InstructionRef merge_target;
+    switch (instr.op()) {
+    case spv::Op::OpSelectionMerge:
+    {
+      SelectionMerge sr(instr);
+      merge_target = mod.lookup_instr(sr.merge_target);
+
+      ParserState parser_state2 = parser_state;
+      parser_state2.cur = instr.next();
+      parser_state2.sel_merge_target = merge_target;
+      auto body_stmt = parse(mod, std::move(parser_state2));
+
+      auto stmt = std::shared_ptr<Stmt>(new StmtIfThenElse(body_stmt));
+      stmts.emplace_back(std::move(stmt));
+      break;
+    }
+    case spv::Op::OpLoopMerge:
+    {
+      LoopMerge sr(instr);
+      merge_target = mod.lookup_instr(sr.merge_target);
+
+      ParserState parser_state2 = parser_state;
+      parser_state2.cur = instr.next();
+      parser_state2.loop_merge_target = merge_target;
+      parser_state2.loop_continue_target = mod.lookup_instr(sr.continue_target);
+      parser_state2.loop_back_edge_target = parser_state.cur_block_label;
+      auto body_stmt = parse(mod, std::move(parser_state2));
+
+      auto stmt = std::shared_ptr<Stmt>(new StmtLoop(body_stmt));
+      stmts.emplace_back(std::move(stmt));
+      break;
+    }
+    default:
+      return false;
+    }
+
+    parser_state.cur = merge_target;
+    parser_state.is_inside_block = false;
+    return true;
+  }
+  bool parse_func_ctrl_flow_branch_stmt() {
+    const InstructionRef& instr = parser_state.cur;
+
+    std::shared_ptr<Stmt> stmt;
+    switch (instr.op()) {
     case spv::Op::OpBranch:
-      out = parse_branch(block);
+    {
+      parser_state.is_inside_block = false;
+      Branch sr(instr);
+      parser_state.cur = mod.lookup_instr(sr.target_label);
       break;
-    case spv::Op::OpReturn:
-      out = parse_return(block);
+    }
+    case spv::Op::OpBranchConditional:
+    {
+      parser_state.is_inside_block = false;
+      BranchConditional sr(instr);
+
+      auto cond_expr = mod.expr_map.at(sr.cond);
+
+      ParserState then_parser_state2 = parser_state;
+      then_parser_state2.cur = mod.lookup_instr(sr.then_label);
+      auto then_stmt = parse(mod, std::move(then_parser_state2));
+
+      ParserState else_parser_state2 = parser_state;
+      else_parser_state2.cur = mod.lookup_instr(sr.else_label);
+      auto else_stmt = parse(mod, std::move(else_parser_state2));
+
+      auto stmt = std::shared_ptr<Stmt>(new StmtConditionalBranch(cond_expr, then_stmt, else_stmt));
+      stmts.emplace_back(std::move(stmt));
+      parser_state.cur = nullptr;
       break;
-    default: unreachable();
+    }
+    default: return false;
     }
 
-    out = parse_executable(block, std::move(out));
-    return out;
+    return true;
+  }
+  bool parse_func_ctrl_flow_tail_stmt() {
+    const InstructionRef& instr = parser_state.cur;
+
+    std::shared_ptr<Stmt> stmt;
+    switch (instr.op()) {
+    case spv::Op::OpReturn:
+    {
+      parser_state.is_inside_block = false;
+      stmt = std::shared_ptr<Stmt>(new StmtReturn({}));
+      break;
+    }
+    default: return false;
+    }
+
+    parser_state.cur = nullptr;
+    return true;
+  }
+  bool parse_func_behavior_stmt() {
+    const InstructionRef& instr = parser_state.cur;
+
+    std::shared_ptr<Stmt> stmt;
+    switch (instr.op()) {
+    case spv::Op::OpStore:
+    {
+      auto e = instr.extract_params();
+      auto dst_ptr = mod.mem_map.at(e.read_id());
+      auto value = mod.expr_map.at(e.read_id());
+      assert(dst_ptr != nullptr);
+      assert(value != nullptr);
+      stmt = std::shared_ptr<Stmt>(new StmtStore(dst_ptr, value));
+      break;
+    }
+    default: return false;
+    }
+    stmts.emplace_back(std::move(stmt));
+
+    parser_state.cur = instr.next();
+    return true;
   }
 
-  std::unique_ptr<ControlFlow> parse(const InstructionRef& label) {
-    if (label == nullptr) { return nullptr; }
 
-    const Block& block = func.blocks.at(label);
-    return parse_block(block);
+
+
+  // Returns true if the process can continue; otherwise false is returned as an
+  // interruption.
+  void parse_one() {
+    if (!parser_state.is_inside_block) {
+      parse_label();
+    } else {
+      if (parser_state.is_first_block) {
+        // Parse function variables if it's the first block. Function variables
+        // are always declared in the front of the first block (entry block) of a
+        // function.
+        parse_func_var();
+      } else {
+        bool succ = false;
+        succ |= parse_access_chain();
+        succ |= parse_func_expr();
+        succ |= parse_func_ctrl_flow_tail_stmt();
+        succ |= parse_func_ctrl_flow_merge_stmt();
+        succ |= parse_func_ctrl_flow_branch_stmt();
+        succ |= parse_func_behavior_stmt();
+        assert(succ);
+      }
+
+    }
+  }
+  void parse() {
+    while (parser_state.cur != nullptr) {
+      parse_one();
+    }
+  }
+
+  static std::shared_ptr<Stmt> parse(
+    SpirvModule& mod,
+    ParserState&& parser_state
+  ) {
+    ControlFlowParser parser(mod, std::forward<ParserState>(parser_state));
+    parser.parse();
+
+    auto stmt = std::shared_ptr<Stmt>(new StmtBlock(std::move(parser.stmts)));
+    return stmt;
+  }
+  static std::shared_ptr<Stmt> parse(
+    SpirvModule& mod,
+    InstructionRef cur
+  ) {
+    ParserState parser_state {};
+    parser_state.cur = cur;
+    return parse(mod, std::move(parser_state));
   }
 };
 
-std::map<std::string, std::unique_ptr<ControlFlow>> extract_entry_points(const SpirvModule& mod) {
-  std::map<std::string, std::unique_ptr<ControlFlow>> out {};
+std::map<std::string, std::shared_ptr<Stmt>> extract_entry_points(SpirvModule& mod) {
+  std::map<std::string, std::shared_ptr<Stmt>> out {};
 
   for (const auto& pair : mod.entry_points) {
     const auto& entry_point = mod.funcs.at(pair.second.func);
-    std::unique_ptr<ControlFlow> ctrl_flow =
-      ControlFlowGraphParser(mod, entry_point).parse(entry_point.entry_label);
-    out.emplace(pair.second.name, std::move(ctrl_flow));
+    std::shared_ptr<Stmt> root = ControlFlowParser::parse(mod, entry_point.entry_label);
+    out.emplace(pair.second.name, std::move(root));
   }
 
   return out;
 }
+

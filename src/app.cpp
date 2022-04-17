@@ -9,7 +9,7 @@
 #include "spv/abstr.hpp"
 #include "spv/instr.hpp"
 #include "spv/ast.hpp"
-#include "spv/dbg.hpp"
+#include "visitor/util.hpp"
 
 using namespace liong;
 
@@ -66,9 +66,8 @@ void guarded_main() {
   auto entry_points = extract_entry_points(mod);
 
   for (const auto& pair : entry_points) {
-    Debug s;
-    s << *pair.second;
-    log::info("entry point '", pair.first, "': \n", s.str());
+    auto code = dbg_print(*pair.second);
+    log::info("entry point '", pair.first, "': \n", code);
   }
 
    log::info("success");

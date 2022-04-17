@@ -8,19 +8,11 @@ struct TypeVoid : public Type {
   virtual bool is_same_as(const Type& other) const override final {
     return other.cls == cls;
   }
-
-  virtual void dbg_print(Debug& s) const override final {
-    s << "void";
-  }
 };
 struct TypeBool : public Type {
   TypeBool() : Type(L_TYPE_CLASS_BOOL) {}
   virtual bool is_same_as(const Type& other) const override final {
     return other.cls == cls;
-  }
-
-  virtual void dbg_print(Debug& s) const override final {
-    s << "bool";
   }
 };
 struct TypeInt : public Type {
@@ -33,10 +25,6 @@ struct TypeInt : public Type {
     const auto& other2 = (const TypeInt&)other;
     return other2.nbit == nbit && other2.is_signed == is_signed;
   }
-
-  virtual void dbg_print(Debug& s) const override final {
-    s << (is_signed ? "i" : "u") << nbit;
-  }
 };
 struct TypeFloat : public Type {
   uint32_t nbit;
@@ -45,10 +33,6 @@ struct TypeFloat : public Type {
     if (other.cls != cls) { return false; }
     const auto& other2 = (const TypeFloat&)other;
     return other2.nbit == nbit;
-  }
-
-  virtual void dbg_print(Debug& s) const override final {
-    s << "f" << nbit;
   }
 };
 // For structs specifically, we assume that the memory layout for uniform
@@ -70,20 +54,6 @@ struct TypeStruct : public Type {
     }
     return true;
   }
-
-  virtual void dbg_print(Debug& s) const override final {
-    s << "Struct<";
-    bool first = true;
-    for (const auto& member : members) {
-      if (first) {
-        first = false;
-      } else {
-        s << ",";
-      }
-      s << *member;
-    }
-    s << ">";
-  }
 };
 struct TypePointer : public Type {
   std::shared_ptr<Type> inner;
@@ -94,11 +64,4 @@ struct TypePointer : public Type {
     const auto& other2 = (const TypePointer&)other;
     return is_same_as(*other2.inner);
   }
-
-  virtual void dbg_print(Debug& s) const override final {
-    s << "Pointer<" << *inner << ">";
-  }
 };
-
-std::shared_ptr<Type> parse_ty(const SpirvModule& mod, const InstructionRef& instr);
-std::shared_ptr<Type> parse_ty(const SpirvModule& mod, spv::Id id);

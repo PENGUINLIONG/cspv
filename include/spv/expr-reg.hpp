@@ -16,7 +16,7 @@ enum ExprOp {
 
   L_EXPR_OP_TYPE_CAST,
 };
-struct Expr {
+struct Expr : public Node {
   const ExprOp op;
   const std::shared_ptr<Type> ty;
 
@@ -28,13 +28,7 @@ struct Expr {
     liong::unimplemented();
   }
 
-  virtual void dbg_print(Debug& s) const { s << "expr?"; }
-
 protected:
-  inline Expr(ExprOp op, const std::shared_ptr<Type>& ty) : op(op), ty(ty) {}
+  inline Expr(ExprOp op, const std::shared_ptr<Type>& ty) :
+    Node(L_NODE_VARIANT_EXPR), op(op), ty(ty) {}
 };
-
-inline Debug& operator<<(Debug& s, const Expr& x) {
-  x.dbg_print(s);
-  return s;
-}

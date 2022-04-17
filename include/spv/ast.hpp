@@ -1,15 +1,8 @@
 // AST Infrastructure.
 // @PENGUINLIONG
 #pragma once
+#include <map>
 #include <memory>
-#include <ostream>
-#include <utility>
-#include "gft/assert.hpp"
 #include "spv/mod.hpp"
-#include "spv/type.hpp"
-#include "spv/mem.hpp"
-#include "spv/expr.hpp"
-#include "spv/stmt.hpp"
-#include "spv/ctrl-flow.hpp"
 
-extern std::map<std::string, std::unique_ptr<ControlFlow>> extract_entry_points(const SpirvModule& mod);
+std::map<std::string, std::shared_ptr<Stmt>> extract_entry_points(SpirvModule& mod);

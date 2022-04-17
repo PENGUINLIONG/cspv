@@ -1,6 +1,7 @@
 #include "gft/assert.hpp"
 #include "gft/log.hpp"
 #include "spv/mod.hpp"
+#include "spv/ast.hpp"
 
 using namespace liong;
 
@@ -50,9 +51,21 @@ struct SpirvVisitor {
     return out;
   }
 
-  inline InstructionRef lookup_instr(spv::Id id) {
+  inline InstructionRef lookup_instr(spv::Id id) const {
     return out.abstr.id2instr_map.at(id);
   }
+
+  inline uint32_t get_deco_u32(spv::Decoration deco, const InstructionRef& instr) const {
+    return out.get_deco_u32(deco, instr);
+  }
+  inline const InstructionRef& get_deco_instr(spv::Decoration deco, const InstructionRef& instr) const {
+    return out.get_deco_instr(deco, instr);
+  }
+  inline bool has_deco(spv::Decoration deco, const InstructionRef& instr) const {
+    return out.has_deco(deco, instr);
+  }
+
+
 
   void visit_caps() {
     InstructionRef instr;
@@ -185,6 +198,55 @@ struct SpirvVisitor {
   }
 
 
+  std::shared_ptr<Type> parse_ty(const InstructionRef& instr) {
+    switch (instr.op()) {
+    case spv::Op::OpTypeVoid:
+    {
+      return std::shared_ptr<Type>(new TypeVoid);
+    }
+    case spv::Op::OpTypeBool:
+    {
+      return std::shared_ptr<Type>(new TypeBool);
+    }
+    case spv::Op::OpTypeInt:
+    {
+      auto e = instr.extract_params();
+      uint32_t nbit = e.read_u32();
+      bool is_signed = e.read_bool();
+      return std::shared_ptr<Type>(new TypeInt(nbit, is_signed));
+    }
+    case spv::Op::OpTypeFloat:
+    {
+      auto e = instr.extract_params();
+      uint32_t nbit = e.read_u32();
+      return std::shared_ptr<Type>(new TypeFloat(nbit));
+    }
+    case spv::Op::OpTypeStruct:
+    {
+      auto e = instr.extract_params();
+      std::vector<std::shared_ptr<Type>> members;
+      while (e) {
+        auto member_ty = out.ty_map.at(e.read_id());
+        members.emplace_back(member_ty);
+      }
+      return std::shared_ptr<Type>(new TypeStruct(std::move(members)));
+    }
+    case spv::Op::OpTypePointer:
+    {
+      auto e = instr.extract_params();
+      spv::StorageClass storage_cls = e.read_u32_as<spv::StorageClass>();
+      auto inner = out.ty_map.at(e.read_id());
+      return std::shared_ptr<Type>(new TypePointer(inner));
+    }
+    case spv::Op::OpTypeFunction:
+    {
+      return nullptr;
+    }
+    default: unimplemented();
+    }
+    return nullptr;
+  }
+
   // Type, constants, global variable declaration.
   bool visit_ty_declrs() {
     InstructionRef instr;
@@ -195,7 +257,10 @@ struct SpirvVisitor {
       spv::Op::OpTypeArray, spv::Op::OpTypeRuntimeArray, spv::Op::OpTypeStruct,
       spv::Op::OpTypePointer, spv::Op::OpTypeFunction
       })) {
-      // TODO: (penguinliong) Do we need typing details atm?
+      auto id = instr.result_id();
+      assert(id != L_INVALID_ID);
+      auto ty = parse_ty(instr);
+      out.ty_map.emplace(id, std::move(ty));
       return true;
     }
 
@@ -208,6 +273,38 @@ struct SpirvVisitor {
       }));
     return false;
   }
+
+  std::shared_ptr<Expr> parse_const(const InstructionRef& instr) {
+    switch (instr.op()) {
+    case spv::Op::OpConstant:
+    {
+      auto e = instr.extract_params();
+      std::vector<uint32_t> lits;
+      auto ty = out.ty_map.at(instr.result_ty_id());
+      while (e) {
+        lits.emplace_back(e.read_u32());
+      }
+      return std::shared_ptr<Expr>(new ExprConstant(ty, std::move(lits)));
+    }
+    case spv::Op::OpConstantTrue:
+    {
+      auto ty = out.ty_map.at(instr.result_ty_id());
+      std::vector<uint32_t> lits;
+      lits.emplace_back(1);
+      return std::shared_ptr<Expr>(new ExprConstant(ty, std::move(lits)));
+    }
+    case spv::Op::OpConstantFalse:
+    {
+      auto ty = out.ty_map.at(instr.result_ty_id());
+      std::vector<uint32_t> lits;
+      lits.emplace_back(0);
+      return std::shared_ptr<Expr>(new ExprConstant(ty, std::move(lits)));
+    }
+    default: unimplemented();
+    }
+    return nullptr;
+  }
+
   bool visit_const_declrs() {
     InstructionRef instr;
     if (instr = fetch_instr({
@@ -217,132 +314,125 @@ struct SpirvVisitor {
       spv::Op::OpSpecConstantFalse, spv::Op::OpSpecConstant,
       spv::Op::OpSpecConstantComposite, spv::Op::OpSpecConstantOp
       })) {
+      spv::Id id = instr.result_id();
+      assert(id != L_INVALID_ID);
+      auto constant = parse_const(instr);
+      out.expr_map.emplace(id, std::move(constant));
       return true;
     }
 
     return false;
   }
+
+  std::shared_ptr<Memory> parse_global_mem(const InstructionRef& ptr) {
+    auto op = ptr.op();
+    if (op == spv::Op::OpVariable) {
+      auto ptr_ty = out.ty_map.at(ptr.result_ty_id());
+      assert(ptr_ty->cls == L_TYPE_CLASS_POINTER);
+      auto var_ty = ((const TypePointer*)ptr_ty.get())->inner;
+
+      auto e = ptr.extract_params();
+      spv::StorageClass store_cls = e.read_u32_as<spv::StorageClass>();
+      assert(store_cls != spv::StorageClass::Function,
+        "function variables are parsed within functions");
+      // Merely function vairables.
+      if (store_cls == spv::StorageClass::Function) {
+        return std::shared_ptr<Memory>(new MemoryFunctionVariable(var_ty, {}, ptr.inner));
+      }
+
+      // Descriptor resources.
+      if (has_deco(spv::Decoration::BufferBlock, ptr)) {
+        store_cls = spv::StorageClass::StorageBuffer;
+      }
+      uint32_t binding = get_deco_u32(spv::Decoration::Binding, ptr);
+      uint32_t set = get_deco_u32(spv::Decoration::DescriptorSet, ptr);
+      if (store_cls == spv::StorageClass::Uniform) {
+        return std::shared_ptr<Memory>(new MemoryUniformBuffer(var_ty, {}, binding, set));
+      } else if (store_cls == spv::StorageClass::StorageBuffer) {
+        return std::shared_ptr<Memory>(new MemoryStorageBuffer(var_ty, {}, binding, set));
+      } else {
+        panic("unsupported memory allocation");
+      }
+
+    } else {
+      panic("unsupported memory indirection");
+    }
+
+    return nullptr;
+  }
+
   bool visit_global_var_declrs() {
     InstructionRef instr {};
     if (instr = fetch_instr(spv::Op::OpVariable)) {
+      spv::Id id = instr.result_id();
+      assert(id != L_INVALID_ID);
+      auto mem = parse_global_mem(instr);
+      out.mem_map.emplace(id, std::move(mem));
       return true;
     }
 
     return false;
   }
-  void visit_declrs() {
+  void visit_global_declrs() {
     // TODO: (penguinliong) Deal with non-semantic instructions.
     for (;;) {
-      bool success = false;
-      success |= visit_ty_declrs();
-      success |= visit_const_declrs();
-      success |= visit_global_var_declrs();
+      bool success =
+        visit_ty_declrs() ||
+        visit_const_declrs() ||
+        visit_global_var_declrs();
       if (!success) { break; }
     }
   }
 
 
-  void visit_func_params() {
+
+  void visit_func_params(SpirvFunction& func) {
     InstructionRef instr;
     while (instr = fetch_instr(spv::Op::OpFunctionParameter)) {
       // TODO: (penguinliong) Do something with parameters? Do we need that?
     }
   }
-  bool visit_func_merge_term(Block& block) {
+  void visit_func_block(SpirvFunction& func) {
     InstructionRef instr;
-    assert(!ate());
-
-    if (instr = fetch_instr({
-      spv::Op::OpLoopMerge, spv::Op::OpSelectionMerge
-      })) {
-      assert(!block.merge, "already found a merge instruction");
-      block.merge = instr;
-      return true;
-    }
-
-    return false;
-  }
-  bool visit_func_block_term(Block& block) {
-    InstructionRef instr;
-    assert(!ate());
-    assert(!block.term, "already found a termination instruction");
-
-    if (instr = fetch_instr({
-      spv::Op::OpBranch, spv::Op::OpBranchConditional, spv::Op::OpSwitch,
-      spv::Op::OpReturn, spv::Op::OpReturnValue
-      })) {
-      block.term = instr;
-      return true;
-    }
-
-    assert(!fetch_instr({
-      spv::Op::OpKill, spv::Op::OpTerminateInvocation, spv::Op::OpUnreachable
-      }), "unsupported termination instruction");
-    return false;
-  }
-  void visit_func_stmt(Block& block) {
-    InstructionRef instr;
-    assert(instr = fetch_any_instr(), "unexpected end of spirv");
-    block.instrs.emplace_back(instr);
-  }
-  Block visit_func_block(SpirvFunction& func) {
-    InstructionRef instr;
-    if (instr = fetch_instr(spv::Op::OpLabel)) {
-      if (!func.entry_label) {
-        func.entry_label = instr;
+    if (instr = fetch_any_instr()) {
+      if (instr.op() == spv::Op::OpLabel) {
+        if (!func.entry_label) {
+          func.entry_label = instr;
+        }
+        out.label_map.emplace(instr.result_id(), instr);
       }
     } else {
-      panic("function block label not found");
+      panic("unexpected end of intruction stream");
     }
-
-    Block block {};
-    block.label = instr;
-
-    while (!ate()) {
-      if (visit_func_merge_term(block)) { continue; }
-      if (visit_func_block_term(block)) { break; }
-      visit_func_stmt(block);
-    }
-
-    {
-      spv::Op term_op = block.term.op();
-      if (term_op == spv::Op::OpReturn || term_op == spv::Op::OpReturnValue) {
-        assert(func.return_label == nullptr,
-          "a function with multiple returns is unsupported");
-        func.return_label = instr;
-      }
-    }
-
-    return block;
   }
   void visit_func_body(SpirvFunction& func) {
     InstructionRef instr;
     while (!ate()) {
       if (instr = fetch_instr(spv::Op::OpFunctionEnd)) { break; }
-      Block block = visit_func_block(func);
-      InstructionRef label = block.label;
-      func.blocks.emplace(std::make_pair(label, std::move(block)));
+      visit_func_block(func);
+    }
+  }
+
+  void visit_func() {
+    InstructionRef instr {};
+    if (instr = fetch_instr(spv::Op::OpFunction)) {
+      auto e = instr.extract_params();
+
+      SpirvFunction func {};
+      func.func_ctrl = e.read_u32_as<spv::FunctionControlMask>();
+      func.return_ty = lookup_instr(instr.result_ty_id());
+      func.func_ty = lookup_instr(e.read_id());
+
+      visit_func_params(func);
+      visit_func_body(func);
+
+      out.funcs.emplace(instr, std::move(func));
     }
   }
   void visit_funcs() {
     InstructionRef instr {};
     while (!ate()) {
-      SpirvFunction func {};
-
-      if (instr = fetch_instr(spv::Op::OpFunction)) {
-        auto e = instr.extract_params();
-        func.func_ctrl = e.read_u32_as<spv::FunctionControlMask>();
-        func.return_ty = lookup_instr(instr.result_ty_id());
-        func.func_ty = lookup_instr(e.read_id());
-
-        visit_func_params();
-        visit_func_body(func);
-
-        out.funcs.emplace(std::make_pair(instr, std::move(func)));
-      } else {
-        panic("unexpected instruction");
-      }
-
+      visit_func();
     }
   }
 
@@ -356,7 +446,7 @@ struct SpirvVisitor {
     visit_exec_modes();
     visit_debug_instrs();
     visit_annotations();
-    visit_declrs();
+    visit_global_declrs();
     visit_funcs();
     assert(ate(), "spirv is not exhausted");
   }

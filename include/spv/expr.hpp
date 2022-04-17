@@ -12,34 +12,6 @@ struct ExprConstant : public Expr {
     std::vector<uint32_t>&& lits
   ) : Expr(L_EXPR_OP_CONSTANT, ty), lits(lits) {}
 
-  virtual void dbg_print(Debug& s) const override final {
-    if (ty->cls == L_TYPE_CLASS_INT) {
-      const auto& ty2 = *(const TypeInt*)ty.get();
-      if (ty2.is_signed) {
-        if (ty2.nbit == 32) {
-          s << *(const int32_t*)&lits[0];
-        } else {
-          liong::unimplemented();
-        }
-      } else {
-        if (ty2.nbit == 32) {
-          s << *(const uint32_t*)&lits[0];
-        } else {
-          liong::unimplemented();
-        }
-      }
-    } else if (ty->cls == L_TYPE_CLASS_FLOAT) {
-      const auto& ty2 = *(const TypeFloat*)ty.get();
-      if (ty2.nbit == 32) {
-        s << *(const float*)&lits[0];
-      } else {
-        liong::unimplemented();
-      }
-    } else if (ty->cls == L_TYPE_CLASS_BOOL) {
-      s << (lits[0] != 0 ? "true" : "false");
-    }
-    s << ":" << *ty;
-  }
   virtual bool is_constexpr() const override final {
     return true;
   }
@@ -53,9 +25,6 @@ struct ExprLoad : public Expr {
     const std::shared_ptr<Memory>& src_ptr
   ) : Expr(L_EXPR_OP_LOAD, ty), src_ptr(src_ptr) {}
 
-  virtual void dbg_print(Debug& s) const override final {
-    s << "Load(" << *src_ptr << ")";
-  }
   virtual bool is_constexpr() const override final {
     return src_ptr->cls == L_MEMORY_CLASS_UNIFORM_BUFFER;
   }
@@ -86,10 +55,6 @@ struct ExprAdd : public ExprBinaryOp {
   ) : ExprBinaryOp(L_EXPR_OP_ADD, ty, a, b) {
     liong::assert(ty->is_same_as(*a->ty));
   }
-
-  virtual void dbg_print(Debug& s) const override final {
-    s << "(" << *a << " + " << *b << ")";
-  }
 };
 struct ExprSub : public ExprBinaryOp {
   inline ExprSub(
@@ -98,10 +63,6 @@ struct ExprSub : public ExprBinaryOp {
     const std::shared_ptr<Expr>& b
   ) : ExprBinaryOp(L_EXPR_OP_SUB, ty, a, b) {
     liong::assert(ty->is_same_as(*a->ty));
-  }
-
-  virtual void dbg_print(Debug& s) const override final {
-    s << "(" << *a << " - " << *b << ")";
   }
 };
 
@@ -113,10 +74,6 @@ struct ExprLt : public ExprBinaryOp {
   ) : ExprBinaryOp(L_EXPR_OP_LT, ty, a, b) {
     liong::assert(ty->cls == L_TYPE_CLASS_BOOL);
   }
-
-  virtual void dbg_print(Debug& s) const override final {
-    s << "(" << *a << " < " << *b << ")";
-  }
 };
 struct ExprEq : public ExprBinaryOp {
   inline ExprEq(
@@ -126,10 +83,6 @@ struct ExprEq : public ExprBinaryOp {
   ) : ExprBinaryOp(L_EXPR_OP_EQ, ty, a, b) {
     liong::assert(ty->cls == L_TYPE_CLASS_BOOL);
   }
-
-  virtual void dbg_print(Debug& s) const override final {
-    s << "(" << *a << " == " << *b << ")";
-  }
 };
 struct ExprTypeCast : public Expr {
   std::shared_ptr<Expr> src;
@@ -138,13 +91,7 @@ struct ExprTypeCast : public Expr {
     const std::shared_ptr<Expr>& src
   ) : Expr(L_EXPR_OP_TYPE_CAST, dst_ty), src(src) {}
 
-  virtual void dbg_print(Debug& s) const override final {
-    s << "(" << *src << ":" << *ty << ")";
-  }
   virtual bool is_constexpr() const override final {
     return src->is_constexpr();
   }
 };
-
-std::shared_ptr<Expr> parse_expr(const SpirvModule& mod, const InstructionRef& instr);
-std::shared_ptr<Expr> parse_expr(const SpirvModule& mod, spv::Id id);

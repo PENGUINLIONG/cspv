@@ -14,34 +14,16 @@ enum MemoryClass {
   L_MEMORY_CLASS_SAMPLED_IMAGE,
   L_MEMORY_CLASS_STORAGE_IMAGE,
 };
-struct Memory {
+struct Memory : public Node {
   const MemoryClass cls;
   const std::shared_ptr<Type> ty;
   const AccessChain ac;
-
-  virtual void dbg_print(Debug& s) const { s << "mem?"; }
 
 protected:
   Memory(
     MemoryClass cls,
     const std::shared_ptr<Type>& ty,
     AccessChain&& ac
-  ) : cls(cls), ty(ty), ac(std::forward<AccessChain>(ac)) {}
+  ) : Node(L_NODE_VARIANT_MEMORY), cls(cls), ty(ty),
+    ac(std::forward<AccessChain>(ac)) {}
 };
-
-inline Debug& operator<<(Debug& s, const AccessChain& x) {
-  bool first = true;
-  for (const auto& idx : x.idxs) {
-    if (first) {
-      first = false;
-    } else {
-      s << ",";
-    }
-    s << *idx;
-  }
-  return s;
-}
-inline Debug& operator<<(Debug& s, const Memory& x) {
-  x.dbg_print(s);
-  return s;
-}

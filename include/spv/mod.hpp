@@ -3,6 +3,10 @@
 // @PENGUINLIONG
 #pragma once
 #include "spv/abstr.hpp"
+#include "spv/type.hpp"
+#include "spv/mem.hpp"
+#include "spv/expr.hpp"
+#include "spv/stmt.hpp"
 
 struct SpirvEntryPointExecutionModeCompute {
   uint32_t local_size_x;
@@ -21,19 +25,11 @@ struct SpirvEntryPoint {
   SpirvEntryPointExecutionModeCompute exec_mode_comp;
 };
 
-struct Block {
-  InstructionRef label;
-  std::vector<InstructionRef> instrs;
-  InstructionRef merge;
-  InstructionRef term;
-};
 struct SpirvFunction {
   InstructionRef return_ty;
   spv::FunctionControlMask func_ctrl;
   InstructionRef func_ty;
   InstructionRef entry_label;
-  InstructionRef return_label;
-  std::map<InstructionRef, Block> blocks;
 };
 struct Decoration {
   spv::Decoration deco;
@@ -59,6 +55,12 @@ struct SpirvModule {
 
   std::map<InstructionRef, SpirvEntryPoint> entry_points;
   std::map<InstructionRef, SpirvFunction> funcs;
+
+  // Things that have IDs and cannot be forward referenced.
+  std::map<spv::Id, std::shared_ptr<Type>> ty_map;
+  std::map<spv::Id, std::shared_ptr<Memory>> mem_map;
+  std::map<spv::Id, std::shared_ptr<Expr>> expr_map;
+  std::map<spv::Id, InstructionRef> label_map;
 
   inline SpirvModule(SpirvAbstract&& abstr) :
     abstr(std::forward<SpirvAbstract>(abstr)) {}

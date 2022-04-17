@@ -1,7 +1,9 @@
 // Type class registry.
 // @PENGUINLIONG
 #pragma once
-#include "spv/dbg.hpp"
+#include <memory>
+#include "gft/assert.hpp"
+#include "spv/node.hpp"
 
 enum TypeClass {
   L_TYPE_CLASS_VOID,
@@ -11,20 +13,13 @@ enum TypeClass {
   L_TYPE_CLASS_STRUCT,
   L_TYPE_CLASS_POINTER,
 };
-struct Type {
+struct Type : public Node {
   const TypeClass cls;
 
   virtual bool is_same_as(const Type& other) const {
     liong::unimplemented();
   }
 
-  virtual void dbg_print(Debug& s) const { s << "type?"; }
-
 protected:
-  inline Type(TypeClass cls) : cls(cls) {}
+  inline Type(TypeClass cls) : Node(L_NODE_VARIANT_TYPE), cls(cls) {}
 };
-
-inline Debug& operator<<(Debug& s, const Type& x) {
-  x.dbg_print(s);
-  return s;
-}

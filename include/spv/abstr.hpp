@@ -18,6 +18,10 @@ struct SpirvAbstract {
   std::map<spv::Id, InstructionRef> id2instr_map;
   const uint32_t* beg;
   const uint32_t* end;
+
+  const InstructionRef& lookup_instr(spv::Id id) const {
+    return id2instr_map.at(id);
+  }
 };
 
 SpirvAbstract scan_spirv(const std::vector<uint32_t>& spv);
