@@ -16,6 +16,7 @@ struct StmtVisitor {
     case L_STMT_OP_LOOP_MERGE: visit_stmt_(*(const StmtLoopMerge*)&stmt); break;
     case L_STMT_OP_LOOP_CONTINUE: visit_stmt_(*(const StmtLoopContinue*)&stmt); break;
     case L_STMT_OP_LOOP_BACK_EDGE: visit_stmt_(*(const StmtLoopBackEdge*)&stmt); break;
+    case L_STMT_OP_RANGED_LOOP: visit_stmt_(*(const StmtRangedLoop*)&stmt); break;
     case L_STMT_OP_STORE: visit_stmt_(*(const StmtStore*)&stmt); break;
     default: liong::unreachable();
     }
@@ -29,6 +30,7 @@ struct StmtVisitor {
   virtual void visit_stmt_(const StmtLoopMerge&);
   virtual void visit_stmt_(const StmtLoopContinue&);
   virtual void visit_stmt_(const StmtLoopBackEdge&);
+  virtual void visit_stmt_(const StmtRangedLoop&);
   virtual void visit_stmt_(const StmtStore&);
 };
 
@@ -50,4 +52,54 @@ void visit_stmt_functor(
   StmtFunctorVisitor<TStmt> visitor(
     std::forward<std::function<void(const TStmt&)>>(f));
   visitor.visit_stmt(x);
+}
+
+struct StmtMutator {
+  virtual std::shared_ptr<Stmt> mutate_stmt(std::shared_ptr<Stmt>& stmt) {
+    switch (stmt->op) {
+    case L_STMT_OP_BLOCK: return mutate_stmt_(std::static_pointer_cast<StmtBlock>(stmt));
+    case L_STMT_OP_CONDITIONAL_BRANCH: return mutate_stmt_(std::static_pointer_cast<StmtConditionalBranch>(stmt));
+    case L_STMT_OP_IF_THEN_ELSE: return mutate_stmt_(std::static_pointer_cast<StmtIfThenElse>(stmt));
+    case L_STMT_OP_LOOP: return mutate_stmt_(std::static_pointer_cast<StmtLoop>(stmt));
+    case L_STMT_OP_RETURN: return mutate_stmt_(std::static_pointer_cast<StmtReturn>(stmt));
+    case L_STMT_OP_IF_THEN_ELSE_MERGE: return mutate_stmt_(std::static_pointer_cast<StmtIfThenElseMerge>(stmt));
+    case L_STMT_OP_LOOP_MERGE: return mutate_stmt_(std::static_pointer_cast<StmtLoopMerge>(stmt));
+    case L_STMT_OP_LOOP_CONTINUE: return mutate_stmt_(std::static_pointer_cast<StmtLoopContinue>(stmt));
+    case L_STMT_OP_LOOP_BACK_EDGE: return mutate_stmt_(std::static_pointer_cast<StmtLoopBackEdge>(stmt));
+    case L_STMT_OP_RANGED_LOOP: return mutate_stmt_(std::static_pointer_cast<StmtRangedLoop>(stmt));
+    case L_STMT_OP_STORE: return mutate_stmt_(std::static_pointer_cast<StmtStore>(stmt));
+    default: liong::unreachable();
+    }
+  }
+  virtual std::shared_ptr<Stmt> mutate_stmt_(std::shared_ptr<StmtBlock>&);
+  virtual std::shared_ptr<Stmt> mutate_stmt_(std::shared_ptr<StmtConditionalBranch>&);
+  virtual std::shared_ptr<Stmt> mutate_stmt_(std::shared_ptr<StmtIfThenElse>&);
+  virtual std::shared_ptr<Stmt> mutate_stmt_(std::shared_ptr<StmtLoop>&);
+  virtual std::shared_ptr<Stmt> mutate_stmt_(std::shared_ptr<StmtReturn>&);
+  virtual std::shared_ptr<Stmt> mutate_stmt_(std::shared_ptr<StmtIfThenElseMerge>&);
+  virtual std::shared_ptr<Stmt> mutate_stmt_(std::shared_ptr<StmtLoopMerge>&);
+  virtual std::shared_ptr<Stmt> mutate_stmt_(std::shared_ptr<StmtLoopContinue>&);
+  virtual std::shared_ptr<Stmt> mutate_stmt_(std::shared_ptr<StmtLoopBackEdge>&);
+  virtual std::shared_ptr<Stmt> mutate_stmt_(std::shared_ptr<StmtRangedLoop>&);
+  virtual std::shared_ptr<Stmt> mutate_stmt_(std::shared_ptr<StmtStore>&);
+};
+
+template<typename TStmt>
+struct StmtFunctorMutator : public StmtMutator {
+  std::function<std::shared_ptr<Stmt>(std::shared_ptr<TStmt>&)> f;
+  StmtFunctorMutator(std::function<std::shared_ptr<Stmt>(std::shared_ptr<TStmt>&)>&& f) :
+    f(std::forward<std::function<std::shared_ptr<Stmt>(std::shared_ptr<TStmt>&)>>(f)) {}
+
+  virtual std::shared_ptr<Stmt> mutate_stmt_(std::shared_ptr<TStmt>& stmt) override final {
+    return f(stmt);
+  }
+};
+template<typename TStmt>
+void mutate_stmt_functor(
+  std::function<std::shared_ptr<Stmt>(std::shared_ptr<TStmt>&)>&& f,
+  const Stmt& x
+) {
+  StmtFunctorMutator<TStmt> mutator(
+    std::forward<std::function<std::shared_ptr<Stmt>(std::shared_ptr<TStmt>&)>>(f));
+  return mutator.mutate_stmt(x);
 }

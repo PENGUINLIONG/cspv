@@ -66,10 +66,12 @@ void guarded_main() {
   SpirvModule mod = parse_spirv_module(std::move(abstr));
   auto entry_points = extract_entry_points(mod);
 
-  for (const auto& pair : entry_points) {
+  for (auto& pair : entry_points) {
     auto code = dbg_print(*pair.second);
     log::info("entry point '", pair.first, "': \n", code);
-    ranged_loop_elevation(pair.second);
+    pair.second = ranged_loop_elevation(pair.second);
+    code = dbg_print(*pair.second);
+    log::info("modified entry point '", pair.first, "': \n", code);
   }
 
    log::info("success");

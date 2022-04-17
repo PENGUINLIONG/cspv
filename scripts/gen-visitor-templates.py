@@ -84,6 +84,62 @@ def compose_functor_visitor(ty_prefix, abbr):
         "",
     ]
     return out
+def compose_mutator(ty_prefix, enum_prefix, abbr, enum_field, enums):
+    """
+    For example:
+    ty_prefix = Type
+    enum_prefix = L_TYPE_CLASS_
+    abbr = ty
+    enum_field = cls
+    enums = ["VOID", "BOOL", ...]
+    """
+    out = [
+        f"struct {ty_prefix}Mutator {{",
+        f"  virtual std::shared_ptr<{ty_prefix}> mutate_{abbr}(std::shared_ptr<{ty_prefix}>& {abbr}) {{",
+        f"    switch ({abbr}->{enum_field}) {{",
+    ]
+    for x in enums:
+        out += [
+            f"    case {enum_prefix}{x}: return mutate_{abbr}_(std::static_pointer_cast<{ty_prefix}{screaming_snake2pascal(x)}>({abbr}));",
+        ]
+    out += [
+        "    default: liong::unreachable();",
+        "    }",
+        "  }",
+    ]
+    for x in enums:
+        out += [
+            f"  virtual std::shared_ptr<{ty_prefix}> mutate_{abbr}_(std::shared_ptr<{ty_prefix}{screaming_snake2pascal(x)}>&);",
+        ]
+    out += [
+        "};",
+        "",
+    ]
+    return out
+def compose_functor_mutator(ty_prefix, abbr):
+    out = [
+        f"template<typename T{ty_prefix}>",
+        f"struct {ty_prefix}FunctorMutator : public {ty_prefix}Mutator {{",
+        f"  std::function<std::shared_ptr<{ty_prefix}>(std::shared_ptr<T{ty_prefix}>&)> f;",
+        f"  {ty_prefix}FunctorMutator(std::function<std::shared_ptr<{ty_prefix}>(std::shared_ptr<T{ty_prefix}>&)>&& f) :",
+        f"    f(std::forward<std::function<std::shared_ptr<{ty_prefix}>(std::shared_ptr<T{ty_prefix}>&)>>(f)) {{}}",
+        "",
+        f"  virtual std::shared_ptr<{ty_prefix}> mutate_{abbr}_(std::shared_ptr<T{ty_prefix}>& {abbr}) override final {{",
+        f"    return f({abbr});",
+        "  }",
+        "};",
+        f"template<typename T{ty_prefix}>",
+        f"void mutate_{abbr}_functor(",
+        f"  std::function<std::shared_ptr<{ty_prefix}>(std::shared_ptr<T{ty_prefix}>&)>&& f,",
+        f"  const {ty_prefix}& x",
+        ") {",
+        f"  {ty_prefix}FunctorMutator<T{ty_prefix}> mutator(",
+        f"    std::forward<std::function<std::shared_ptr<{ty_prefix}>(std::shared_ptr<T{ty_prefix}>&)>>(f));",
+        f"  return mutator.mutate_{abbr}(x);",
+        "}",
+        "",
+    ]
+    return out
 
 MEMS = extract_enums_from_file("./include/spv/mem-reg.hpp", "L_MEMORY_CLASS_")
 out = compose_general_header("mem", "Memory class visitor.") + \
@@ -108,6 +164,8 @@ with open("./include/visitor/gen/expr-visitor.hpp", "w") as f:
 STMTS = extract_enums_from_file("./include/spv/stmt-reg.hpp", "L_STMT_OP_")
 out = compose_general_header("stmt", "Statement tree visitor.") + \
     compose_visitor("Stmt", "L_STMT_OP_", "stmt", "op", STMTS) + \
-    compose_functor_visitor("Stmt", "stmt")
+    compose_functor_visitor("Stmt", "stmt") + \
+    compose_mutator("Stmt", "L_STMT_OP_", "stmt", "op", STMTS) + \
+    compose_functor_mutator("Stmt", "stmt") 
 with open("./include/visitor/gen/stmt-visitor.hpp", "w") as f:
     f.write('\n'.join(out))

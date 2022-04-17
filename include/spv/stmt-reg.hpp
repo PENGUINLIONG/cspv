@@ -14,6 +14,8 @@ enum StmtOp {
   L_STMT_OP_LOOP_CONTINUE,
   L_STMT_OP_LOOP_BACK_EDGE,
 
+  L_STMT_OP_RANGED_LOOP,
+
   L_STMT_OP_STORE,
 };
 struct Stmt : public Node {

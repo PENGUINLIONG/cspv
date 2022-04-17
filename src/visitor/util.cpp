@@ -231,6 +231,18 @@ struct DebugPrintVisitor : public Visitor {
   virtual void visit_stmt_(const StmtLoopMerge& x) override final {
     s << "break" << std::endl;
   }
+  virtual void visit_stmt_(const StmtRangedLoop& x) override final {
+    s << "for ";
+    visit(*x.itervar);
+    s << " in range(";
+    visit(*x.begin);
+    s << ", ";
+    visit(*x.end);
+    s << ", ";
+    visit(*x.stride);
+    s << ") ";
+    visit(*x.body_block);
+  }
   virtual void visit_stmt_(const StmtStore& x) override final {
     s << "Store(";
     visit(*x.dst_ptr);

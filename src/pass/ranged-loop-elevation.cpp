@@ -5,7 +5,7 @@
 
 using namespace liong;
 
-struct RangedLoopElevationVisitor : public StmtVisitor {
+struct RangedLoopElevationMutator : public StmtMutator {
   struct Candidate {
     std::shared_ptr<Memory> func_var;
     std::shared_ptr<Expr> begin_expr;
@@ -21,18 +21,17 @@ struct RangedLoopElevationVisitor : public StmtVisitor {
   // `nullptr` if the value is diverged.
   std::map<std::shared_ptr<Memory>, std::shared_ptr<Expr>> mem_value_map;
 
-  std::vector<RangedLoop> ranged_loops;
-
-  virtual void visit_stmt_(const StmtStore& x) override final {
-    if (x.dst_ptr->cls != L_MEMORY_CLASS_FUNCTION_VARIABLE) { return; }
-    log::info(dbg_print(*x.dst_ptr), " ", dbg_print(*x.value));
-    mem_value_map.emplace(x.dst_ptr, x.value);
+  virtual std::shared_ptr<Stmt> mutate_stmt_(std::shared_ptr<StmtStore>& x) override final {
+    if (x->dst_ptr->cls != L_MEMORY_CLASS_FUNCTION_VARIABLE) { return x; }
+    log::info(dbg_print(*x->dst_ptr), " ", dbg_print(*x->value));
+    mem_value_map.emplace(x->dst_ptr, x->value);
+    return x;
   }
-  virtual void visit_stmt_(const StmtConditionalBranch& x) override final {
+  virtual std::shared_ptr<Stmt> mutate_stmt_(std::shared_ptr<StmtConditionalBranch>& x) override final {
     auto mem_value_map2 = mem_value_map;
-    visit_stmt(*x.then_block);
+    x->then_block = mutate_stmt(x->then_block);
     mem_value_map = std::exchange(mem_value_map2, std::move(mem_value_map));
-    visit_stmt(*x.else_block);
+    x->else_block = mutate_stmt(x->else_block);
     for (const auto& pair : mem_value_map2) {
       auto it = mem_value_map.find(pair.first);
       if (it == mem_value_map.end()) {
@@ -42,13 +41,16 @@ struct RangedLoopElevationVisitor : public StmtVisitor {
         it->second = nullptr;
       }
     }
+    return x;
   }
-  virtual void visit_stmt_(const StmtLoop& x) override final {
+  virtual std::shared_ptr<Stmt> mutate_stmt_(std::shared_ptr<StmtLoop>& x) override final {
+    x->body_block = mutate_stmt(x->body_block);
+
     std::map<std::shared_ptr<Memory>, Candidate> candidates;
     visit_stmt_functor<StmtStore>(
-      [&](const StmtStore& store) {
+      [this, &candidates](const StmtStore& store) {
         visit_expr_functor<ExprLoad>(
-          [&](const ExprLoad& load) {
+          [this, &candidates, &store](const ExprLoad& load) {
             bool load_store_func_vars =
               load.src_ptr->is<MemoryFunctionVariable>() &&
               store.dst_ptr->is<MemoryFunctionVariable>();
@@ -78,9 +80,9 @@ struct RangedLoopElevationVisitor : public StmtVisitor {
             candidates.emplace(load.src_ptr, std::move(candidate));
 
           }, *store.value);
-      }, *x.continue_block);
+      }, *x->continue_block);
 
-    for (const auto& stmt : x.body_block->as<StmtBlock>().stmts) {
+    for (const auto& stmt : x->body_block->as<StmtBlock>().stmts) {
       if (!stmt->is<StmtConditionalBranch>()) { continue; }
 
       const auto& cond_branch = stmt->as<StmtConditionalBranch>();
@@ -96,23 +98,19 @@ struct RangedLoopElevationVisitor : public StmtVisitor {
         auto it = candidates.find(cond_expr.a->as<ExprLoad>().src_ptr);
         if (it == candidates.end()) { continue; }
 
-        RangedLoop ranged_loop {};
-        ranged_loop.func_var = std::move(it->second.func_var);
-        ranged_loop.begin_expr = std::move(it->second.begin_expr);
-        ranged_loop.end_expr = cond_expr.b;
-        ranged_loop.stride_expr = std::move(it->second.stride_expr);
-        ranged_loops.emplace_back(std::move(ranged_loop));
-        break;
+        const auto& candidate = it->second;
+        return std::shared_ptr<Stmt>(new StmtRangedLoop(x->body_block,
+          candidate.func_var, candidate.begin_expr, cond_expr.b,
+          candidate.stride_expr));
       }
       default: continue;
       }
     }
-
-    visit_stmt(*x.body_block);
+    unimplemented();
   }
 };
 
-void ranged_loop_elevation(const std::shared_ptr<Stmt>& x) {
-  RangedLoopElevationVisitor visitor;
-  visitor.visit_stmt(*x);
+std::shared_ptr<Stmt> ranged_loop_elevation(std::shared_ptr<Stmt>& x) {
+  RangedLoopElevationMutator mutator;
+  return mutator.mutate_stmt(x);
 }

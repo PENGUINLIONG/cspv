@@ -9,7 +9,7 @@
 
 struct StmtBlock : public Stmt {
   static const StmtOp OP = L_STMT_OP_BLOCK;
-  const std::vector<std::shared_ptr<Stmt>> stmts;
+  std::vector<std::shared_ptr<Stmt>> stmts;
 
   inline StmtBlock(
     const std::vector<std::shared_ptr<Stmt>>& stmts
@@ -53,7 +53,7 @@ struct StmtLoop : public Stmt {
 };
 struct StmtReturn : public Stmt {
   static const StmtOp OP = L_STMT_OP_RETURN;
-  const std::shared_ptr<Expr> rv;
+  std::shared_ptr<Expr> rv;
 
   inline StmtReturn(const std::shared_ptr<Expr>& rv) : Stmt(OP), rv(rv) {}
 };
@@ -72,6 +72,25 @@ struct StmtLoopContinue : public Stmt {
 struct StmtLoopBackEdge : public Stmt {
   static const StmtOp OP = L_STMT_OP_LOOP_BACK_EDGE;
   inline StmtLoopBackEdge() : Stmt(OP) {}
+};
+
+
+struct StmtRangedLoop : public Stmt {
+  static const StmtOp OP = L_STMT_OP_RANGED_LOOP;
+  std::shared_ptr<Stmt> body_block;
+  std::shared_ptr<Memory> itervar;
+  std::shared_ptr<Expr> begin;
+  std::shared_ptr<Expr> end;
+  std::shared_ptr<Expr> stride;
+
+  inline StmtRangedLoop(
+    const std::shared_ptr<Stmt>& body_block,
+    const std::shared_ptr<Memory>& itervar,
+    const std::shared_ptr<Expr>& begin,
+    const std::shared_ptr<Expr>& end,
+    const std::shared_ptr<Expr>& stride
+  ) : Stmt(OP), body_block(body_block), itervar(itervar), begin(begin),
+    end(end), stride(stride) {}
 };
 
 
