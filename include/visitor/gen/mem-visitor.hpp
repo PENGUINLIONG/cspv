@@ -12,40 +12,40 @@ typedef std::shared_ptr<MemorySampledImage> MemorySampledImageRef;
 typedef std::shared_ptr<MemoryStorageImage> MemoryStorageImageRef;
 
 struct MemoryVisitor {
-  virtual void visit_mem(const Memory& mem) {
-    switch (mem.cls) {
-    case L_MEMORY_CLASS_FUNCTION_VARIABLE: visit_mem_(*(const MemoryFunctionVariable*)&mem); break;
-    case L_MEMORY_CLASS_UNIFORM_BUFFER: visit_mem_(*(const MemoryUniformBuffer*)&mem); break;
-    case L_MEMORY_CLASS_STORAGE_BUFFER: visit_mem_(*(const MemoryStorageBuffer*)&mem); break;
-    case L_MEMORY_CLASS_SAMPLED_IMAGE: visit_mem_(*(const MemorySampledImage*)&mem); break;
-    case L_MEMORY_CLASS_STORAGE_IMAGE: visit_mem_(*(const MemoryStorageImage*)&mem); break;
+  virtual void visit_mem(const MemoryRef& mem) {
+    switch (mem->cls) {
+    case L_MEMORY_CLASS_FUNCTION_VARIABLE: visit_mem_(std::static_pointer_cast<MemoryFunctionVariable>(mem)); break;
+    case L_MEMORY_CLASS_UNIFORM_BUFFER: visit_mem_(std::static_pointer_cast<MemoryUniformBuffer>(mem)); break;
+    case L_MEMORY_CLASS_STORAGE_BUFFER: visit_mem_(std::static_pointer_cast<MemoryStorageBuffer>(mem)); break;
+    case L_MEMORY_CLASS_SAMPLED_IMAGE: visit_mem_(std::static_pointer_cast<MemorySampledImage>(mem)); break;
+    case L_MEMORY_CLASS_STORAGE_IMAGE: visit_mem_(std::static_pointer_cast<MemoryStorageImage>(mem)); break;
     default: liong::unreachable();
     }
   }
-  virtual void visit_mem_(const MemoryFunctionVariable&);
-  virtual void visit_mem_(const MemoryUniformBuffer&);
-  virtual void visit_mem_(const MemoryStorageBuffer&);
-  virtual void visit_mem_(const MemorySampledImage&);
-  virtual void visit_mem_(const MemoryStorageImage&);
+  virtual void visit_mem_(const MemoryFunctionVariableRef&);
+  virtual void visit_mem_(const MemoryUniformBufferRef&);
+  virtual void visit_mem_(const MemoryStorageBufferRef&);
+  virtual void visit_mem_(const MemorySampledImageRef&);
+  virtual void visit_mem_(const MemoryStorageImageRef&);
 };
 
 template<typename TMemory>
 struct MemoryFunctorVisitor : public MemoryVisitor {
-  std::function<void(const TMemory&)> f;
-  MemoryFunctorVisitor(std::function<void(const TMemory&)>&& f) :
-    f(std::forward<std::function<void(const TMemory&)>>(f)) {}
+  std::function<void(const std::shared_ptr<TMemory>&)> f;
+  MemoryFunctorVisitor(std::function<void(const std::shared_ptr<TMemory>&)>&& f) :
+    f(std::forward<std::function<void(const std::shared_ptr<TMemory>&)>>(f)) {}
 
-  virtual void visit_mem_(const TMemory& mem) override final {
+  virtual void visit_mem_(const std::shared_ptr<TMemory>& mem) override final {
     f(mem);
   }
 };
 template<typename TMemory>
 void visit_mem_functor(
-  std::function<void(const TMemory&)>&& f,
-  const Memory& x
+  std::function<void(const std::shared_ptr<TMemory>&)>&& f,
+  const std::shared_ptr<Memory>& x
 ) {
   MemoryFunctorVisitor<TMemory> visitor(
-    std::forward<std::function<void(const TMemory&)>>(f));
+    std::forward<std::function<void(const std::shared_ptr<TMemory>&)>>(f));
   visitor.visit_mem(x);
 }
 

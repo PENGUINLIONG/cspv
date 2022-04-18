@@ -131,12 +131,12 @@ def compose_visitor(nova: NodeVariant):
     enum_var_name = nova.enum_abbr.to_snake_case()
     out = [
         f"struct {ty_prefix}Visitor {{",
-        f"  virtual void visit_{abbr}(const {ty_prefix}& {abbr}) {{",
-        f"    switch ({abbr}.{enum_var_name}) {{",
+        f"  virtual void visit_{abbr}(const {ty_prefix}Ref& {abbr}) {{",
+        f"    switch ({abbr}->{enum_var_name}) {{",
     ]
     for x in nova.subtys:
         out += [
-            f"    case {enum_prefix}{x.name.to_screaming_snake_case()}: visit_{abbr}_(*(const {ty_prefix}{x.name.to_pascal_case()}*)&{abbr}); break;",
+            f"    case {enum_prefix}{x.name.to_screaming_snake_case()}: visit_{abbr}_(std::static_pointer_cast<{ty_prefix}{x.name.to_pascal_case()}>({abbr})); break;",
         ]
     out += [
         "    default: liong::unreachable();",
@@ -145,7 +145,7 @@ def compose_visitor(nova: NodeVariant):
     ]
     for x in nova.subtys:
         out += [
-            f"  virtual void visit_{abbr}_(const {ty_prefix}{x.name.to_pascal_case()}&);",
+            f"  virtual void visit_{abbr}_(const {ty_prefix}{x.name.to_pascal_case()}Ref&);",
         ]
     out += [
         "};",
@@ -158,21 +158,21 @@ def compose_functor_visitor(nova: NodeVariant):
     out = [
         f"template<typename T{ty_prefix}>",
         f"struct {ty_prefix}FunctorVisitor : public {ty_prefix}Visitor {{",
-        f"  std::function<void(const T{ty_prefix}&)> f;",
-        f"  {ty_prefix}FunctorVisitor(std::function<void(const T{ty_prefix}&)>&& f) :",
-        f"    f(std::forward<std::function<void(const T{ty_prefix}&)>>(f)) {{}}",
+        f"  std::function<void(const std::shared_ptr<T{ty_prefix}>&)> f;",
+        f"  {ty_prefix}FunctorVisitor(std::function<void(const std::shared_ptr<T{ty_prefix}>&)>&& f) :",
+        f"    f(std::forward<std::function<void(const std::shared_ptr<T{ty_prefix}>&)>>(f)) {{}}",
         "",
-        f"  virtual void visit_{abbr}_(const T{ty_prefix}& {abbr}) override final {{",
+        f"  virtual void visit_{abbr}_(const std::shared_ptr<T{ty_prefix}>& {abbr}) override final {{",
         f"    f({abbr});",
         "  }",
         "};",
         f"template<typename T{ty_prefix}>",
         f"void visit_{abbr}_functor(",
-        f"  std::function<void(const T{ty_prefix}&)>&& f,",
-        f"  const {ty_prefix}& x",
+        f"  std::function<void(const std::shared_ptr<T{ty_prefix}>&)>&& f,",
+        f"  const std::shared_ptr<{ty_prefix}>& x",
         ") {",
         f"  {ty_prefix}FunctorVisitor<T{ty_prefix}> visitor(",
-        f"    std::forward<std::function<void(const T{ty_prefix}&)>>(f));",
+        f"    std::forward<std::function<void(const std::shared_ptr<T{ty_prefix}>&)>>(f));",
         f"  visitor.visit_{abbr}(x);",
         "}",
         "",
@@ -394,17 +394,17 @@ def compose_visitor_default_impl(nova: NodeVariant):
     for subty in nova.subtys:
         subty_name = ty_name + subty.name.to_pascal_case()
         out += [
-            f"void {ty_name}Visitor::visit_{nova.ty_abbr.to_snake_case()}_(const {subty_name}& x) {{",
+            f"void {ty_name}Visitor::visit_{nova.ty_abbr.to_snake_case()}_(const {subty_name}Ref& x) {{",
         ]
         for field in subty.fields:
             if field.ty.raw_name == ty_name:
                 if (field.ty.is_plural):
                     out += [
-                        f"  for (const auto& x : x.{field.name.to_snake_case()}) {{ visit_{nova.ty_abbr.to_snake_case()}(*x); }}",
+                        f"  for (const auto& x : x->{field.name.to_snake_case()}) {{ visit_{nova.ty_abbr.to_snake_case()}(x); }}",
                     ]
                 else:
                     out += [
-                        f"  visit_{nova.ty_abbr.to_snake_case()}(*x.{field.name.to_snake_case()});",
+                        f"  visit_{nova.ty_abbr.to_snake_case()}(x->{field.name.to_snake_case()});",
                     ]
         out += [
             "}",

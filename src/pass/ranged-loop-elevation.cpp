@@ -23,7 +23,7 @@ struct RangedLoopElevationMutator : public StmtMutator {
 
   virtual std::shared_ptr<Stmt> mutate_stmt_(std::shared_ptr<StmtStore>& x) override final {
     if (x->dst_ptr->cls != L_MEMORY_CLASS_FUNCTION_VARIABLE) { return x; }
-    log::info(dbg_print(*x->dst_ptr), " ", dbg_print(*x->value));
+    log::info(dbg_print(x->dst_ptr), " ", dbg_print(x->value));
     mem_value_map.emplace(x->dst_ptr, x->value);
     return x;
   }
@@ -48,39 +48,39 @@ struct RangedLoopElevationMutator : public StmtMutator {
 
     std::map<std::shared_ptr<Memory>, Candidate> candidates;
     visit_stmt_functor<StmtStore>(
-      [this, &candidates](const StmtStore& store) {
+      [this, &candidates](const StmtStoreRef& store) {
         visit_expr_functor<ExprLoad>(
-          [this, &candidates, &store](const ExprLoad& load) {
+          [this, &candidates, &store](const ExprLoadRef& load) {
             bool load_store_func_vars =
-              load.src_ptr->is<MemoryFunctionVariable>() &&
-              store.dst_ptr->is<MemoryFunctionVariable>();
+              load->src_ptr->is<MemoryFunctionVariable>() &&
+              store->dst_ptr->is<MemoryFunctionVariable>();
             if (!load_store_func_vars) { return; }
 
-            const auto& load_var = load.src_ptr->as<MemoryFunctionVariable>();
-            const auto& store_var = store.dst_ptr->as<MemoryFunctionVariable>();
+            const auto& load_var = load->src_ptr->as<MemoryFunctionVariable>();
+            const auto& store_var = store->dst_ptr->as<MemoryFunctionVariable>();
             if (load_var.handle != store_var.handle) { return; }
 
-            if (!store.value->is<ExprAdd>()) { return; }
-            const auto& value_expr = store.value->as<ExprAdd>();
+            if (!store->value->is<ExprAdd>()) { return; }
+            const auto& value_expr = store->value->as<ExprAdd>();
 
             std::shared_ptr<Expr> stride_expr;
-            if (value_expr.a.get() == &load) {
+            if (value_expr.a == load) {
               stride_expr = value_expr.b;
-            } else if (value_expr.b.get() == &load) {
+            } else if (value_expr.b == load) {
               stride_expr = value_expr.a;
             } else { return; }
 
-            auto it = mem_value_map.find(load.src_ptr);
+            auto it = mem_value_map.find(load->src_ptr);
             if (it == mem_value_map.end() || it->second == nullptr) { return; }
 
             Candidate candidate {};
-            candidate.func_var = load.src_ptr;
+            candidate.func_var = load->src_ptr;
             candidate.begin_expr = it->second;
             candidate.stride_expr = std::move(stride_expr);
-            candidates.emplace(load.src_ptr, std::move(candidate));
+            candidates.emplace(load->src_ptr, std::move(candidate));
 
-          }, *store.value);
-      }, *x->continue_block);
+          }, store->value);
+      }, x->continue_block);
 
     for (const auto& stmt : x->body_block->as<StmtBlock>().stmts) {
       if (!stmt->is<StmtConditionalBranch>()) { continue; }

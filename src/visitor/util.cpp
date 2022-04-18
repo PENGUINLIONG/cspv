@@ -58,69 +58,69 @@ struct DebugPrintVisitor : public Visitor {
       } else {
         s << ",";
       }
-      visit(*idx);
+      visit(idx);
     }
   }
-  virtual void visit_mem_(const MemoryFunctionVariable& x) override final {
-    s << "$" << s.get_var_name_by_handle(x.handle) << ":";
-    visit(*x.ty);
+  virtual void visit_mem_(const MemoryFunctionVariableRef& x) override final {
+    s << "$" << s.get_var_name_by_handle(x->handle) << ":";
+    visit(x->ty);
   }
-  virtual void visit_mem_(const MemoryUniformBuffer& x) override final {
-    s << "UniformBuffer@" << x.binding << "," << x.set << "[";
-    visit_access_chain(x.ac);
+  virtual void visit_mem_(const MemoryUniformBufferRef& x) override final {
+    s << "UniformBuffer@" << x->binding << "," << x->set << "[";
+    visit_access_chain(x->ac);
     s << "]:";
-    visit(*x.ty);
+    visit(x->ty);
   }
 
 
 
-  virtual void visit_ty_(const TypeVoid& x) override final {
+  virtual void visit_ty_(const TypeVoidRef& x) override final {
     s << "void";
   }
-  virtual void visit_ty_(const TypeBool& x) override final {
+  virtual void visit_ty_(const TypeBoolRef& x) override final {
     s << "bool";
   }
-  virtual void visit_ty_(const TypeInt& x) override final {
-    s << (x.is_signed ? "i" : "u") << x.nbit;
+  virtual void visit_ty_(const TypeIntRef& x) override final {
+    s << (x->is_signed ? "i" : "u") << x->nbit;
   }
-  virtual void visit_ty_(const TypeFloat& x) override final {
-    s << "f" << x.nbit;
+  virtual void visit_ty_(const TypeFloatRef& x) override final {
+    s << "f" << x->nbit;
   }
-  virtual void visit_ty_(const TypeStruct& x) override final {
+  virtual void visit_ty_(const TypeStructRef& x) override final {
     s << "Struct<";
     bool first = true;
-    for (const auto& member : x.members) {
+    for (const auto& member : x->members) {
       if (first) {
         first = false;
       } else {
         s << ",";
       }
-      visit(*member);
+      visit(member);
     }
     s << ">";
   }
-  virtual void visit_ty_(const TypePointer& x) override final {
+  virtual void visit_ty_(const TypePointerRef& x) override final {
     s << "Pointer<";
-    visit(*x.inner);
+    visit(x->inner);
     s << ">";
   }
 
 
 
-  virtual void visit_expr_(const ExprConstant& x) override final {
-    switch (x.ty->cls) {
+  virtual void visit_expr_(const ExprConstantRef& x) override final {
+    switch (x->ty->cls) {
     case L_TYPE_CLASS_INT:
     {
-      const auto& ty2 = *(const TypeInt*)x.ty.get();
+      const auto& ty2 = *(const TypeInt*)x->ty.get();
       if (ty2.is_signed) {
         if (ty2.nbit == 32) {
-          s << *(const int32_t*)&x.lits[0];
+          s << *(const int32_t*)&x->lits[0];
         } else {
           liong::unimplemented();
         }
       } else {
         if (ty2.nbit == 32) {
-          s << *(const uint32_t*)&x.lits[0];
+          s << *(const uint32_t*)&x->lits[0];
         } else {
           liong::unimplemented();
         }
@@ -129,9 +129,9 @@ struct DebugPrintVisitor : public Visitor {
     }
     case L_TYPE_CLASS_FLOAT:
     {
-      const auto& ty2 = *(const TypeFloat*)x.ty.get();
+      const auto& ty2 = *(const TypeFloat*)x->ty.get();
       if (ty2.nbit == 32) {
-        s << *(const float*)&x.lits[0];
+        s << *(const float*)&x->lits[0];
       } else {
         liong::unimplemented();
       }
@@ -139,118 +139,118 @@ struct DebugPrintVisitor : public Visitor {
     }
     case L_TYPE_CLASS_BOOL:
     {
-      s << (x.lits[0] != 0 ? "true" : "false");
+      s << (x->lits[0] != 0 ? "true" : "false");
       break;
     }
     default: unimplemented();
     }
     s << ":";
-    visit(*x.ty);
+    visit(x->ty);
   }
-  virtual void visit_expr_(const ExprLoad& x) override final {
+  virtual void visit_expr_(const ExprLoadRef& x) override final {
     s << "Load(";
-    visit(*x.src_ptr);
+    visit(x->src_ptr);
     s << ")";
   }
-  virtual void visit_expr_(const ExprAdd& x) override final {
+  virtual void visit_expr_(const ExprAddRef& x) override final {
     s << "(";
-    visit(*x.a);
+    visit(x->a);
     s << " + ";
-    visit(*x.b);
+    visit(x->b);
     s << ")";
   }
-  virtual void visit_expr_(const ExprSub& x) override final {
+  virtual void visit_expr_(const ExprSubRef& x) override final {
     s << "(";
-    visit(*x.a);
+    visit(x->a);
     s << " - ";
-    visit(*x.b);
+    visit(x->b);
     s << ")";
   }
-  virtual void visit_expr_(const ExprLt& x) override final {
+  virtual void visit_expr_(const ExprLtRef& x) override final {
     s << "(";
-    visit( *x.a);
+    visit( x->a);
     s << " < ";
-    visit(*x.b);
+    visit(x->b);
     s << ")";
   }
-  virtual void visit_expr_(const ExprEq& x) override final {
+  virtual void visit_expr_(const ExprEqRef& x) override final {
     s << "(";
-    visit(*x.a);
+    visit(x->a);
     s << " == ";
-    visit(*x.b);
+    visit(x->b);
     s << ")";
   }
-  virtual void visit_expr_(const ExprTypeCast& x) override final {
+  virtual void visit_expr_(const ExprTypeCastRef& x) override final {
     s << "(";
-    visit(*x.src);
+    visit(x->src);
     s << ":";
-    visit(*x.ty);
+    visit(x->ty);
     s << ")";
   }
 
 
 
-  virtual void visit_stmt_(const StmtBlock& x) override final {
+  virtual void visit_stmt_(const StmtBlockRef& x) override final {
     s << "{" << std::endl;
     s.push_indent();
-    for (const auto& stmt : x.stmts) {
-      visit(*stmt);
+    for (const auto& stmt : x->stmts) {
+      visit(stmt);
     }
     s.pop_indent();
     s << "}" << std::endl;
   }
-  virtual void visit_stmt_(const StmtConditionalBranch& x) override final {
+  virtual void visit_stmt_(const StmtConditionalBranchRef& x) override final {
     s << "if ";
-    visit(*x.cond);
+    visit(x->cond);
     s << " " << std::endl;
-    visit(*x.then_block);
+    visit(x->then_block);
     s << "else " << std::endl;
-    visit(*x.else_block);
+    visit(x->else_block);
   }
-  virtual void visit_stmt_(const StmtIfThenElse& x) override final {
-    visit(*x.body_block);
+  virtual void visit_stmt_(const StmtIfThenElseRef& x) override final {
+    visit(x->body_block);
   }
-  virtual void visit_stmt_(const StmtLoop& x) override final {
+  virtual void visit_stmt_(const StmtLoopRef& x) override final {
     s << "loop " << std::endl;
-    visit(*x.body_block);
+    visit(x->body_block);
     s << "continue " << std::endl;
-    visit(*x.continue_block);
+    visit(x->continue_block);
   }
-  virtual void visit_stmt_(const StmtReturn& x) override final {
+  virtual void visit_stmt_(const StmtReturnRef& x) override final {
     s << "return";
     s << std::endl;
   }
-  virtual void visit_stmt_(const StmtLoopContinue& x) override final {
+  virtual void visit_stmt_(const StmtLoopContinueRef& x) override final {
     s << "continue" << std::endl;
   }
-  virtual void visit_stmt_(const StmtLoopBackEdge& x) override final {}
-  virtual void visit_stmt_(const StmtIfThenElseMerge& x) override final {}
-  virtual void visit_stmt_(const StmtLoopMerge& x) override final {
+  virtual void visit_stmt_(const StmtLoopBackEdgeRef& x) override final {}
+  virtual void visit_stmt_(const StmtIfThenElseMergeRef& x) override final {}
+  virtual void visit_stmt_(const StmtLoopMergeRef& x) override final {
     s << "break" << std::endl;
   }
-  virtual void visit_stmt_(const StmtRangedLoop& x) override final {
+  virtual void visit_stmt_(const StmtRangedLoopRef& x) override final {
     s << "for ";
-    visit(*x.itervar);
+    visit(x->itervar);
     s << " in range(";
-    visit(*x.begin);
+    visit(x->begin);
     s << ", ";
-    visit(*x.end);
+    visit(x->end);
     s << ", ";
-    visit(*x.stride);
+    visit(x->stride);
     s << ") ";
-    visit(*x.body_block);
+    visit(x->body_block);
   }
-  virtual void visit_stmt_(const StmtStore& x) override final {
+  virtual void visit_stmt_(const StmtStoreRef& x) override final {
     s << "Store(";
-    visit(*x.dst_ptr);
+    visit(x->dst_ptr);
     s << ", ";
-    visit(*x.value);
+    visit(x->value);
     s << ")";
     s << std::endl;
   }
 };
 
-std::string dbg_print(const Node& node) {
+std::string dbg_print(const NodeRef& node) {
   Debug s;
   DebugPrintVisitor v(s);
   v.visit(node);

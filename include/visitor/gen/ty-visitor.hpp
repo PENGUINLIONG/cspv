@@ -13,42 +13,42 @@ typedef std::shared_ptr<TypeStruct> TypeStructRef;
 typedef std::shared_ptr<TypePointer> TypePointerRef;
 
 struct TypeVisitor {
-  virtual void visit_ty(const Type& ty) {
-    switch (ty.cls) {
-    case L_TYPE_CLASS_VOID: visit_ty_(*(const TypeVoid*)&ty); break;
-    case L_TYPE_CLASS_BOOL: visit_ty_(*(const TypeBool*)&ty); break;
-    case L_TYPE_CLASS_INT: visit_ty_(*(const TypeInt*)&ty); break;
-    case L_TYPE_CLASS_FLOAT: visit_ty_(*(const TypeFloat*)&ty); break;
-    case L_TYPE_CLASS_STRUCT: visit_ty_(*(const TypeStruct*)&ty); break;
-    case L_TYPE_CLASS_POINTER: visit_ty_(*(const TypePointer*)&ty); break;
+  virtual void visit_ty(const TypeRef& ty) {
+    switch (ty->cls) {
+    case L_TYPE_CLASS_VOID: visit_ty_(std::static_pointer_cast<TypeVoid>(ty)); break;
+    case L_TYPE_CLASS_BOOL: visit_ty_(std::static_pointer_cast<TypeBool>(ty)); break;
+    case L_TYPE_CLASS_INT: visit_ty_(std::static_pointer_cast<TypeInt>(ty)); break;
+    case L_TYPE_CLASS_FLOAT: visit_ty_(std::static_pointer_cast<TypeFloat>(ty)); break;
+    case L_TYPE_CLASS_STRUCT: visit_ty_(std::static_pointer_cast<TypeStruct>(ty)); break;
+    case L_TYPE_CLASS_POINTER: visit_ty_(std::static_pointer_cast<TypePointer>(ty)); break;
     default: liong::unreachable();
     }
   }
-  virtual void visit_ty_(const TypeVoid&);
-  virtual void visit_ty_(const TypeBool&);
-  virtual void visit_ty_(const TypeInt&);
-  virtual void visit_ty_(const TypeFloat&);
-  virtual void visit_ty_(const TypeStruct&);
-  virtual void visit_ty_(const TypePointer&);
+  virtual void visit_ty_(const TypeVoidRef&);
+  virtual void visit_ty_(const TypeBoolRef&);
+  virtual void visit_ty_(const TypeIntRef&);
+  virtual void visit_ty_(const TypeFloatRef&);
+  virtual void visit_ty_(const TypeStructRef&);
+  virtual void visit_ty_(const TypePointerRef&);
 };
 
 template<typename TType>
 struct TypeFunctorVisitor : public TypeVisitor {
-  std::function<void(const TType&)> f;
-  TypeFunctorVisitor(std::function<void(const TType&)>&& f) :
-    f(std::forward<std::function<void(const TType&)>>(f)) {}
+  std::function<void(const std::shared_ptr<TType>&)> f;
+  TypeFunctorVisitor(std::function<void(const std::shared_ptr<TType>&)>&& f) :
+    f(std::forward<std::function<void(const std::shared_ptr<TType>&)>>(f)) {}
 
-  virtual void visit_ty_(const TType& ty) override final {
+  virtual void visit_ty_(const std::shared_ptr<TType>& ty) override final {
     f(ty);
   }
 };
 template<typename TType>
 void visit_ty_functor(
-  std::function<void(const TType&)>&& f,
-  const Type& x
+  std::function<void(const std::shared_ptr<TType>&)>&& f,
+  const std::shared_ptr<Type>& x
 ) {
   TypeFunctorVisitor<TType> visitor(
-    std::forward<std::function<void(const TType&)>>(f));
+    std::forward<std::function<void(const std::shared_ptr<TType>&)>>(f));
   visitor.visit_ty(x);
 }
 

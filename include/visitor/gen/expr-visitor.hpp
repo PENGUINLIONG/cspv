@@ -14,44 +14,44 @@ typedef std::shared_ptr<ExprEq> ExprEqRef;
 typedef std::shared_ptr<ExprTypeCast> ExprTypeCastRef;
 
 struct ExprVisitor {
-  virtual void visit_expr(const Expr& expr) {
-    switch (expr.op) {
-    case L_EXPR_OP_CONSTANT: visit_expr_(*(const ExprConstant*)&expr); break;
-    case L_EXPR_OP_LOAD: visit_expr_(*(const ExprLoad*)&expr); break;
-    case L_EXPR_OP_ADD: visit_expr_(*(const ExprAdd*)&expr); break;
-    case L_EXPR_OP_SUB: visit_expr_(*(const ExprSub*)&expr); break;
-    case L_EXPR_OP_LT: visit_expr_(*(const ExprLt*)&expr); break;
-    case L_EXPR_OP_EQ: visit_expr_(*(const ExprEq*)&expr); break;
-    case L_EXPR_OP_TYPE_CAST: visit_expr_(*(const ExprTypeCast*)&expr); break;
+  virtual void visit_expr(const ExprRef& expr) {
+    switch (expr->op) {
+    case L_EXPR_OP_CONSTANT: visit_expr_(std::static_pointer_cast<ExprConstant>(expr)); break;
+    case L_EXPR_OP_LOAD: visit_expr_(std::static_pointer_cast<ExprLoad>(expr)); break;
+    case L_EXPR_OP_ADD: visit_expr_(std::static_pointer_cast<ExprAdd>(expr)); break;
+    case L_EXPR_OP_SUB: visit_expr_(std::static_pointer_cast<ExprSub>(expr)); break;
+    case L_EXPR_OP_LT: visit_expr_(std::static_pointer_cast<ExprLt>(expr)); break;
+    case L_EXPR_OP_EQ: visit_expr_(std::static_pointer_cast<ExprEq>(expr)); break;
+    case L_EXPR_OP_TYPE_CAST: visit_expr_(std::static_pointer_cast<ExprTypeCast>(expr)); break;
     default: liong::unreachable();
     }
   }
-  virtual void visit_expr_(const ExprConstant&);
-  virtual void visit_expr_(const ExprLoad&);
-  virtual void visit_expr_(const ExprAdd&);
-  virtual void visit_expr_(const ExprSub&);
-  virtual void visit_expr_(const ExprLt&);
-  virtual void visit_expr_(const ExprEq&);
-  virtual void visit_expr_(const ExprTypeCast&);
+  virtual void visit_expr_(const ExprConstantRef&);
+  virtual void visit_expr_(const ExprLoadRef&);
+  virtual void visit_expr_(const ExprAddRef&);
+  virtual void visit_expr_(const ExprSubRef&);
+  virtual void visit_expr_(const ExprLtRef&);
+  virtual void visit_expr_(const ExprEqRef&);
+  virtual void visit_expr_(const ExprTypeCastRef&);
 };
 
 template<typename TExpr>
 struct ExprFunctorVisitor : public ExprVisitor {
-  std::function<void(const TExpr&)> f;
-  ExprFunctorVisitor(std::function<void(const TExpr&)>&& f) :
-    f(std::forward<std::function<void(const TExpr&)>>(f)) {}
+  std::function<void(const std::shared_ptr<TExpr>&)> f;
+  ExprFunctorVisitor(std::function<void(const std::shared_ptr<TExpr>&)>&& f) :
+    f(std::forward<std::function<void(const std::shared_ptr<TExpr>&)>>(f)) {}
 
-  virtual void visit_expr_(const TExpr& expr) override final {
+  virtual void visit_expr_(const std::shared_ptr<TExpr>& expr) override final {
     f(expr);
   }
 };
 template<typename TExpr>
 void visit_expr_functor(
-  std::function<void(const TExpr&)>&& f,
-  const Expr& x
+  std::function<void(const std::shared_ptr<TExpr>&)>&& f,
+  const std::shared_ptr<Expr>& x
 ) {
   ExprFunctorVisitor<TExpr> visitor(
-    std::forward<std::function<void(const TExpr&)>>(f));
+    std::forward<std::function<void(const std::shared_ptr<TExpr>&)>>(f));
   visitor.visit_expr(x);
 }
 

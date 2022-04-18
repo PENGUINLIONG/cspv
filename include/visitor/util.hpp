@@ -3,4 +3,4 @@
 #pragma once
 #include "node/node.hpp"
 
-extern std::string dbg_print(const Node& x);
+extern std::string dbg_print(const NodeRef& x);

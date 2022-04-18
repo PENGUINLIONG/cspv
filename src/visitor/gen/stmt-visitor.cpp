@@ -4,34 +4,34 @@
 #pragma once
 #include "visitor/gen/stmt-visitor.hpp"
 
-void StmtVisitor::visit_stmt_(const StmtBlock& x) {
-  for (const auto& x : x.stmts) { visit_stmt(*x); }
+void StmtVisitor::visit_stmt_(const StmtBlockRef& x) {
+  for (const auto& x : x->stmts) { visit_stmt(x); }
 }
-void StmtVisitor::visit_stmt_(const StmtConditionalBranch& x) {
-  visit_stmt(*x.then_block);
-  visit_stmt(*x.else_block);
+void StmtVisitor::visit_stmt_(const StmtConditionalBranchRef& x) {
+  visit_stmt(x->then_block);
+  visit_stmt(x->else_block);
 }
-void StmtVisitor::visit_stmt_(const StmtIfThenElse& x) {
-  visit_stmt(*x.body_block);
+void StmtVisitor::visit_stmt_(const StmtIfThenElseRef& x) {
+  visit_stmt(x->body_block);
 }
-void StmtVisitor::visit_stmt_(const StmtLoop& x) {
-  visit_stmt(*x.body_block);
-  visit_stmt(*x.continue_block);
+void StmtVisitor::visit_stmt_(const StmtLoopRef& x) {
+  visit_stmt(x->body_block);
+  visit_stmt(x->continue_block);
 }
-void StmtVisitor::visit_stmt_(const StmtReturn& x) {
+void StmtVisitor::visit_stmt_(const StmtReturnRef& x) {
 }
-void StmtVisitor::visit_stmt_(const StmtIfThenElseMerge& x) {
+void StmtVisitor::visit_stmt_(const StmtIfThenElseMergeRef& x) {
 }
-void StmtVisitor::visit_stmt_(const StmtLoopMerge& x) {
+void StmtVisitor::visit_stmt_(const StmtLoopMergeRef& x) {
 }
-void StmtVisitor::visit_stmt_(const StmtLoopContinue& x) {
+void StmtVisitor::visit_stmt_(const StmtLoopContinueRef& x) {
 }
-void StmtVisitor::visit_stmt_(const StmtLoopBackEdge& x) {
+void StmtVisitor::visit_stmt_(const StmtLoopBackEdgeRef& x) {
 }
-void StmtVisitor::visit_stmt_(const StmtRangedLoop& x) {
-  visit_stmt(*x.body_block);
+void StmtVisitor::visit_stmt_(const StmtRangedLoopRef& x) {
+  visit_stmt(x->body_block);
 }
-void StmtVisitor::visit_stmt_(const StmtStore& x) {
+void StmtVisitor::visit_stmt_(const StmtStoreRef& x) {
 }
 
 StmtRef StmtMutator::mutate_stmt_(StmtBlockRef& x) {

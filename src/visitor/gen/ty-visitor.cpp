@@ -4,19 +4,19 @@
 #pragma once
 #include "visitor/gen/ty-visitor.hpp"
 
-void TypeVisitor::visit_ty_(const TypeVoid& x) {
+void TypeVisitor::visit_ty_(const TypeVoidRef& x) {
 }
-void TypeVisitor::visit_ty_(const TypeBool& x) {
+void TypeVisitor::visit_ty_(const TypeBoolRef& x) {
 }
-void TypeVisitor::visit_ty_(const TypeInt& x) {
+void TypeVisitor::visit_ty_(const TypeIntRef& x) {
 }
-void TypeVisitor::visit_ty_(const TypeFloat& x) {
+void TypeVisitor::visit_ty_(const TypeFloatRef& x) {
 }
-void TypeVisitor::visit_ty_(const TypeStruct& x) {
-  for (const auto& x : x.members) { visit_ty(*x); }
+void TypeVisitor::visit_ty_(const TypeStructRef& x) {
+  for (const auto& x : x->members) { visit_ty(x); }
 }
-void TypeVisitor::visit_ty_(const TypePointer& x) {
-  visit_ty(*x.inner);
+void TypeVisitor::visit_ty_(const TypePointerRef& x) {
+  visit_ty(x->inner);
 }
 
 TypeRef TypeMutator::mutate_ty_(TypeVoidRef& x) {

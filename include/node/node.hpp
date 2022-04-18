@@ -16,6 +16,8 @@ struct Node {
     inline Node(NodeVariant nova) : nova(nova) {}
 };
 
+typedef std::shared_ptr<Node> NodeRef;
+
 struct Memory;
 struct Type;
 struct Expr;

@@ -18,52 +18,52 @@ typedef std::shared_ptr<StmtRangedLoop> StmtRangedLoopRef;
 typedef std::shared_ptr<StmtStore> StmtStoreRef;
 
 struct StmtVisitor {
-  virtual void visit_stmt(const Stmt& stmt) {
-    switch (stmt.op) {
-    case L_STMT_OP_BLOCK: visit_stmt_(*(const StmtBlock*)&stmt); break;
-    case L_STMT_OP_CONDITIONAL_BRANCH: visit_stmt_(*(const StmtConditionalBranch*)&stmt); break;
-    case L_STMT_OP_IF_THEN_ELSE: visit_stmt_(*(const StmtIfThenElse*)&stmt); break;
-    case L_STMT_OP_LOOP: visit_stmt_(*(const StmtLoop*)&stmt); break;
-    case L_STMT_OP_RETURN: visit_stmt_(*(const StmtReturn*)&stmt); break;
-    case L_STMT_OP_IF_THEN_ELSE_MERGE: visit_stmt_(*(const StmtIfThenElseMerge*)&stmt); break;
-    case L_STMT_OP_LOOP_MERGE: visit_stmt_(*(const StmtLoopMerge*)&stmt); break;
-    case L_STMT_OP_LOOP_CONTINUE: visit_stmt_(*(const StmtLoopContinue*)&stmt); break;
-    case L_STMT_OP_LOOP_BACK_EDGE: visit_stmt_(*(const StmtLoopBackEdge*)&stmt); break;
-    case L_STMT_OP_RANGED_LOOP: visit_stmt_(*(const StmtRangedLoop*)&stmt); break;
-    case L_STMT_OP_STORE: visit_stmt_(*(const StmtStore*)&stmt); break;
+  virtual void visit_stmt(const StmtRef& stmt) {
+    switch (stmt->op) {
+    case L_STMT_OP_BLOCK: visit_stmt_(std::static_pointer_cast<StmtBlock>(stmt)); break;
+    case L_STMT_OP_CONDITIONAL_BRANCH: visit_stmt_(std::static_pointer_cast<StmtConditionalBranch>(stmt)); break;
+    case L_STMT_OP_IF_THEN_ELSE: visit_stmt_(std::static_pointer_cast<StmtIfThenElse>(stmt)); break;
+    case L_STMT_OP_LOOP: visit_stmt_(std::static_pointer_cast<StmtLoop>(stmt)); break;
+    case L_STMT_OP_RETURN: visit_stmt_(std::static_pointer_cast<StmtReturn>(stmt)); break;
+    case L_STMT_OP_IF_THEN_ELSE_MERGE: visit_stmt_(std::static_pointer_cast<StmtIfThenElseMerge>(stmt)); break;
+    case L_STMT_OP_LOOP_MERGE: visit_stmt_(std::static_pointer_cast<StmtLoopMerge>(stmt)); break;
+    case L_STMT_OP_LOOP_CONTINUE: visit_stmt_(std::static_pointer_cast<StmtLoopContinue>(stmt)); break;
+    case L_STMT_OP_LOOP_BACK_EDGE: visit_stmt_(std::static_pointer_cast<StmtLoopBackEdge>(stmt)); break;
+    case L_STMT_OP_RANGED_LOOP: visit_stmt_(std::static_pointer_cast<StmtRangedLoop>(stmt)); break;
+    case L_STMT_OP_STORE: visit_stmt_(std::static_pointer_cast<StmtStore>(stmt)); break;
     default: liong::unreachable();
     }
   }
-  virtual void visit_stmt_(const StmtBlock&);
-  virtual void visit_stmt_(const StmtConditionalBranch&);
-  virtual void visit_stmt_(const StmtIfThenElse&);
-  virtual void visit_stmt_(const StmtLoop&);
-  virtual void visit_stmt_(const StmtReturn&);
-  virtual void visit_stmt_(const StmtIfThenElseMerge&);
-  virtual void visit_stmt_(const StmtLoopMerge&);
-  virtual void visit_stmt_(const StmtLoopContinue&);
-  virtual void visit_stmt_(const StmtLoopBackEdge&);
-  virtual void visit_stmt_(const StmtRangedLoop&);
-  virtual void visit_stmt_(const StmtStore&);
+  virtual void visit_stmt_(const StmtBlockRef&);
+  virtual void visit_stmt_(const StmtConditionalBranchRef&);
+  virtual void visit_stmt_(const StmtIfThenElseRef&);
+  virtual void visit_stmt_(const StmtLoopRef&);
+  virtual void visit_stmt_(const StmtReturnRef&);
+  virtual void visit_stmt_(const StmtIfThenElseMergeRef&);
+  virtual void visit_stmt_(const StmtLoopMergeRef&);
+  virtual void visit_stmt_(const StmtLoopContinueRef&);
+  virtual void visit_stmt_(const StmtLoopBackEdgeRef&);
+  virtual void visit_stmt_(const StmtRangedLoopRef&);
+  virtual void visit_stmt_(const StmtStoreRef&);
 };
 
 template<typename TStmt>
 struct StmtFunctorVisitor : public StmtVisitor {
-  std::function<void(const TStmt&)> f;
-  StmtFunctorVisitor(std::function<void(const TStmt&)>&& f) :
-    f(std::forward<std::function<void(const TStmt&)>>(f)) {}
+  std::function<void(const std::shared_ptr<TStmt>&)> f;
+  StmtFunctorVisitor(std::function<void(const std::shared_ptr<TStmt>&)>&& f) :
+    f(std::forward<std::function<void(const std::shared_ptr<TStmt>&)>>(f)) {}
 
-  virtual void visit_stmt_(const TStmt& stmt) override final {
+  virtual void visit_stmt_(const std::shared_ptr<TStmt>& stmt) override final {
     f(stmt);
   }
 };
 template<typename TStmt>
 void visit_stmt_functor(
-  std::function<void(const TStmt&)>&& f,
-  const Stmt& x
+  std::function<void(const std::shared_ptr<TStmt>&)>&& f,
+  const std::shared_ptr<Stmt>& x
 ) {
   StmtFunctorVisitor<TStmt> visitor(
-    std::forward<std::function<void(const TStmt&)>>(f));
+    std::forward<std::function<void(const std::shared_ptr<TStmt>&)>>(f));
   visitor.visit_stmt(x);
 }
 

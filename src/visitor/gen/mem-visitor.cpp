@@ -4,15 +4,15 @@
 #pragma once
 #include "visitor/gen/mem-visitor.hpp"
 
-void MemoryVisitor::visit_mem_(const MemoryFunctionVariable& x) {
+void MemoryVisitor::visit_mem_(const MemoryFunctionVariableRef& x) {
 }
-void MemoryVisitor::visit_mem_(const MemoryUniformBuffer& x) {
+void MemoryVisitor::visit_mem_(const MemoryUniformBufferRef& x) {
 }
-void MemoryVisitor::visit_mem_(const MemoryStorageBuffer& x) {
+void MemoryVisitor::visit_mem_(const MemoryStorageBufferRef& x) {
 }
-void MemoryVisitor::visit_mem_(const MemorySampledImage& x) {
+void MemoryVisitor::visit_mem_(const MemorySampledImageRef& x) {
 }
-void MemoryVisitor::visit_mem_(const MemoryStorageImage& x) {
+void MemoryVisitor::visit_mem_(const MemoryStorageImageRef& x) {
 }
 
 MemoryRef MemoryMutator::mutate_mem_(MemoryFunctionVariableRef& x) {
