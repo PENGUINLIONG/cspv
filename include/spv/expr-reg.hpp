@@ -1,7 +1,7 @@
 // Expression op registry.
 // @PENGUINLIONG
 #pragma once
-#include "spv/type-reg.hpp"
+#include "spv/ty-reg.hpp"
 
 enum ExprOp {
   L_EXPR_OP_CONSTANT,

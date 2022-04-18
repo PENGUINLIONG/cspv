@@ -1,7 +1,7 @@
 // Type class implementations.
 // @PENGUINLIONG
 #pragma once
-#include "spv/type-reg.hpp"
+#include "spv/ty-reg.hpp"
 
 struct TypeVoid : public Type {
   static const TypeClass CLS = L_TYPE_CLASS_VOID;

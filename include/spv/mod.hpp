@@ -3,7 +3,7 @@
 // @PENGUINLIONG
 #pragma once
 #include "spv/abstr.hpp"
-#include "spv/type.hpp"
+#include "spv/ty.hpp"
 #include "spv/mem.hpp"
 #include "spv/expr.hpp"
 #include "spv/stmt.hpp"

@@ -1,4 +1,4 @@
-#include "visitor/gen/type-visitor.hpp"
+#include "visitor/gen/ty-visitor.hpp"
 
 void TypeVisitor::visit_ty_(const TypeVoid& x) {}
 void TypeVisitor::visit_ty_(const TypeBool& x) {}

@@ -3,7 +3,7 @@
 #pragma once
 #include "spv/node.hpp"
 #include "visitor/gen/mem-visitor.hpp"
-#include "visitor/gen/type-visitor.hpp"
+#include "visitor/gen/ty-visitor.hpp"
 #include "visitor/gen/expr-visitor.hpp"
 #include "visitor/gen/stmt-visitor.hpp"
 

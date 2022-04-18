@@ -4,7 +4,7 @@
 #include <memory>
 #include "spv/expr-reg.hpp"
 #include "spv/mem-reg.hpp"
-#include "spv/type-reg.hpp"
+#include "spv/ty-reg.hpp"
 
 struct ExprConstant : public Expr {
   static const ExprOp OP = L_EXPR_OP_CONSTANT;
