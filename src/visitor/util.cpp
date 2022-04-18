@@ -202,23 +202,32 @@ struct DebugPrintVisitor : public Visitor {
   virtual void visit_stmt_(const StmtConditionalBranchRef& x) override final {
     s << "if ";
     visit(x->cond);
-    s << " " << std::endl;
+    s << " {" << std::endl;
+    s.push_indent();
     visit(x->then_block);
-    s << "else " << std::endl;
+    s.pop_indent();
+    s << "} else {" << std::endl;
+    s.push_indent();
     visit(x->else_block);
+    s.pop_indent();
+    s << "}" << std::endl;
   }
   virtual void visit_stmt_(const StmtIfThenElseRef& x) override final {
     visit(x->body_block);
   }
   virtual void visit_stmt_(const StmtLoopRef& x) override final {
-    s << "loop " << std::endl;
+    s << "loop {" << std::endl;
+    s.push_indent();
     visit(x->body_block);
-    s << "continue " << std::endl;
+    s.pop_indent();
+    s << "} continue {" << std::endl;
+    s.push_indent();
     visit(x->continue_block);
+    s.pop_indent();
+    s << "}" << std::endl;
   }
   virtual void visit_stmt_(const StmtReturnRef& x) override final {
-    s << "return";
-    s << std::endl;
+    s << "return" << std::endl;
   }
   virtual void visit_stmt_(const StmtLoopContinueRef& x) override final {
     s << "continue" << std::endl;
@@ -237,8 +246,11 @@ struct DebugPrintVisitor : public Visitor {
     visit(x->end);
     s << ", ";
     visit(x->stride);
-    s << ") ";
+    s << ") {" << std::endl;
+    s.push_indent();
     visit(x->body_block);
+    s.pop_indent();
+    s << "}" << std::endl;
   }
   virtual void visit_stmt_(const StmtStoreRef& x) override final {
     s << "Store(";

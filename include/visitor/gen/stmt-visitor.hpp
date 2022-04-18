@@ -5,6 +5,7 @@
 #include "node/gen/stmt.hpp"
 
 typedef std::shared_ptr<Stmt> StmtRef;
+typedef std::shared_ptr<StmtNop> StmtNopRef;
 typedef std::shared_ptr<StmtBlock> StmtBlockRef;
 typedef std::shared_ptr<StmtConditionalBranch> StmtConditionalBranchRef;
 typedef std::shared_ptr<StmtIfThenElse> StmtIfThenElseRef;
@@ -20,6 +21,7 @@ typedef std::shared_ptr<StmtStore> StmtStoreRef;
 struct StmtVisitor {
   virtual void visit_stmt(const StmtRef& stmt) {
     switch (stmt->op) {
+    case L_STMT_OP_NOP: visit_stmt_(std::static_pointer_cast<StmtNop>(stmt)); break;
     case L_STMT_OP_BLOCK: visit_stmt_(std::static_pointer_cast<StmtBlock>(stmt)); break;
     case L_STMT_OP_CONDITIONAL_BRANCH: visit_stmt_(std::static_pointer_cast<StmtConditionalBranch>(stmt)); break;
     case L_STMT_OP_IF_THEN_ELSE: visit_stmt_(std::static_pointer_cast<StmtIfThenElse>(stmt)); break;
@@ -34,6 +36,7 @@ struct StmtVisitor {
     default: liong::unreachable();
     }
   }
+  virtual void visit_stmt_(const StmtNopRef&);
   virtual void visit_stmt_(const StmtBlockRef&);
   virtual void visit_stmt_(const StmtConditionalBranchRef&);
   virtual void visit_stmt_(const StmtIfThenElseRef&);
@@ -70,6 +73,7 @@ void visit_stmt_functor(
 struct StmtMutator {
   virtual StmtRef mutate_stmt(StmtRef& stmt) {
     switch (stmt->op) {
+    case L_STMT_OP_NOP: return mutate_stmt_(std::static_pointer_cast<StmtNop>(stmt));
     case L_STMT_OP_BLOCK: return mutate_stmt_(std::static_pointer_cast<StmtBlock>(stmt));
     case L_STMT_OP_CONDITIONAL_BRANCH: return mutate_stmt_(std::static_pointer_cast<StmtConditionalBranch>(stmt));
     case L_STMT_OP_IF_THEN_ELSE: return mutate_stmt_(std::static_pointer_cast<StmtIfThenElse>(stmt));
@@ -84,6 +88,7 @@ struct StmtMutator {
     default: liong::unreachable();
     }
   }
+  virtual StmtRef mutate_stmt_(std::shared_ptr<StmtNop>&);
   virtual StmtRef mutate_stmt_(std::shared_ptr<StmtBlock>&);
   virtual StmtRef mutate_stmt_(std::shared_ptr<StmtConditionalBranch>&);
   virtual StmtRef mutate_stmt_(std::shared_ptr<StmtIfThenElse>&);

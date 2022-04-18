@@ -4,6 +4,8 @@
 #pragma once
 #include "visitor/gen/stmt-visitor.hpp"
 
+void StmtVisitor::visit_stmt_(const StmtNopRef& x) {
+}
 void StmtVisitor::visit_stmt_(const StmtBlockRef& x) {
   for (const auto& x : x->stmts) { visit_stmt(x); }
 }
@@ -34,6 +36,9 @@ void StmtVisitor::visit_stmt_(const StmtRangedLoopRef& x) {
 void StmtVisitor::visit_stmt_(const StmtStoreRef& x) {
 }
 
+StmtRef StmtMutator::mutate_stmt_(StmtNopRef& x) {
+  return x;
+}
 StmtRef StmtMutator::mutate_stmt_(StmtBlockRef& x) {
   for (auto& x : x->stmts) { x = mutate_stmt(x); }
   return x;

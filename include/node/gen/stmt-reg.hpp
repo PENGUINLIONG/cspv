@@ -5,6 +5,7 @@
 #include "node/node.hpp"
 
 enum StmtOp {
+  L_STMT_OP_NOP,
   L_STMT_OP_BLOCK,
   L_STMT_OP_CONDITIONAL_BRANCH,
   L_STMT_OP_IF_THEN_ELSE,

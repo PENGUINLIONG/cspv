@@ -613,6 +613,9 @@ STMTS = {
     "enum_abbr": "op",
     "fields": {},
     "variants": {
+        "nop": {
+            "fields": {}
+        },
         "block": {
             "fields": {
                 "stmts": "Stmt[]",

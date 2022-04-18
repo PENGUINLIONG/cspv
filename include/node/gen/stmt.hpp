@@ -4,6 +4,14 @@
 #pragma once
 #include "node/reg.hpp"
 
+struct StmtNop : public Stmt {
+  static const StmtOp OP = L_STMT_OP_NOP;
+
+  inline StmtNop(
+  ) : Stmt(L_STMT_OP_NOP) {
+  }
+};
+
 struct StmtBlock : public Stmt {
   static const StmtOp OP = L_STMT_OP_BLOCK;
   std::vector<std::shared_ptr<Stmt>> stmts;
