@@ -65,6 +65,20 @@ def compose_general_header(nova: NodeVariant):
         f'#include "spv/{abbr}.hpp"',
         "",
     ]
+def compose_subty_refs(nova: NodeVariant):
+    ty_prefix = nova.ty_name.to_pascal_case()
+    out = [
+        f"typedef std::shared_ptr<{ty_prefix}> {ty_prefix}Ref;",
+    ]
+    for subty in nova.subtys:
+        subty_prefix = subty.subty_name.to_pascal_case()
+        out += [
+            f"typedef std::shared_ptr<{ty_prefix}{subty_prefix}> {ty_prefix}{subty_prefix}Ref;",
+        ]
+    out += [
+        "",
+    ]
+    return out
 def compose_visitor(nova: NodeVariant):
     ty_prefix = nova.ty_name.to_pascal_case()
     enum_prefix = "L_" + nova.ty_name.to_screaming_snake_case() + "_" + nova.enum_name.to_screaming_snake_case() + "_"
@@ -124,9 +138,10 @@ def compose_mutator(nova: NodeVariant):
     enum_prefix = "L_" + nova.ty_name.to_screaming_snake_case() + "_" + nova.enum_name.to_screaming_snake_case() + "_"
     abbr = nova.ty_abbr.to_snake_case()
     enum_fields = nova.enum_abbr.to_snake_case()
+    ty_ref_prefix = ty_prefix + "Ref"
     out = [
         f"struct {ty_prefix}Mutator {{",
-        f"  virtual std::shared_ptr<{ty_prefix}> mutate_{abbr}(std::shared_ptr<{ty_prefix}>& {abbr}) {{",
+        f"  virtual {ty_ref_prefix} mutate_{abbr}({ty_ref_prefix}& {abbr}) {{",
         f"    switch ({abbr}->{enum_fields}) {{",
     ]
     for x in nova.subtys:
@@ -140,7 +155,7 @@ def compose_mutator(nova: NodeVariant):
     ]
     for x in nova.subtys:
         out += [
-            f"  virtual std::shared_ptr<{ty_prefix}> mutate_{abbr}_(std::shared_ptr<{ty_prefix}{x.subty_name.to_pascal_case()}>&);",
+            f"  virtual {ty_ref_prefix} mutate_{abbr}_(std::shared_ptr<{ty_prefix}{x.subty_name.to_pascal_case()}>&);",
         ]
     out += [
         "};",
@@ -150,24 +165,26 @@ def compose_mutator(nova: NodeVariant):
 def compose_functor_mutator(nova: NodeVariant):
     ty_prefix = nova.ty_name.to_pascal_case()
     abbr = nova.ty_abbr.to_snake_case()
+    ty_ref_prefix = ty_prefix + "Ref"
     out = [
         f"template<typename T{ty_prefix}>",
         f"struct {ty_prefix}FunctorMutator : public {ty_prefix}Mutator {{",
-        f"  std::function<std::shared_ptr<{ty_prefix}>(std::shared_ptr<T{ty_prefix}>&)> f;",
-        f"  {ty_prefix}FunctorMutator(std::function<std::shared_ptr<{ty_prefix}>(std::shared_ptr<T{ty_prefix}>&)>&& f) :",
-        f"    f(std::forward<std::function<std::shared_ptr<{ty_prefix}>(std::shared_ptr<T{ty_prefix}>&)>>(f)) {{}}",
+        f"  typedef std::shared_ptr<T{ty_prefix}> TStmtRef;",
+        f"  std::function<{ty_ref_prefix}(TStmtRef&)> f;",
+        f"  {ty_prefix}FunctorMutator(std::function<{ty_ref_prefix}(TStmtRef&)>&& f) :",
+        f"    f(std::forward<std::function<{ty_ref_prefix}(TStmtRef&)>>(f)) {{}}",
         "",
-        f"  virtual std::shared_ptr<{ty_prefix}> mutate_{abbr}_(std::shared_ptr<T{ty_prefix}>& {abbr}) override final {{",
+        f"  virtual {ty_ref_prefix} mutate_{abbr}_(TStmtRef& {abbr}) override final {{",
         f"    return f({abbr});",
         "  }",
         "};",
         f"template<typename T{ty_prefix}>",
         f"void mutate_{abbr}_functor(",
-        f"  std::function<std::shared_ptr<{ty_prefix}>(std::shared_ptr<T{ty_prefix}>&)>&& f,",
+        f"  std::function<{ty_ref_prefix}(std::shared_ptr<T{ty_prefix}>&)>&& f,",
         f"  const {ty_prefix}& x",
         ") {",
         f"  {ty_prefix}FunctorMutator<T{ty_prefix}> mutator(",
-        f"    std::forward<std::function<std::shared_ptr<{ty_prefix}>(std::shared_ptr<T{ty_prefix}>&)>>(f));",
+        f"    std::forward<std::function<{ty_ref_prefix}(std::shared_ptr<T{ty_prefix}>&)>>(f));",
         f"  return mutator.mutate_{abbr}(x);",
         "}",
         "",
@@ -258,6 +275,7 @@ def json2subty(json):
 STMTS = json2subty(STMTS)
 stmt_nova = NodeVariant("Statement", "stmt", "stmt", "op", "op", STMTS)
 out = compose_general_header(stmt_nova) + \
+    compose_subty_refs(stmt_nova) + \
     compose_visitor(stmt_nova) + \
     compose_functor_visitor(stmt_nova) + \
     compose_mutator(stmt_nova) + \
