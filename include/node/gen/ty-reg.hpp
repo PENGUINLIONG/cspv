@@ -29,6 +29,6 @@ struct Type : public Node {
 protected:
   inline Type(
     TypeClass cls
-  ) : Node(L_NODE_VARIANT_TYPE),
-    cls(cls) {}
-};
+  ) : Node(L_NODE_VARIANT_TYPE), cls(cls)
+  {
+  }};

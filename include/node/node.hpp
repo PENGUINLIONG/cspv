@@ -2,6 +2,8 @@
 // @PENGUINLIONG
 #pragma once
 #include <memory>
+#include <vector>
+#include "gft/assert.hpp"
 
 enum NodeVariant {
     L_NODE_VARIANT_MEMORY,

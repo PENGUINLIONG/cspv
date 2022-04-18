@@ -2,7 +2,7 @@
 // Expression node visitor.
 // @PENGUINLIONG
 #pragma once
-#include "spv/expr.hpp"
+#include "node/gen/expr.hpp"
 
 typedef std::shared_ptr<Expr> ExprRef;
 typedef std::shared_ptr<ExprConstant> ExprConstantRef;

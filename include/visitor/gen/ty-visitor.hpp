@@ -2,7 +2,7 @@
 // Type node visitor.
 // @PENGUINLIONG
 #pragma once
-#include "spv/ty.hpp"
+#include "node/gen/ty.hpp"
 
 typedef std::shared_ptr<Type> TypeRef;
 typedef std::shared_ptr<TypeVoid> TypeVoidRef;

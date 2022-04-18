@@ -2,7 +2,7 @@
 // Memory node visitor.
 // @PENGUINLIONG
 #pragma once
-#include "spv/mem.hpp"
+#include "node/gen/mem.hpp"
 
 typedef std::shared_ptr<Memory> MemoryRef;
 typedef std::shared_ptr<MemoryFunctionVariable> MemoryFunctionVariableRef;

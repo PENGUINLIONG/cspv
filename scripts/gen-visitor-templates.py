@@ -5,6 +5,8 @@ Generate visitor templates for tree-like types.
 
 from typing import List
 
+from pytest import param
+
 class Name:
     def __init__(self, s):
         """Input `s` is in snake case."""
@@ -38,6 +40,10 @@ class NodeFieldType:
             else:
                 self.field_ty = f"{ty}"
                 self.param_ty = f"{ty}"
+
+        self.raw_name = ty
+        self.is_ref_ty = is_ref_ty
+        self.is_plural = is_plural
 
 class NodeField:
     def __init__(self, name, ty: NodeFieldType):
@@ -232,7 +238,7 @@ def compose_functor_mutator(nova: NodeVariant):
 
 def compose_visitor_hpp(nova: NodeVariant):
     out = compose_general_header(nova, "node visitor") + \
-        [ f'#include "spv/{nova.ty_abbr.to_spinal_case()}.hpp"', "" ] + \
+        [ f'#include "node/gen/{nova.ty_abbr.to_spinal_case()}.hpp"', "" ] + \
         compose_subty_refs(nova) + \
         compose_visitor(nova) + \
         compose_functor_visitor(nova) + \
@@ -291,16 +297,25 @@ def compose_node_ty_declr(nova: NodeVariant):
             f"    {field.ty.param_ty} {field.name.to_snake_case()}",
         ]
     out += [
-        f"  ) : Node(L_NODE_VARIANT_{nova.ty_name.to_screaming_snake_case()}),",
-        f"    {enum_var_name}({enum_var_name})",
+        f"  ) : Node(L_NODE_VARIANT_{nova.ty_name.to_screaming_snake_case()}), {enum_var_name}({enum_var_name})",
     ]
     for field in nova.fields:
-        out[-1] += ","
-        out += [
-            f"    {field.name.to_snake_case()}({field.name.to_snake_case()})",
-        ]
-    out[-1] += " {}"
+        out[-1] += f", {field.name.to_snake_case()}({field.name.to_snake_case()})"
     out += [
+        "  {"
+    ]
+    for field in nova.fields:
+        if field.ty.is_ref_ty:
+            if field.ty.is_plural:
+                out += [
+                    f"    for (const auto& x : {field.name.to_snake_case()}) {{ liong::assert(x != nullptr); }}"
+                ]
+            else:
+                out += [
+                    f"    liong::assert({field.name.to_snake_case()} != nullptr);",
+                ]
+    out += [
+        "  }"
         "};",
         "",
     ]
@@ -313,6 +328,129 @@ def compose_reg_hpp(nova: NodeVariant):
         compose_node_ty_declr(nova)
     with open(f"./include/node/gen/{nova.ty_abbr.to_spinal_case()}-reg.hpp", "w") as f:
         f.write('\n'.join(out))
+
+
+
+
+def compose_node_impls(nova: NodeVariant):
+    ty_name = nova.ty_name.to_pascal_case()
+    enum_name = ty_name + nova.enum_name.to_pascal_case()
+    enum_case_prefix = f"L_{nova.ty_name.to_screaming_snake_case()}_{nova.enum_name.to_screaming_snake_case()}_"
+    out = []
+    for subty in nova.subtys:
+        subty_name = ty_name + subty.name.to_pascal_case()
+        out += [
+            f"struct {subty_name} : public {ty_name} {{",
+            f"  static const {enum_name} {nova.enum_abbr.to_screaming_snake_case()} = {enum_case_prefix}{subty.name.to_screaming_snake_case()};",
+        ]
+        for field in subty.fields:
+            out += [
+                f"  {field.ty.field_ty} {field.name.to_snake_case()};", 
+            ]
+        out += [
+            "",
+            f"  inline {subty_name}(",
+        ]
+        for i, field in enumerate(nova.fields + subty.fields):
+            if i != 0:
+                out[-1] += ","
+            out += [
+                f"    {field.ty.param_ty} {field.name.to_snake_case()}",
+            ]
+        common_field_init = ''.join([f", {field.name.to_snake_case()}" for field in nova.fields])
+        out += [
+            f"  ) : {ty_name}({enum_case_prefix}{subty.name.to_screaming_snake_case()}{common_field_init})",
+        ]
+        for field in subty.fields:
+            out[-1] += f", {field.name.to_snake_case()}({field.name.to_snake_case()})"
+        out[-1] += " {"
+        for field in subty.fields:
+            if field.ty.is_ref_ty:
+                if field.ty.is_plural:
+                    out += [
+                        f"    for (const auto& x : {field.name.to_snake_case()}) {{ liong::assert(x != nullptr); }}"
+                    ]
+                else:
+                    out += [
+                        f"    liong::assert({field.name.to_snake_case()} != nullptr);",
+                    ]
+        out += [
+            "  }",
+            "};",
+            ""
+        ]
+    return out
+def compose_hpp(nova: NodeVariant):
+    out = compose_general_header(nova, "node implementation") + \
+        [ f'#include "node/reg.hpp"', "" ] + \
+        compose_node_impls(nova)
+    with open(f"./include/node/gen/{nova.ty_abbr.to_spinal_case()}.hpp", "w") as f:
+        f.write('\n'.join(out))
+
+
+def compose_visitor_default_impl(nova: NodeVariant):
+    ty_name = nova.ty_name.to_pascal_case()
+    out = []
+    for subty in nova.subtys:
+        subty_name = ty_name + subty.name.to_pascal_case()
+        out += [
+            f"void {ty_name}Visitor::visit_{nova.ty_abbr.to_snake_case()}_(const {subty_name}& x) {{",
+        ]
+        for field in subty.fields:
+            if field.ty.raw_name == ty_name:
+                if (field.ty.is_plural):
+                    out += [
+                        f"  for (const auto& x : x.{field.name.to_snake_case()}) {{ visit_{nova.ty_abbr.to_snake_case()}(*x); }}",
+                    ]
+                else:
+                    out += [
+                        f"  visit_{nova.ty_abbr.to_snake_case()}(*x.{field.name.to_snake_case()});",
+                    ]
+        out += [
+            "}",
+        ]
+    out += [
+        ""
+    ]
+    return out
+
+def compose_mutator_default_impl(nova: NodeVariant):
+    ty_name = nova.ty_name.to_pascal_case()
+    out = []
+    for subty in nova.subtys:
+        subty_name = ty_name + subty.name.to_pascal_case()
+        out += [
+            f"{ty_name}Ref {ty_name}Mutator::mutate_{nova.ty_abbr.to_snake_case()}_({subty_name}Ref& x) {{",
+        ]
+        for field in subty.fields:
+            if field.ty.raw_name == ty_name:
+                if (field.ty.is_plural):
+                    out += [
+                        f"  for (auto& x : x->{field.name.to_snake_case()}) {{ x = mutate_{nova.ty_abbr.to_snake_case()}(x); }}",
+                    ]
+                else:
+                    out += [
+                        f"  x->{field.name.to_snake_case()} = mutate_{nova.ty_abbr.to_snake_case()}(x->{field.name.to_snake_case()});",
+                    ]
+        out += [
+            "  return x;",
+            "}",
+        ]
+    out += [
+        ""
+    ]
+    return out
+
+
+def compose_visitor_cpp(nova: NodeVariant):
+    out = compose_general_header(nova, "node visitor implementation") + \
+        [ f'#include "visitor/gen/{nova.ty_abbr.to_spinal_case()}-visitor.hpp"', "" ] + \
+        compose_visitor_default_impl(nova) + \
+        compose_mutator_default_impl(nova)
+    with open(f"./src/visitor/gen/{nova.ty_abbr.to_spinal_case()}-visitor.cpp", "w") as f:
+        f.write('\n'.join(out))
+
+
 
 
 MEMS = {
@@ -328,7 +466,7 @@ MEMS = {
     "variants": {
         "function_variable": {
             "fields": {
-                "handle": "handle",
+                "handle": "void*",
             }
         },
         "uniform_buffer": {
@@ -360,7 +498,9 @@ MEMS = {
 
 mem_nova = json2nova(MEMS)
 compose_visitor_hpp(mem_nova)
+compose_visitor_cpp(mem_nova)
 compose_reg_hpp(mem_nova)
+compose_hpp(mem_nova)
 
 TYS = {
     "formal_name": "Type",
@@ -385,7 +525,6 @@ TYS = {
         "float": {
             "fields": {
                 "nbit": "uint32_t",
-                "is_signed": "bool",
             }
         },
         "struct": {
@@ -403,7 +542,9 @@ TYS = {
 
 ty_nova = json2nova(TYS)
 compose_visitor_hpp(ty_nova)
+compose_visitor_cpp(ty_nova)
 compose_reg_hpp(ty_nova)
+compose_hpp(ty_nova)
 
 
 EXPRS = {
@@ -460,7 +601,9 @@ EXPRS = {
 
 expr_nova = json2nova(EXPRS)
 compose_visitor_hpp(expr_nova)
+compose_visitor_cpp(expr_nova)
 compose_reg_hpp(expr_nova)
+compose_hpp(expr_nova)
 
 STMTS = {
     "formal_name": "Statement",
@@ -472,7 +615,7 @@ STMTS = {
     "variants": {
         "block": {
             "fields": {
-                "members": "Stmt+",
+                "stmts": "Stmt[]",
             }
         },
         "conditional_branch": {
@@ -490,6 +633,7 @@ STMTS = {
         "loop": {
             "fields": {
                 "body_block": "Stmt",
+                "continue_block": "Stmt",
             }
         },
         "return": {
@@ -517,11 +661,16 @@ STMTS = {
             }
         },
         "store": {
-            "fields": {}
+            "fields": {
+                "dst_ptr": "Memory",
+                "value": "Expr",
+            }
         },
     }
 }
 
 stmt_nova = json2nova(STMTS)
 compose_visitor_hpp(stmt_nova)
+compose_visitor_cpp(stmt_nova)
 compose_reg_hpp(stmt_nova)
+compose_hpp(stmt_nova)

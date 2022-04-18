@@ -32,8 +32,8 @@ protected:
     MemoryClass cls,
     const std::shared_ptr<Type>& ty,
     const std::vector<std::shared_ptr<Expr>>& ac
-  ) : Node(L_NODE_VARIANT_MEMORY),
-    cls(cls),
-    ty(ty),
-    ac(ac) {}
-};
+  ) : Node(L_NODE_VARIANT_MEMORY), cls(cls), ty(ty), ac(ac)
+  {
+    liong::assert(ty != nullptr);
+    for (const auto& x : ac) { liong::assert(x != nullptr); }
+  }};

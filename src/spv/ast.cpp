@@ -111,7 +111,7 @@ struct ControlFlowParser {
     spv::StorageClass store_cls = e.read_u32_as<spv::StorageClass>();
     // Merely function vairables.
     assert(store_cls == spv::StorageClass::Function);
-    auto mem = std::shared_ptr<Memory>(new MemoryFunctionVariable(var_ty, {}, instr.inner));
+    auto mem = std::shared_ptr<Memory>(new MemoryFunctionVariable(var_ty, {}, (void*)instr.inner));
     mod.mem_map.emplace(instr, mem);
 
     parser_state.cur = instr.next();
@@ -126,9 +126,9 @@ struct ControlFlowParser {
 
     auto e = instr.extract_params();
     auto base = mod.mem_map.at(e.read_id());
-    AccessChain ac = base->ac;
+    auto ac = base->ac;
     while (e) {
-      ac.idxs.emplace_back(mod.expr_map.at(e.read_id()));
+      ac.emplace_back(mod.expr_map.at(e.read_id()));
     }
 
     std::shared_ptr<Memory> mem = nullptr;

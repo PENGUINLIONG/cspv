@@ -50,9 +50,9 @@ struct DebugPrintVisitor : public Visitor {
   Debug& s;
   inline DebugPrintVisitor(Debug& s) : s(s) {}
 
-  void visit_access_chain(const AccessChain& ac) {
+  void visit_access_chain(const std::vector<ExprRef>& ac) {
     bool first = true;
-    for (const auto& idx : ac.idxs) {
+    for (const auto& idx : ac) {
       if (first) {
         first = false;
       } else {
@@ -217,10 +217,7 @@ struct DebugPrintVisitor : public Visitor {
     visit(*x.continue_block);
   }
   virtual void visit_stmt_(const StmtReturn& x) override final {
-    s << "return ";
-    if (x.rv) {
-      visit(*x.rv);
-    }
+    s << "return";
     s << std::endl;
   }
   virtual void visit_stmt_(const StmtLoopContinue& x) override final {

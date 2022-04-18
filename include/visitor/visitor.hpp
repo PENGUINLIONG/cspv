@@ -1,7 +1,7 @@
 // Universal visitor base type.
 // @PENGUINLIONG
 #pragma once
-#include "spv/node.hpp"
+#include "node/node.hpp"
 #include "visitor/gen/mem-visitor.hpp"
 #include "visitor/gen/ty-visitor.hpp"
 #include "visitor/gen/expr-visitor.hpp"

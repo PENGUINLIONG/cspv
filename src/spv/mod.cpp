@@ -335,10 +335,6 @@ struct SpirvVisitor {
       spv::StorageClass store_cls = e.read_u32_as<spv::StorageClass>();
       assert(store_cls != spv::StorageClass::Function,
         "function variables are parsed within functions");
-      // Merely function vairables.
-      if (store_cls == spv::StorageClass::Function) {
-        return std::shared_ptr<Memory>(new MemoryFunctionVariable(var_ty, {}, ptr.inner));
-      }
 
       // Descriptor resources.
       if (has_deco(spv::Decoration::BufferBlock, ptr)) {

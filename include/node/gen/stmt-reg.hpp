@@ -34,6 +34,6 @@ struct Stmt : public Node {
 protected:
   inline Stmt(
     StmtOp op
-  ) : Node(L_NODE_VARIANT_STMT),
-    op(op) {}
-};
+  ) : Node(L_NODE_VARIANT_STMT), op(op)
+  {
+  }};

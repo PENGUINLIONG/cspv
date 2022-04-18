@@ -2,7 +2,7 @@
 // Statement node visitor.
 // @PENGUINLIONG
 #pragma once
-#include "spv/stmt.hpp"
+#include "node/gen/stmt.hpp"
 
 typedef std::shared_ptr<Stmt> StmtRef;
 typedef std::shared_ptr<StmtBlock> StmtBlockRef;

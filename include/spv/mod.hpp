@@ -3,10 +3,10 @@
 // @PENGUINLIONG
 #pragma once
 #include "spv/abstr.hpp"
-#include "spv/ty.hpp"
-#include "spv/mem.hpp"
-#include "spv/expr.hpp"
-#include "spv/stmt.hpp"
+#include "node/gen/ty.hpp"
+#include "node/gen/mem.hpp"
+#include "node/gen/expr.hpp"
+#include "node/gen/stmt.hpp"
 
 struct SpirvEntryPointExecutionModeCompute {
   uint32_t local_size_x;

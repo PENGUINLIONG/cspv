@@ -32,7 +32,7 @@ protected:
   inline Expr(
     ExprOp op,
     const std::shared_ptr<Type>& ty
-  ) : Node(L_NODE_VARIANT_EXPR),
-    op(op),
-    ty(ty) {}
-};
+  ) : Node(L_NODE_VARIANT_EXPR), op(op), ty(ty)
+  {
+    liong::assert(ty != nullptr);
+  }};
