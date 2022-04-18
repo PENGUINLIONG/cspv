@@ -4,6 +4,14 @@
 #pragma once
 #include "spv/ty.hpp"
 
+typedef std::shared_ptr<Type> TypeRef;
+typedef std::shared_ptr<TypeVoid> TypeVoidRef;
+typedef std::shared_ptr<TypeBool> TypeBoolRef;
+typedef std::shared_ptr<TypeInt> TypeIntRef;
+typedef std::shared_ptr<TypeFloat> TypeFloatRef;
+typedef std::shared_ptr<TypeStruct> TypeStructRef;
+typedef std::shared_ptr<TypePointer> TypePointerRef;
+
 struct TypeVisitor {
   virtual void visit_ty(const Type& ty) {
     switch (ty.cls) {
@@ -42,4 +50,45 @@ void visit_ty_functor(
   TypeFunctorVisitor<TType> visitor(
     std::forward<std::function<void(const TType&)>>(f));
   visitor.visit_ty(x);
+}
+
+struct TypeMutator {
+  virtual TypeRef mutate_ty(TypeRef& ty) {
+    switch (ty->cls) {
+    case L_TYPE_CLASS_VOID: return mutate_ty_(std::static_pointer_cast<TypeVoid>(ty));
+    case L_TYPE_CLASS_BOOL: return mutate_ty_(std::static_pointer_cast<TypeBool>(ty));
+    case L_TYPE_CLASS_INT: return mutate_ty_(std::static_pointer_cast<TypeInt>(ty));
+    case L_TYPE_CLASS_FLOAT: return mutate_ty_(std::static_pointer_cast<TypeFloat>(ty));
+    case L_TYPE_CLASS_STRUCT: return mutate_ty_(std::static_pointer_cast<TypeStruct>(ty));
+    case L_TYPE_CLASS_POINTER: return mutate_ty_(std::static_pointer_cast<TypePointer>(ty));
+    default: liong::unreachable();
+    }
+  }
+  virtual TypeRef mutate_ty_(std::shared_ptr<TypeVoid>&);
+  virtual TypeRef mutate_ty_(std::shared_ptr<TypeBool>&);
+  virtual TypeRef mutate_ty_(std::shared_ptr<TypeInt>&);
+  virtual TypeRef mutate_ty_(std::shared_ptr<TypeFloat>&);
+  virtual TypeRef mutate_ty_(std::shared_ptr<TypeStruct>&);
+  virtual TypeRef mutate_ty_(std::shared_ptr<TypePointer>&);
+};
+
+template<typename TType>
+struct TypeFunctorMutator : public TypeMutator {
+  typedef std::shared_ptr<TType> TStmtRef;
+  std::function<TypeRef(TStmtRef&)> f;
+  TypeFunctorMutator(std::function<TypeRef(TStmtRef&)>&& f) :
+    f(std::forward<std::function<TypeRef(TStmtRef&)>>(f)) {}
+
+  virtual TypeRef mutate_ty_(TStmtRef& ty) override final {
+    return f(ty);
+  }
+};
+template<typename TType>
+void mutate_ty_functor(
+  std::function<TypeRef(std::shared_ptr<TType>&)>&& f,
+  const Type& x
+) {
+  TypeFunctorMutator<TType> mutator(
+    std::forward<std::function<TypeRef(std::shared_ptr<TType>&)>>(f));
+  return mutator.mutate_ty(x);
 }

@@ -4,6 +4,15 @@
 #pragma once
 #include "spv/expr.hpp"
 
+typedef std::shared_ptr<Expr> ExprRef;
+typedef std::shared_ptr<ExprConstant> ExprConstantRef;
+typedef std::shared_ptr<ExprLoad> ExprLoadRef;
+typedef std::shared_ptr<ExprAdd> ExprAddRef;
+typedef std::shared_ptr<ExprSub> ExprSubRef;
+typedef std::shared_ptr<ExprLt> ExprLtRef;
+typedef std::shared_ptr<ExprEq> ExprEqRef;
+typedef std::shared_ptr<ExprTypeCast> ExprTypeCastRef;
+
 struct ExprVisitor {
   virtual void visit_expr(const Expr& expr) {
     switch (expr.op) {
@@ -44,4 +53,47 @@ void visit_expr_functor(
   ExprFunctorVisitor<TExpr> visitor(
     std::forward<std::function<void(const TExpr&)>>(f));
   visitor.visit_expr(x);
+}
+
+struct ExprMutator {
+  virtual ExprRef mutate_expr(ExprRef& expr) {
+    switch (expr->op) {
+    case L_EXPR_OP_CONSTANT: return mutate_expr_(std::static_pointer_cast<ExprConstant>(expr));
+    case L_EXPR_OP_LOAD: return mutate_expr_(std::static_pointer_cast<ExprLoad>(expr));
+    case L_EXPR_OP_ADD: return mutate_expr_(std::static_pointer_cast<ExprAdd>(expr));
+    case L_EXPR_OP_SUB: return mutate_expr_(std::static_pointer_cast<ExprSub>(expr));
+    case L_EXPR_OP_LT: return mutate_expr_(std::static_pointer_cast<ExprLt>(expr));
+    case L_EXPR_OP_EQ: return mutate_expr_(std::static_pointer_cast<ExprEq>(expr));
+    case L_EXPR_OP_TYPE_CAST: return mutate_expr_(std::static_pointer_cast<ExprTypeCast>(expr));
+    default: liong::unreachable();
+    }
+  }
+  virtual ExprRef mutate_expr_(std::shared_ptr<ExprConstant>&);
+  virtual ExprRef mutate_expr_(std::shared_ptr<ExprLoad>&);
+  virtual ExprRef mutate_expr_(std::shared_ptr<ExprAdd>&);
+  virtual ExprRef mutate_expr_(std::shared_ptr<ExprSub>&);
+  virtual ExprRef mutate_expr_(std::shared_ptr<ExprLt>&);
+  virtual ExprRef mutate_expr_(std::shared_ptr<ExprEq>&);
+  virtual ExprRef mutate_expr_(std::shared_ptr<ExprTypeCast>&);
+};
+
+template<typename TExpr>
+struct ExprFunctorMutator : public ExprMutator {
+  typedef std::shared_ptr<TExpr> TStmtRef;
+  std::function<ExprRef(TStmtRef&)> f;
+  ExprFunctorMutator(std::function<ExprRef(TStmtRef&)>&& f) :
+    f(std::forward<std::function<ExprRef(TStmtRef&)>>(f)) {}
+
+  virtual ExprRef mutate_expr_(TStmtRef& expr) override final {
+    return f(expr);
+  }
+};
+template<typename TExpr>
+void mutate_expr_functor(
+  std::function<ExprRef(std::shared_ptr<TExpr>&)>&& f,
+  const Expr& x
+) {
+  ExprFunctorMutator<TExpr> mutator(
+    std::forward<std::function<ExprRef(std::shared_ptr<TExpr>&)>>(f));
+  return mutator.mutate_expr(x);
 }

@@ -4,6 +4,13 @@
 #pragma once
 #include "spv/mem.hpp"
 
+typedef std::shared_ptr<Memory> MemoryRef;
+typedef std::shared_ptr<MemoryFunctionVariable> MemoryFunctionVariableRef;
+typedef std::shared_ptr<MemoryUniformBuffer> MemoryUniformBufferRef;
+typedef std::shared_ptr<MemoryStorageBuffer> MemoryStorageBufferRef;
+typedef std::shared_ptr<MemorySampledImage> MemorySampledImageRef;
+typedef std::shared_ptr<MemoryStorageImage> MemoryStorageImageRef;
+
 struct MemoryVisitor {
   virtual void visit_mem(const Memory& mem) {
     switch (mem.cls) {
@@ -21,3 +28,62 @@ struct MemoryVisitor {
   virtual void visit_mem_(const MemorySampledImage&);
   virtual void visit_mem_(const MemoryStorageImage&);
 };
+
+template<typename TMemory>
+struct MemoryFunctorVisitor : public MemoryVisitor {
+  std::function<void(const TMemory&)> f;
+  MemoryFunctorVisitor(std::function<void(const TMemory&)>&& f) :
+    f(std::forward<std::function<void(const TMemory&)>>(f)) {}
+
+  virtual void visit_mem_(const TMemory& mem) override final {
+    f(mem);
+  }
+};
+template<typename TMemory>
+void visit_mem_functor(
+  std::function<void(const TMemory&)>&& f,
+  const Memory& x
+) {
+  MemoryFunctorVisitor<TMemory> visitor(
+    std::forward<std::function<void(const TMemory&)>>(f));
+  visitor.visit_mem(x);
+}
+
+struct MemoryMutator {
+  virtual MemoryRef mutate_mem(MemoryRef& mem) {
+    switch (mem->cls) {
+    case L_MEMORY_CLASS_FUNCTION_VARIABLE: return mutate_mem_(std::static_pointer_cast<MemoryFunctionVariable>(mem));
+    case L_MEMORY_CLASS_UNIFORM_BUFFER: return mutate_mem_(std::static_pointer_cast<MemoryUniformBuffer>(mem));
+    case L_MEMORY_CLASS_STORAGE_BUFFER: return mutate_mem_(std::static_pointer_cast<MemoryStorageBuffer>(mem));
+    case L_MEMORY_CLASS_SAMPLED_IMAGE: return mutate_mem_(std::static_pointer_cast<MemorySampledImage>(mem));
+    case L_MEMORY_CLASS_STORAGE_IMAGE: return mutate_mem_(std::static_pointer_cast<MemoryStorageImage>(mem));
+    default: liong::unreachable();
+    }
+  }
+  virtual MemoryRef mutate_mem_(std::shared_ptr<MemoryFunctionVariable>&);
+  virtual MemoryRef mutate_mem_(std::shared_ptr<MemoryUniformBuffer>&);
+  virtual MemoryRef mutate_mem_(std::shared_ptr<MemoryStorageBuffer>&);
+  virtual MemoryRef mutate_mem_(std::shared_ptr<MemorySampledImage>&);
+  virtual MemoryRef mutate_mem_(std::shared_ptr<MemoryStorageImage>&);
+};
+
+template<typename TMemory>
+struct MemoryFunctorMutator : public MemoryMutator {
+  typedef std::shared_ptr<TMemory> TStmtRef;
+  std::function<MemoryRef(TStmtRef&)> f;
+  MemoryFunctorMutator(std::function<MemoryRef(TStmtRef&)>&& f) :
+    f(std::forward<std::function<MemoryRef(TStmtRef&)>>(f)) {}
+
+  virtual MemoryRef mutate_mem_(TStmtRef& mem) override final {
+    return f(mem);
+  }
+};
+template<typename TMemory>
+void mutate_mem_functor(
+  std::function<MemoryRef(std::shared_ptr<TMemory>&)>&& f,
+  const Memory& x
+) {
+  MemoryFunctorMutator<TMemory> mutator(
+    std::forward<std::function<MemoryRef(std::shared_ptr<TMemory>&)>>(f));
+  return mutator.mutate_mem(x);
+}
