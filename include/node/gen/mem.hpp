@@ -16,6 +16,25 @@ struct MemoryFunctionVariable : public Memory {
   }
 };
 
+struct MemoryIterationVariable : public Memory {
+  static const MemoryClass CLS = L_MEMORY_CLASS_ITERATION_VARIABLE;
+  std::shared_ptr<Expr> begin;
+  std::shared_ptr<Expr> end;
+  std::shared_ptr<Expr> stride;
+
+  inline MemoryIterationVariable(
+    const std::shared_ptr<Type>& ty,
+    const std::vector<std::shared_ptr<Expr>>& ac,
+    const std::shared_ptr<Expr>& begin,
+    const std::shared_ptr<Expr>& end,
+    const std::shared_ptr<Expr>& stride
+  ) : Memory(L_MEMORY_CLASS_ITERATION_VARIABLE, ty, ac), begin(begin), end(end), stride(stride) {
+    liong::assert(begin != nullptr);
+    liong::assert(end != nullptr);
+    liong::assert(stride != nullptr);
+  }
+};
+
 struct MemoryUniformBuffer : public Memory {
   static const MemoryClass CLS = L_MEMORY_CLASS_UNIFORM_BUFFER;
   uint32_t binding;

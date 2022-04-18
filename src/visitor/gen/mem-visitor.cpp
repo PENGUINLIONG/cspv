@@ -6,6 +6,8 @@
 
 void MemoryVisitor::visit_mem_(const MemoryFunctionVariableRef& x) {
 }
+void MemoryVisitor::visit_mem_(const MemoryIterationVariableRef& x) {
+}
 void MemoryVisitor::visit_mem_(const MemoryUniformBufferRef& x) {
 }
 void MemoryVisitor::visit_mem_(const MemoryStorageBufferRef& x) {
@@ -16,6 +18,9 @@ void MemoryVisitor::visit_mem_(const MemoryStorageImageRef& x) {
 }
 
 MemoryRef MemoryMutator::mutate_mem_(MemoryFunctionVariableRef& x) {
+  return x;
+}
+MemoryRef MemoryMutator::mutate_mem_(MemoryIterationVariableRef& x) {
   return x;
 }
 MemoryRef MemoryMutator::mutate_mem_(MemoryUniformBufferRef& x) {

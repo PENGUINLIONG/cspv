@@ -6,6 +6,7 @@
 
 typedef std::shared_ptr<Memory> MemoryRef;
 typedef std::shared_ptr<MemoryFunctionVariable> MemoryFunctionVariableRef;
+typedef std::shared_ptr<MemoryIterationVariable> MemoryIterationVariableRef;
 typedef std::shared_ptr<MemoryUniformBuffer> MemoryUniformBufferRef;
 typedef std::shared_ptr<MemoryStorageBuffer> MemoryStorageBufferRef;
 typedef std::shared_ptr<MemorySampledImage> MemorySampledImageRef;
@@ -15,6 +16,7 @@ struct MemoryVisitor {
   virtual void visit_mem(const MemoryRef& mem) {
     switch (mem->cls) {
     case L_MEMORY_CLASS_FUNCTION_VARIABLE: visit_mem_(std::static_pointer_cast<MemoryFunctionVariable>(mem)); break;
+    case L_MEMORY_CLASS_ITERATION_VARIABLE: visit_mem_(std::static_pointer_cast<MemoryIterationVariable>(mem)); break;
     case L_MEMORY_CLASS_UNIFORM_BUFFER: visit_mem_(std::static_pointer_cast<MemoryUniformBuffer>(mem)); break;
     case L_MEMORY_CLASS_STORAGE_BUFFER: visit_mem_(std::static_pointer_cast<MemoryStorageBuffer>(mem)); break;
     case L_MEMORY_CLASS_SAMPLED_IMAGE: visit_mem_(std::static_pointer_cast<MemorySampledImage>(mem)); break;
@@ -23,6 +25,7 @@ struct MemoryVisitor {
     }
   }
   virtual void visit_mem_(const MemoryFunctionVariableRef&);
+  virtual void visit_mem_(const MemoryIterationVariableRef&);
   virtual void visit_mem_(const MemoryUniformBufferRef&);
   virtual void visit_mem_(const MemoryStorageBufferRef&);
   virtual void visit_mem_(const MemorySampledImageRef&);
@@ -53,6 +56,7 @@ struct MemoryMutator {
   virtual MemoryRef mutate_mem(MemoryRef& mem) {
     switch (mem->cls) {
     case L_MEMORY_CLASS_FUNCTION_VARIABLE: return mutate_mem_(std::static_pointer_cast<MemoryFunctionVariable>(mem));
+    case L_MEMORY_CLASS_ITERATION_VARIABLE: return mutate_mem_(std::static_pointer_cast<MemoryIterationVariable>(mem));
     case L_MEMORY_CLASS_UNIFORM_BUFFER: return mutate_mem_(std::static_pointer_cast<MemoryUniformBuffer>(mem));
     case L_MEMORY_CLASS_STORAGE_BUFFER: return mutate_mem_(std::static_pointer_cast<MemoryStorageBuffer>(mem));
     case L_MEMORY_CLASS_SAMPLED_IMAGE: return mutate_mem_(std::static_pointer_cast<MemorySampledImage>(mem));
@@ -61,6 +65,7 @@ struct MemoryMutator {
     }
   }
   virtual MemoryRef mutate_mem_(std::shared_ptr<MemoryFunctionVariable>&);
+  virtual MemoryRef mutate_mem_(std::shared_ptr<MemoryIterationVariable>&);
   virtual MemoryRef mutate_mem_(std::shared_ptr<MemoryUniformBuffer>&);
   virtual MemoryRef mutate_mem_(std::shared_ptr<MemoryStorageBuffer>&);
   virtual MemoryRef mutate_mem_(std::shared_ptr<MemorySampledImage>&);

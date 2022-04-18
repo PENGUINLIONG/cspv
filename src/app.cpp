@@ -10,7 +10,7 @@
 #include "spv/instr.hpp"
 #include "spv/ast.hpp"
 #include "visitor/util.hpp"
-#include "pass/ranged-loop-elevation.hpp"
+#include "pass/pass.hpp"
 
 using namespace liong;
 
@@ -57,7 +57,6 @@ std::vector<uint32_t> load_spv(const char* path) {
 }
 
 
-extern StmtRef eliminate_forward_blocks(StmtRef& x);
 
 void guarded_main() {
   if (CFG.in_file_path.empty()) {
@@ -76,9 +75,9 @@ void guarded_main() {
     code = dbg_print(pair.second);
     log::info("modified entry point '", pair.first, "': \n", code);
 
-    //pair.second = ranged_loop_elevation(pair.second);
-    //code = dbg_print(pair.second);
-    //log::info("modified entry point '", pair.first, "': \n", code);
+    pair.second = ranged_loop_elevation(pair.second);
+    code = dbg_print(pair.second);
+    log::info("modified entry point '", pair.first, "': \n", code);
   }
 
    log::info("success");

@@ -469,6 +469,13 @@ MEMS = {
                 "handle": "void*",
             }
         },
+        "iteration_variable": {
+            "fields": {
+                "begin": "Expr",
+                "end": "Expr",
+                "stride": "Expr",
+            }
+        },
         "uniform_buffer": {
             "fields": {
                 "binding": "uint32_t",

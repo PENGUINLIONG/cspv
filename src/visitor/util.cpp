@@ -189,7 +189,9 @@ struct DebugPrintVisitor : public Visitor {
   }
 
 
-
+  virtual void visit_stmt_(const StmtNopRef& x) override final {
+    s << "nop" << std::endl;
+  }
   virtual void visit_stmt_(const StmtBlockRef& x) override final {
     s << "{" << std::endl;
     s.push_indent();
@@ -232,8 +234,12 @@ struct DebugPrintVisitor : public Visitor {
   virtual void visit_stmt_(const StmtLoopContinueRef& x) override final {
     s << "continue" << std::endl;
   }
-  virtual void visit_stmt_(const StmtLoopBackEdgeRef& x) override final {}
-  virtual void visit_stmt_(const StmtIfThenElseMergeRef& x) override final {}
+  virtual void visit_stmt_(const StmtLoopBackEdgeRef& x) override final {
+    s << "back-edge" << std::endl;
+  }
+  virtual void visit_stmt_(const StmtIfThenElseMergeRef& x) override final {
+    s << "converge" << std::endl;
+  }
   virtual void visit_stmt_(const StmtLoopMergeRef& x) override final {
     s << "break" << std::endl;
   }

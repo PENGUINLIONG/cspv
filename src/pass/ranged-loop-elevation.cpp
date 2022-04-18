@@ -1,5 +1,6 @@
+#include <set>
 #include "gft/log.hpp"
-#include "pass/ranged-loop-elevation.hpp"
+#include "pass/pass.hpp"
 #include "visitor/visitor.hpp"
 #include "visitor/util.hpp"
 
@@ -10,21 +11,27 @@ struct RangedLoopElevationMutator : public StmtMutator {
     std::shared_ptr<Memory> func_var;
     std::shared_ptr<Expr> begin_expr;
     std::shared_ptr<Expr> stride_expr;
+    // If the candidate is acknowledged, the value will directly be assigned
+    // with `end_expr`.
+    StmtStoreRef init_store_stmt;
   };
-  struct RangedLoop {
-    std::shared_ptr<Memory> func_var;
-    std::shared_ptr<Expr> begin_expr;
-    std::shared_ptr<Expr> end_expr;
-    std::shared_ptr<Expr> stride_expr;
+
+  struct FunctionVariableHistory {
+    ExprRef value;
+    StmtStoreRef store_stmt;
   };
 
   // `nullptr` if the value is diverged.
-  std::map<std::shared_ptr<Memory>, std::shared_ptr<Expr>> mem_value_map;
+  std::map<std::shared_ptr<Memory>, FunctionVariableHistory> mem_value_map;
 
   virtual std::shared_ptr<Stmt> mutate_stmt_(std::shared_ptr<StmtStore>& x) override final {
     if (x->dst_ptr->cls != L_MEMORY_CLASS_FUNCTION_VARIABLE) { return x; }
     log::info(dbg_print(x->dst_ptr), " ", dbg_print(x->value));
-    mem_value_map.emplace(x->dst_ptr, x->value);
+
+    FunctionVariableHistory hist {};
+    hist.value = x->value;
+    hist.store_stmt = x;
+    mem_value_map.emplace(x->dst_ptr, std::move(hist));
     return x;
   }
   virtual std::shared_ptr<Stmt> mutate_stmt_(std::shared_ptr<StmtConditionalBranch>& x) override final {
@@ -36,9 +43,9 @@ struct RangedLoopElevationMutator : public StmtMutator {
       auto it = mem_value_map.find(pair.first);
       if (it == mem_value_map.end()) {
         mem_value_map.emplace(pair);
-      } else if (it->second != pair.second) {
+      } else if (it->second.value != pair.second.value) {
         // Mark the memory content as diverged.
-        it->second = nullptr;
+        mem_value_map.erase(it);
       }
     }
     return x;
@@ -71,42 +78,41 @@ struct RangedLoopElevationMutator : public StmtMutator {
             } else { return; }
 
             auto it = mem_value_map.find(load->src_ptr);
-            if (it == mem_value_map.end() || it->second == nullptr) { return; }
+            if (it == mem_value_map.end()) { return; }
 
             Candidate candidate {};
             candidate.func_var = load->src_ptr;
-            candidate.begin_expr = it->second;
+            candidate.begin_expr = it->second.value;
             candidate.stride_expr = std::move(stride_expr);
+            candidate.init_store_stmt = it->second.store_stmt;
             candidates.emplace(load->src_ptr, std::move(candidate));
 
           }, store->value);
       }, x->continue_block);
 
-    for (const auto& stmt : x->body_block->as<StmtBlock>().stmts) {
-      if (!stmt->is<StmtConditionalBranch>()) { continue; }
+    const auto& cond_branch = x->body_block->as<StmtConditionalBranch>();
+    if (!cond_branch.else_block->is<StmtLoopMerge>()) { return x; }
 
-      const auto& cond_branch = stmt->as<StmtConditionalBranch>();
-      const auto& else_block = cond_branch.else_block->as<StmtBlock>();
-      if (!else_block.stmts.front()->is<StmtLoopMerge>()) { continue; }
+    switch (cond_branch.cond->op) {
+    case L_EXPR_OP_LT:
+    {
+      const auto& cond_expr = cond_branch.cond->as<ExprLt>();
+      if (!cond_expr.a->is<ExprLoad>()) { return x; }
 
-      switch (cond_branch.cond->op) {
-      case L_EXPR_OP_LT:
-      {
-        const auto& cond_expr = cond_branch.cond->as<ExprLt>();
-        if (!cond_expr.a->is<ExprLoad>()) { continue; }
+      auto it = candidates.find(cond_expr.a->as<ExprLoad>().src_ptr);
+      if (it == candidates.end()) { return x; }
 
-        auto it = candidates.find(cond_expr.a->as<ExprLoad>().src_ptr);
-        if (it == candidates.end()) { continue; }
-
-        const auto& candidate = it->second;
-        return std::shared_ptr<Stmt>(new StmtRangedLoop(x->body_block,
-          candidate.func_var, candidate.begin_expr, cond_expr.b,
-          candidate.stride_expr));
-      }
-      default: continue;
-      }
+      const auto& candidate = it->second;
+      // FIXME: (penguinliong) Use itervars to replace variables inside loops,
+      // so this change in initial store value won't interfered the loop
+      // content.
+      candidate.init_store_stmt->value = cond_expr.b;
+      return std::shared_ptr<Stmt>(new StmtRangedLoop(cond_branch.then_block,
+        candidate.func_var, candidate.begin_expr, cond_expr.b,
+        candidate.stride_expr));
     }
-    unimplemented();
+    default: return x;
+    }
   }
 };
 
