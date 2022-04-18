@@ -272,13 +272,17 @@ def json2subty(json):
         out += [NodeSubtype(name, fields)]
     return out
 
+def compose_visitor_hpp(nova: NodeVariant):
+    out = compose_general_header(nova) + \
+        compose_subty_refs(nova) + \
+        compose_visitor(nova) + \
+        compose_functor_visitor(nova) + \
+        compose_mutator(nova) + \
+        compose_functor_mutator(nova) 
+    with open(f"./include/visitor/gen/{nova.ty_abbr.to_spinal_case()}-visitor.hpp", "w") as f:
+        f.write('\n'.join(out))
+
+
 STMTS = json2subty(STMTS)
 stmt_nova = NodeVariant("Statement", "stmt", "stmt", "op", "op", STMTS)
-out = compose_general_header(stmt_nova) + \
-    compose_subty_refs(stmt_nova) + \
-    compose_visitor(stmt_nova) + \
-    compose_functor_visitor(stmt_nova) + \
-    compose_mutator(stmt_nova) + \
-    compose_functor_mutator(stmt_nova) 
-with open("./include/visitor/gen/stmt-visitor.hpp", "w") as f:
-    f.write('\n'.join(out))
+compose_visitor_hpp(stmt_nova)
