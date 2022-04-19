@@ -6,7 +6,7 @@
 
 using namespace liong;
 
-struct RangedLoopElevationMutator : public StmtMutator {
+struct RangedLoopElevationMutator : public Mutator {
   struct Candidate {
     std::shared_ptr<Memory> func_var;
     std::shared_ptr<Expr> begin_expr;

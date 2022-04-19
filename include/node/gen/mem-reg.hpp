@@ -37,4 +37,5 @@ protected:
   {
     liong::assert(ty != nullptr);
     for (const auto& x : ac) { liong::assert(x != nullptr); }
-  }};
+  }
+};

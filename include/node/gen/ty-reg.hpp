@@ -31,4 +31,5 @@ protected:
     TypeClass cls
   ) : Node(L_NODE_VARIANT_TYPE), cls(cls)
   {
-  }};
+  }
+};
