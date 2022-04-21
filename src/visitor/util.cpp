@@ -268,7 +268,7 @@ struct DebugPrintVisitor : public Visitor {
   }
 };
 
-std::string dbg_print(const NodeRef& node) {
+std::string dbg_print(const NodeRef<Node>& node) {
   Debug s;
   DebugPrintVisitor v(s);
   v.visit(node);

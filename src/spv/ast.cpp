@@ -58,7 +58,7 @@ struct ControlFlowParser {
   SpirvModule& mod;
   ParserState parser_state;
 
-  std::vector<std::shared_ptr<Stmt>> stmts;
+  std::vector<StmtRef> stmts;
 
 
 
@@ -75,19 +75,19 @@ struct ControlFlowParser {
     assert(instr.op() == spv::Op::OpLabel);
 
     if (instr == parser_state.sel_merge_target) {
-      auto stmt = std::shared_ptr<Stmt>(new StmtIfThenElseMerge);
+      auto stmt = StmtRef(new StmtIfThenElseMerge);
       stmts.emplace_back(std::move(stmt));
       parser_state.cur = nullptr;
     } else if (instr == parser_state.loop_merge_target) {
-      auto stmt = std::shared_ptr<Stmt>(new StmtLoopMerge);
+      auto stmt = StmtRef(new StmtLoopMerge);
       stmts.emplace_back(std::move(stmt));
       parser_state.cur = nullptr;
     } else if (instr == parser_state.loop_continue_target) {
-      auto stmt = std::shared_ptr<Stmt>(new StmtLoopContinue);
+      auto stmt = StmtRef(new StmtLoopContinue);
       stmts.emplace_back(std::move(stmt));
       parser_state.cur = nullptr;
     } else if (instr == parser_state.loop_back_edge_target) {
-      auto stmt = std::shared_ptr<Stmt>(new StmtLoopBackEdge);
+      auto stmt = StmtRef(new StmtLoopBackEdge);
       stmts.emplace_back(stmt);
       parser_state.cur = nullptr;
     } else {
@@ -111,7 +111,7 @@ struct ControlFlowParser {
     spv::StorageClass store_cls = e.read_u32_as<spv::StorageClass>();
     // Merely function vairables.
     assert(store_cls == spv::StorageClass::Function);
-    auto mem = std::shared_ptr<Memory>(new MemoryFunctionVariable(var_ty, {}, (void*)instr.inner));
+    auto mem = MemoryRef(new MemoryFunctionVariable(var_ty, {}, (void*)instr.inner));
     mod.mem_map.emplace(instr, mem);
 
     parser_state.cur = instr.next();
@@ -131,24 +131,24 @@ struct ControlFlowParser {
       ac.emplace_back(mod.expr_map.at(e.read_id()));
     }
 
-    std::shared_ptr<Memory> mem = nullptr;
+    MemoryRef mem = nullptr;
     switch (base->cls) {
     case L_MEMORY_CLASS_FUNCTION_VARIABLE:
     {
       const auto& base2 = *(const MemoryFunctionVariable*)base.get();
-      mem = std::shared_ptr<Memory>(new MemoryFunctionVariable(ty, std::move(ac), base2.handle));
+      mem = MemoryRef(new MemoryFunctionVariable(ty, std::move(ac), base2.handle));
       break;
     }
     case L_MEMORY_CLASS_UNIFORM_BUFFER:
     {
       const auto& base2 = *(const MemoryUniformBuffer*)base.get();
-      mem = std::shared_ptr<Memory>(new MemoryUniformBuffer(ty, std::move(ac), base2.binding, base2.set));
+      mem = MemoryRef(new MemoryUniformBuffer(ty, std::move(ac), base2.binding, base2.set));
       break;
     }
     case L_MEMORY_CLASS_STORAGE_BUFFER:
     {
       const auto& base2 = *(const MemoryUniformBuffer*)base.get();
-      mem = std::shared_ptr<Memory>(new MemoryStorageBuffer(ty, std::move(ac), base2.binding, base2.set));
+      mem = MemoryRef(new MemoryStorageBuffer(ty, std::move(ac), base2.binding, base2.set));
       break;
     }
     default: unimplemented();
@@ -161,14 +161,14 @@ struct ControlFlowParser {
   bool parse_func_expr() {
     const InstructionRef& instr = parser_state.cur;
 
-    std::shared_ptr<Expr> expr;
+    ExprRef expr;
     switch (instr.op()) {
     case spv::Op::OpLoad:
     {
       auto ty = mod.ty_map.at(instr.result_ty_id());
       auto e = instr.extract_params();
       auto src_ptr = mod.mem_map.at(e.read_id());
-      expr = std::shared_ptr<Expr>(new ExprLoad(ty, src_ptr));
+      expr = ExprRef(new ExprLoad(ty, src_ptr));
       break;
     }
     case spv::Op::OpIAdd:
@@ -178,7 +178,7 @@ struct ControlFlowParser {
       auto e = instr.extract_params();
       auto a = mod.expr_map.at(e.read_id());
       auto b = mod.expr_map.at(e.read_id());
-      expr = std::shared_ptr<Expr>(new ExprAdd(ty, a, b));
+      expr = ExprRef(new ExprAdd(ty, a, b));
       break;
     }
     case spv::Op::OpSLessThan:
@@ -189,7 +189,7 @@ struct ControlFlowParser {
       auto e = instr.extract_params();
       auto a = mod.expr_map.at(e.read_id());
       auto b = mod.expr_map.at(e.read_id());
-      expr = std::shared_ptr<Expr>(new ExprLt(ty, a, b));
+      expr = ExprRef(new ExprLt(ty, a, b));
       break;
     }
     case spv::Op::OpConvertFToS:
@@ -200,7 +200,7 @@ struct ControlFlowParser {
       auto dst_ty = mod.ty_map.at(instr.result_ty_id());
       auto e = instr.extract_params();
       auto src = mod.expr_map.at(e.read_id());
-      expr = std::shared_ptr<Expr>(new ExprTypeCast(dst_ty, src));
+      expr = ExprRef(new ExprTypeCast(dst_ty, src));
       break;
     }
     case spv::Op::OpIEqual:
@@ -210,7 +210,7 @@ struct ControlFlowParser {
       auto e = instr.extract_params();
       auto a = mod.expr_map.at(e.read_id());
       auto b = mod.expr_map.at(e.read_id());
-      expr = std::shared_ptr<Expr>(new ExprEq(ty, a, b));
+      expr = ExprRef(new ExprEq(ty, a, b));
       break;
     }
     default:
@@ -236,7 +236,7 @@ struct ControlFlowParser {
       parser_state2.sel_merge_target = merge_target;
       auto body_stmt = parse(mod, std::move(parser_state2));
 
-      auto stmt = std::shared_ptr<Stmt>(new StmtIfThenElse(body_stmt));
+      auto stmt = StmtRef(new StmtIfThenElse(body_stmt));
       stmts.emplace_back(std::move(stmt));
       break;
     }
@@ -260,7 +260,7 @@ struct ControlFlowParser {
       continue_parser_state2.loop_back_edge_target = parser_state.cur_block_label;
       auto continue_stmt = parse(mod, std::move(continue_parser_state2));
 
-      auto stmt = std::shared_ptr<Stmt>(new StmtLoop(body_stmt, continue_stmt));
+      auto stmt = StmtRef(new StmtLoop(body_stmt, continue_stmt));
       stmts.emplace_back(std::move(stmt));
       break;
     }
@@ -275,7 +275,7 @@ struct ControlFlowParser {
   bool parse_func_ctrl_flow_branch_stmt() {
     const InstructionRef& instr = parser_state.cur;
 
-    std::shared_ptr<Stmt> stmt;
+    StmtRef stmt;
     switch (instr.op()) {
     case spv::Op::OpBranch:
     {
@@ -299,7 +299,7 @@ struct ControlFlowParser {
       else_parser_state2.cur = mod.lookup_instr(sr.else_label);
       auto else_stmt = parse(mod, std::move(else_parser_state2));
 
-      auto stmt = std::shared_ptr<Stmt>(new StmtConditionalBranch(cond_expr, then_stmt, else_stmt));
+      auto stmt = StmtRef(new StmtConditionalBranch(cond_expr, then_stmt, else_stmt));
       stmts.emplace_back(std::move(stmt));
       parser_state.cur = nullptr;
       break;
@@ -312,12 +312,12 @@ struct ControlFlowParser {
   bool parse_func_ctrl_flow_tail_stmt() {
     const InstructionRef& instr = parser_state.cur;
 
-    std::shared_ptr<Stmt> stmt;
+    StmtRef stmt;
     switch (instr.op()) {
     case spv::Op::OpReturn:
     {
       parser_state.is_inside_block = false;
-      stmt = std::shared_ptr<Stmt>(new StmtReturn({}));
+      stmt = StmtRef(new StmtReturn({}));
       break;
     }
     default: return false;
@@ -329,7 +329,7 @@ struct ControlFlowParser {
   bool parse_func_behavior_stmt() {
     const InstructionRef& instr = parser_state.cur;
 
-    std::shared_ptr<Stmt> stmt;
+    StmtRef stmt;
     switch (instr.op()) {
     case spv::Op::OpStore:
     {
@@ -338,7 +338,7 @@ struct ControlFlowParser {
       auto value = mod.expr_map.at(e.read_id());
       assert(dst_ptr != nullptr);
       assert(value != nullptr);
-      stmt = std::shared_ptr<Stmt>(new StmtStore(dst_ptr, value));
+      stmt = StmtRef(new StmtStore(dst_ptr, value));
       break;
     }
     default: return false;
@@ -382,17 +382,17 @@ struct ControlFlowParser {
     }
   }
 
-  static std::shared_ptr<Stmt> parse(
+  static StmtRef parse(
     SpirvModule& mod,
     ParserState&& parser_state
   ) {
     ControlFlowParser parser(mod, std::forward<ParserState>(parser_state));
     parser.parse();
 
-    auto stmt = std::shared_ptr<Stmt>(new StmtBlock(std::move(parser.stmts)));
+    auto stmt = StmtRef(new StmtBlock(std::move(parser.stmts)));
     return stmt;
   }
-  static std::shared_ptr<Stmt> parse(
+  static StmtRef parse(
     SpirvModule& mod,
     InstructionRef cur
   ) {
@@ -402,12 +402,12 @@ struct ControlFlowParser {
   }
 };
 
-std::map<std::string, std::shared_ptr<Stmt>> extract_entry_points(SpirvModule& mod) {
-  std::map<std::string, std::shared_ptr<Stmt>> out {};
+std::map<std::string, StmtRef> extract_entry_points(SpirvModule& mod) {
+  std::map<std::string, StmtRef> out {};
 
   for (const auto& pair : mod.entry_points) {
     const auto& entry_point = mod.funcs.at(pair.second.func);
-    std::shared_ptr<Stmt> root = ControlFlowParser::parse(mod, entry_point.entry_label);
+    StmtRef root = ControlFlowParser::parse(mod, entry_point.entry_label);
     out.emplace(pair.second.name, std::move(root));
   }
 

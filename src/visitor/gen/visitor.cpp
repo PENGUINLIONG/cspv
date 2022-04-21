@@ -89,116 +89,116 @@ void Visitor::visit_stmt_(const StmtStoreRef& x) {
 }
 
 MemoryRef Mutator::mutate_mem_(MemoryFunctionVariableRef& x) {
-  return x;
+  return x.as<Memory>();
 }
 MemoryRef Mutator::mutate_mem_(MemoryIterationVariableRef& x) {
   x->begin = mutate_expr(x->begin);
   x->end = mutate_expr(x->end);
   x->stride = mutate_expr(x->stride);
-  return x;
+  return x.as<Memory>();
 }
 MemoryRef Mutator::mutate_mem_(MemoryUniformBufferRef& x) {
-  return x;
+  return x.as<Memory>();
 }
 MemoryRef Mutator::mutate_mem_(MemoryStorageBufferRef& x) {
-  return x;
+  return x.as<Memory>();
 }
 MemoryRef Mutator::mutate_mem_(MemorySampledImageRef& x) {
-  return x;
+  return x.as<Memory>();
 }
 MemoryRef Mutator::mutate_mem_(MemoryStorageImageRef& x) {
-  return x;
+  return x.as<Memory>();
 }
 
 TypeRef Mutator::mutate_ty_(TypeVoidRef& x) {
-  return x;
+  return x.as<Type>();
 }
 TypeRef Mutator::mutate_ty_(TypeBoolRef& x) {
-  return x;
+  return x.as<Type>();
 }
 TypeRef Mutator::mutate_ty_(TypeIntRef& x) {
-  return x;
+  return x.as<Type>();
 }
 TypeRef Mutator::mutate_ty_(TypeFloatRef& x) {
-  return x;
+  return x.as<Type>();
 }
 TypeRef Mutator::mutate_ty_(TypeStructRef& x) {
   for (auto& x : x->members) { x = mutate_ty(x); }
-  return x;
+  return x.as<Type>();
 }
 TypeRef Mutator::mutate_ty_(TypePointerRef& x) {
   x->inner = mutate_ty(x->inner);
-  return x;
+  return x.as<Type>();
 }
 
 ExprRef Mutator::mutate_expr_(ExprConstantRef& x) {
-  return x;
+  return x.as<Expr>();
 }
 ExprRef Mutator::mutate_expr_(ExprLoadRef& x) {
   x->src_ptr = mutate_mem(x->src_ptr);
-  return x;
+  return x.as<Expr>();
 }
 ExprRef Mutator::mutate_expr_(ExprAddRef& x) {
   x->a = mutate_expr(x->a);
   x->b = mutate_expr(x->b);
-  return x;
+  return x.as<Expr>();
 }
 ExprRef Mutator::mutate_expr_(ExprSubRef& x) {
   x->a = mutate_expr(x->a);
   x->b = mutate_expr(x->b);
-  return x;
+  return x.as<Expr>();
 }
 ExprRef Mutator::mutate_expr_(ExprLtRef& x) {
   x->a = mutate_expr(x->a);
   x->b = mutate_expr(x->b);
-  return x;
+  return x.as<Expr>();
 }
 ExprRef Mutator::mutate_expr_(ExprEqRef& x) {
   x->a = mutate_expr(x->a);
   x->b = mutate_expr(x->b);
-  return x;
+  return x.as<Expr>();
 }
 ExprRef Mutator::mutate_expr_(ExprTypeCastRef& x) {
   x->src = mutate_expr(x->src);
-  return x;
+  return x.as<Expr>();
 }
 
 StmtRef Mutator::mutate_stmt_(StmtNopRef& x) {
-  return x;
+  return x.as<Stmt>();
 }
 StmtRef Mutator::mutate_stmt_(StmtBlockRef& x) {
   for (auto& x : x->stmts) { x = mutate_stmt(x); }
-  return x;
+  return x.as<Stmt>();
 }
 StmtRef Mutator::mutate_stmt_(StmtConditionalBranchRef& x) {
   x->cond = mutate_expr(x->cond);
   x->then_block = mutate_stmt(x->then_block);
   x->else_block = mutate_stmt(x->else_block);
-  return x;
+  return x.as<Stmt>();
 }
 StmtRef Mutator::mutate_stmt_(StmtIfThenElseRef& x) {
   x->body_block = mutate_stmt(x->body_block);
-  return x;
+  return x.as<Stmt>();
 }
 StmtRef Mutator::mutate_stmt_(StmtLoopRef& x) {
   x->body_block = mutate_stmt(x->body_block);
   x->continue_block = mutate_stmt(x->continue_block);
-  return x;
+  return x.as<Stmt>();
 }
 StmtRef Mutator::mutate_stmt_(StmtReturnRef& x) {
-  return x;
+  return x.as<Stmt>();
 }
 StmtRef Mutator::mutate_stmt_(StmtIfThenElseMergeRef& x) {
-  return x;
+  return x.as<Stmt>();
 }
 StmtRef Mutator::mutate_stmt_(StmtLoopMergeRef& x) {
-  return x;
+  return x.as<Stmt>();
 }
 StmtRef Mutator::mutate_stmt_(StmtLoopContinueRef& x) {
-  return x;
+  return x.as<Stmt>();
 }
 StmtRef Mutator::mutate_stmt_(StmtLoopBackEdgeRef& x) {
-  return x;
+  return x.as<Stmt>();
 }
 StmtRef Mutator::mutate_stmt_(StmtRangedLoopRef& x) {
   x->body_block = mutate_stmt(x->body_block);
@@ -206,10 +206,10 @@ StmtRef Mutator::mutate_stmt_(StmtRangedLoopRef& x) {
   x->begin = mutate_expr(x->begin);
   x->end = mutate_expr(x->end);
   x->stride = mutate_expr(x->stride);
-  return x;
+  return x.as<Stmt>();
 }
 StmtRef Mutator::mutate_stmt_(StmtStoreRef& x) {
   x->dst_ptr = mutate_mem(x->dst_ptr);
   x->value = mutate_expr(x->value);
-  return x;
+  return x.as<Stmt>();
 }

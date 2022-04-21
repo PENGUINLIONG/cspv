@@ -9,7 +9,7 @@ struct ExprConstant : public Expr {
   std::vector<uint32_t> lits;
 
   inline ExprConstant(
-    const std::shared_ptr<Type>& ty,
+    const NodeRef<Type>& ty,
     std::vector<uint32_t> lits
   ) : Expr(L_EXPR_OP_CONSTANT, ty), lits(lits) {
   }
@@ -17,11 +17,11 @@ struct ExprConstant : public Expr {
 
 struct ExprLoad : public Expr {
   static const ExprOp OP = L_EXPR_OP_LOAD;
-  std::shared_ptr<Memory> src_ptr;
+  NodeRef<Memory> src_ptr;
 
   inline ExprLoad(
-    const std::shared_ptr<Type>& ty,
-    const std::shared_ptr<Memory>& src_ptr
+    const NodeRef<Type>& ty,
+    const NodeRef<Memory>& src_ptr
   ) : Expr(L_EXPR_OP_LOAD, ty), src_ptr(src_ptr) {
     liong::assert(src_ptr != nullptr);
   }
@@ -29,13 +29,13 @@ struct ExprLoad : public Expr {
 
 struct ExprAdd : public Expr {
   static const ExprOp OP = L_EXPR_OP_ADD;
-  std::shared_ptr<Expr> a;
-  std::shared_ptr<Expr> b;
+  NodeRef<Expr> a;
+  NodeRef<Expr> b;
 
   inline ExprAdd(
-    const std::shared_ptr<Type>& ty,
-    const std::shared_ptr<Expr>& a,
-    const std::shared_ptr<Expr>& b
+    const NodeRef<Type>& ty,
+    const NodeRef<Expr>& a,
+    const NodeRef<Expr>& b
   ) : Expr(L_EXPR_OP_ADD, ty), a(a), b(b) {
     liong::assert(a != nullptr);
     liong::assert(b != nullptr);
@@ -44,13 +44,13 @@ struct ExprAdd : public Expr {
 
 struct ExprSub : public Expr {
   static const ExprOp OP = L_EXPR_OP_SUB;
-  std::shared_ptr<Expr> a;
-  std::shared_ptr<Expr> b;
+  NodeRef<Expr> a;
+  NodeRef<Expr> b;
 
   inline ExprSub(
-    const std::shared_ptr<Type>& ty,
-    const std::shared_ptr<Expr>& a,
-    const std::shared_ptr<Expr>& b
+    const NodeRef<Type>& ty,
+    const NodeRef<Expr>& a,
+    const NodeRef<Expr>& b
   ) : Expr(L_EXPR_OP_SUB, ty), a(a), b(b) {
     liong::assert(a != nullptr);
     liong::assert(b != nullptr);
@@ -59,13 +59,13 @@ struct ExprSub : public Expr {
 
 struct ExprLt : public Expr {
   static const ExprOp OP = L_EXPR_OP_LT;
-  std::shared_ptr<Expr> a;
-  std::shared_ptr<Expr> b;
+  NodeRef<Expr> a;
+  NodeRef<Expr> b;
 
   inline ExprLt(
-    const std::shared_ptr<Type>& ty,
-    const std::shared_ptr<Expr>& a,
-    const std::shared_ptr<Expr>& b
+    const NodeRef<Type>& ty,
+    const NodeRef<Expr>& a,
+    const NodeRef<Expr>& b
   ) : Expr(L_EXPR_OP_LT, ty), a(a), b(b) {
     liong::assert(a != nullptr);
     liong::assert(b != nullptr);
@@ -74,13 +74,13 @@ struct ExprLt : public Expr {
 
 struct ExprEq : public Expr {
   static const ExprOp OP = L_EXPR_OP_EQ;
-  std::shared_ptr<Expr> a;
-  std::shared_ptr<Expr> b;
+  NodeRef<Expr> a;
+  NodeRef<Expr> b;
 
   inline ExprEq(
-    const std::shared_ptr<Type>& ty,
-    const std::shared_ptr<Expr>& a,
-    const std::shared_ptr<Expr>& b
+    const NodeRef<Type>& ty,
+    const NodeRef<Expr>& a,
+    const NodeRef<Expr>& b
   ) : Expr(L_EXPR_OP_EQ, ty), a(a), b(b) {
     liong::assert(a != nullptr);
     liong::assert(b != nullptr);
@@ -89,12 +89,21 @@ struct ExprEq : public Expr {
 
 struct ExprTypeCast : public Expr {
   static const ExprOp OP = L_EXPR_OP_TYPE_CAST;
-  std::shared_ptr<Expr> src;
+  NodeRef<Expr> src;
 
   inline ExprTypeCast(
-    const std::shared_ptr<Type>& ty,
-    const std::shared_ptr<Expr>& src
+    const NodeRef<Type>& ty,
+    const NodeRef<Expr>& src
   ) : Expr(L_EXPR_OP_TYPE_CAST, ty), src(src) {
     liong::assert(src != nullptr);
   }
 };
+
+typedef NodeRef<Expr> ExprRef;
+typedef NodeRef<ExprConstant> ExprConstantRef;
+typedef NodeRef<ExprLoad> ExprLoadRef;
+typedef NodeRef<ExprAdd> ExprAddRef;
+typedef NodeRef<ExprSub> ExprSubRef;
+typedef NodeRef<ExprLt> ExprLtRef;
+typedef NodeRef<ExprEq> ExprEqRef;
+typedef NodeRef<ExprTypeCast> ExprTypeCastRef;

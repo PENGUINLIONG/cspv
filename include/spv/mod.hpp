@@ -57,9 +57,9 @@ struct SpirvModule {
   std::map<InstructionRef, SpirvFunction> funcs;
 
   // Things that have IDs and cannot be forward referenced.
-  std::map<spv::Id, std::shared_ptr<Type>> ty_map;
-  std::map<spv::Id, std::shared_ptr<Memory>> mem_map;
-  std::map<spv::Id, std::shared_ptr<Expr>> expr_map;
+  std::map<spv::Id, TypeRef> ty_map;
+  std::map<spv::Id, MemoryRef> mem_map;
+  std::map<spv::Id, ExprRef> expr_map;
   std::map<spv::Id, InstructionRef> label_map;
 
   inline SpirvModule(SpirvAbstract&& abstr) :

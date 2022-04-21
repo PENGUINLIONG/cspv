@@ -8,52 +8,14 @@
 #include "node/gen/expr.hpp"
 #include "node/gen/stmt.hpp"
 
-typedef std::shared_ptr<Memory> MemoryRef;
-typedef std::shared_ptr<MemoryFunctionVariable> MemoryFunctionVariableRef;
-typedef std::shared_ptr<MemoryIterationVariable> MemoryIterationVariableRef;
-typedef std::shared_ptr<MemoryUniformBuffer> MemoryUniformBufferRef;
-typedef std::shared_ptr<MemoryStorageBuffer> MemoryStorageBufferRef;
-typedef std::shared_ptr<MemorySampledImage> MemorySampledImageRef;
-typedef std::shared_ptr<MemoryStorageImage> MemoryStorageImageRef;
-
-typedef std::shared_ptr<Type> TypeRef;
-typedef std::shared_ptr<TypeVoid> TypeVoidRef;
-typedef std::shared_ptr<TypeBool> TypeBoolRef;
-typedef std::shared_ptr<TypeInt> TypeIntRef;
-typedef std::shared_ptr<TypeFloat> TypeFloatRef;
-typedef std::shared_ptr<TypeStruct> TypeStructRef;
-typedef std::shared_ptr<TypePointer> TypePointerRef;
-
-typedef std::shared_ptr<Expr> ExprRef;
-typedef std::shared_ptr<ExprConstant> ExprConstantRef;
-typedef std::shared_ptr<ExprLoad> ExprLoadRef;
-typedef std::shared_ptr<ExprAdd> ExprAddRef;
-typedef std::shared_ptr<ExprSub> ExprSubRef;
-typedef std::shared_ptr<ExprLt> ExprLtRef;
-typedef std::shared_ptr<ExprEq> ExprEqRef;
-typedef std::shared_ptr<ExprTypeCast> ExprTypeCastRef;
-
-typedef std::shared_ptr<Stmt> StmtRef;
-typedef std::shared_ptr<StmtNop> StmtNopRef;
-typedef std::shared_ptr<StmtBlock> StmtBlockRef;
-typedef std::shared_ptr<StmtConditionalBranch> StmtConditionalBranchRef;
-typedef std::shared_ptr<StmtIfThenElse> StmtIfThenElseRef;
-typedef std::shared_ptr<StmtLoop> StmtLoopRef;
-typedef std::shared_ptr<StmtReturn> StmtReturnRef;
-typedef std::shared_ptr<StmtIfThenElseMerge> StmtIfThenElseMergeRef;
-typedef std::shared_ptr<StmtLoopMerge> StmtLoopMergeRef;
-typedef std::shared_ptr<StmtLoopContinue> StmtLoopContinueRef;
-typedef std::shared_ptr<StmtLoopBackEdge> StmtLoopBackEdgeRef;
-typedef std::shared_ptr<StmtRangedLoop> StmtRangedLoopRef;
-typedef std::shared_ptr<StmtStore> StmtStoreRef;
-
 struct Visitor {
-  virtual void visit(const NodeRef& node) {
+  template<typename T>
+  void visit(const NodeRef<T>& node) {
     switch (node->nova) {
-    case L_NODE_VARIANT_MEMORY: visit_mem(std::static_pointer_cast<Memory>(node)); break;
-    case L_NODE_VARIANT_TYPE: visit_ty(std::static_pointer_cast<Type>(node)); break;
-    case L_NODE_VARIANT_EXPR: visit_expr(std::static_pointer_cast<Expr>(node)); break;
-    case L_NODE_VARIANT_STMT: visit_stmt(std::static_pointer_cast<Stmt>(node)); break;
+    case L_NODE_VARIANT_MEMORY: visit_mem(node.as<Memory>()); break;
+    case L_NODE_VARIANT_TYPE: visit_ty(node.as<Type>()); break;
+    case L_NODE_VARIANT_EXPR: visit_expr(node.as<Expr>()); break;
+    case L_NODE_VARIANT_STMT: visit_stmt(node.as<Stmt>()); break;
     default: liong::unimplemented();
     }
   }
@@ -64,52 +26,52 @@ struct Visitor {
 
   virtual void visit_mem(const MemoryRef& mem) {
     switch (mem->cls) {
-    case L_MEMORY_CLASS_FUNCTION_VARIABLE: visit_mem_(std::static_pointer_cast<MemoryFunctionVariable>(mem)); break;
-    case L_MEMORY_CLASS_ITERATION_VARIABLE: visit_mem_(std::static_pointer_cast<MemoryIterationVariable>(mem)); break;
-    case L_MEMORY_CLASS_UNIFORM_BUFFER: visit_mem_(std::static_pointer_cast<MemoryUniformBuffer>(mem)); break;
-    case L_MEMORY_CLASS_STORAGE_BUFFER: visit_mem_(std::static_pointer_cast<MemoryStorageBuffer>(mem)); break;
-    case L_MEMORY_CLASS_SAMPLED_IMAGE: visit_mem_(std::static_pointer_cast<MemorySampledImage>(mem)); break;
-    case L_MEMORY_CLASS_STORAGE_IMAGE: visit_mem_(std::static_pointer_cast<MemoryStorageImage>(mem)); break;
+    case L_MEMORY_CLASS_FUNCTION_VARIABLE: visit_mem_(mem.as<MemoryFunctionVariable>()); break;
+    case L_MEMORY_CLASS_ITERATION_VARIABLE: visit_mem_(mem.as<MemoryIterationVariable>()); break;
+    case L_MEMORY_CLASS_UNIFORM_BUFFER: visit_mem_(mem.as<MemoryUniformBuffer>()); break;
+    case L_MEMORY_CLASS_STORAGE_BUFFER: visit_mem_(mem.as<MemoryStorageBuffer>()); break;
+    case L_MEMORY_CLASS_SAMPLED_IMAGE: visit_mem_(mem.as<MemorySampledImage>()); break;
+    case L_MEMORY_CLASS_STORAGE_IMAGE: visit_mem_(mem.as<MemoryStorageImage>()); break;
     default: liong::unreachable();
     }
   }
   virtual void visit_ty(const TypeRef& ty) {
     switch (ty->cls) {
-    case L_TYPE_CLASS_VOID: visit_ty_(std::static_pointer_cast<TypeVoid>(ty)); break;
-    case L_TYPE_CLASS_BOOL: visit_ty_(std::static_pointer_cast<TypeBool>(ty)); break;
-    case L_TYPE_CLASS_INT: visit_ty_(std::static_pointer_cast<TypeInt>(ty)); break;
-    case L_TYPE_CLASS_FLOAT: visit_ty_(std::static_pointer_cast<TypeFloat>(ty)); break;
-    case L_TYPE_CLASS_STRUCT: visit_ty_(std::static_pointer_cast<TypeStruct>(ty)); break;
-    case L_TYPE_CLASS_POINTER: visit_ty_(std::static_pointer_cast<TypePointer>(ty)); break;
+    case L_TYPE_CLASS_VOID: visit_ty_(ty.as<TypeVoid>()); break;
+    case L_TYPE_CLASS_BOOL: visit_ty_(ty.as<TypeBool>()); break;
+    case L_TYPE_CLASS_INT: visit_ty_(ty.as<TypeInt>()); break;
+    case L_TYPE_CLASS_FLOAT: visit_ty_(ty.as<TypeFloat>()); break;
+    case L_TYPE_CLASS_STRUCT: visit_ty_(ty.as<TypeStruct>()); break;
+    case L_TYPE_CLASS_POINTER: visit_ty_(ty.as<TypePointer>()); break;
     default: liong::unreachable();
     }
   }
   virtual void visit_expr(const ExprRef& expr) {
     switch (expr->op) {
-    case L_EXPR_OP_CONSTANT: visit_expr_(std::static_pointer_cast<ExprConstant>(expr)); break;
-    case L_EXPR_OP_LOAD: visit_expr_(std::static_pointer_cast<ExprLoad>(expr)); break;
-    case L_EXPR_OP_ADD: visit_expr_(std::static_pointer_cast<ExprAdd>(expr)); break;
-    case L_EXPR_OP_SUB: visit_expr_(std::static_pointer_cast<ExprSub>(expr)); break;
-    case L_EXPR_OP_LT: visit_expr_(std::static_pointer_cast<ExprLt>(expr)); break;
-    case L_EXPR_OP_EQ: visit_expr_(std::static_pointer_cast<ExprEq>(expr)); break;
-    case L_EXPR_OP_TYPE_CAST: visit_expr_(std::static_pointer_cast<ExprTypeCast>(expr)); break;
+    case L_EXPR_OP_CONSTANT: visit_expr_(expr.as<ExprConstant>()); break;
+    case L_EXPR_OP_LOAD: visit_expr_(expr.as<ExprLoad>()); break;
+    case L_EXPR_OP_ADD: visit_expr_(expr.as<ExprAdd>()); break;
+    case L_EXPR_OP_SUB: visit_expr_(expr.as<ExprSub>()); break;
+    case L_EXPR_OP_LT: visit_expr_(expr.as<ExprLt>()); break;
+    case L_EXPR_OP_EQ: visit_expr_(expr.as<ExprEq>()); break;
+    case L_EXPR_OP_TYPE_CAST: visit_expr_(expr.as<ExprTypeCast>()); break;
     default: liong::unreachable();
     }
   }
   virtual void visit_stmt(const StmtRef& stmt) {
     switch (stmt->op) {
-    case L_STMT_OP_NOP: visit_stmt_(std::static_pointer_cast<StmtNop>(stmt)); break;
-    case L_STMT_OP_BLOCK: visit_stmt_(std::static_pointer_cast<StmtBlock>(stmt)); break;
-    case L_STMT_OP_CONDITIONAL_BRANCH: visit_stmt_(std::static_pointer_cast<StmtConditionalBranch>(stmt)); break;
-    case L_STMT_OP_IF_THEN_ELSE: visit_stmt_(std::static_pointer_cast<StmtIfThenElse>(stmt)); break;
-    case L_STMT_OP_LOOP: visit_stmt_(std::static_pointer_cast<StmtLoop>(stmt)); break;
-    case L_STMT_OP_RETURN: visit_stmt_(std::static_pointer_cast<StmtReturn>(stmt)); break;
-    case L_STMT_OP_IF_THEN_ELSE_MERGE: visit_stmt_(std::static_pointer_cast<StmtIfThenElseMerge>(stmt)); break;
-    case L_STMT_OP_LOOP_MERGE: visit_stmt_(std::static_pointer_cast<StmtLoopMerge>(stmt)); break;
-    case L_STMT_OP_LOOP_CONTINUE: visit_stmt_(std::static_pointer_cast<StmtLoopContinue>(stmt)); break;
-    case L_STMT_OP_LOOP_BACK_EDGE: visit_stmt_(std::static_pointer_cast<StmtLoopBackEdge>(stmt)); break;
-    case L_STMT_OP_RANGED_LOOP: visit_stmt_(std::static_pointer_cast<StmtRangedLoop>(stmt)); break;
-    case L_STMT_OP_STORE: visit_stmt_(std::static_pointer_cast<StmtStore>(stmt)); break;
+    case L_STMT_OP_NOP: visit_stmt_(stmt.as<StmtNop>()); break;
+    case L_STMT_OP_BLOCK: visit_stmt_(stmt.as<StmtBlock>()); break;
+    case L_STMT_OP_CONDITIONAL_BRANCH: visit_stmt_(stmt.as<StmtConditionalBranch>()); break;
+    case L_STMT_OP_IF_THEN_ELSE: visit_stmt_(stmt.as<StmtIfThenElse>()); break;
+    case L_STMT_OP_LOOP: visit_stmt_(stmt.as<StmtLoop>()); break;
+    case L_STMT_OP_RETURN: visit_stmt_(stmt.as<StmtReturn>()); break;
+    case L_STMT_OP_IF_THEN_ELSE_MERGE: visit_stmt_(stmt.as<StmtIfThenElseMerge>()); break;
+    case L_STMT_OP_LOOP_MERGE: visit_stmt_(stmt.as<StmtLoopMerge>()); break;
+    case L_STMT_OP_LOOP_CONTINUE: visit_stmt_(stmt.as<StmtLoopContinue>()); break;
+    case L_STMT_OP_LOOP_BACK_EDGE: visit_stmt_(stmt.as<StmtLoopBackEdge>()); break;
+    case L_STMT_OP_RANGED_LOOP: visit_stmt_(stmt.as<StmtRangedLoop>()); break;
+    case L_STMT_OP_STORE: visit_stmt_(stmt.as<StmtStore>()); break;
     default: liong::unreachable();
     }
   }
@@ -152,12 +114,13 @@ struct Visitor {
 };
 
 struct Mutator {
-  virtual NodeRef mutate(NodeRef& node) {
+  template<typename T>
+  NodeRef<Node> mutate(const NodeRef<T>& node) {
     switch (node->nova) {
-    case L_NODE_VARIANT_MEMORY: return mutate_mem(std::static_pointer_cast<Memory>(node));
-    case L_NODE_VARIANT_TYPE: return mutate_ty(std::static_pointer_cast<Type>(node));
-    case L_NODE_VARIANT_EXPR: return mutate_expr(std::static_pointer_cast<Expr>(node));
-    case L_NODE_VARIANT_STMT: return mutate_stmt(std::static_pointer_cast<Stmt>(node));
+    case L_NODE_VARIANT_MEMORY: return mutate_mem(node.as<Memory>()).as<Node>();
+    case L_NODE_VARIANT_TYPE: return mutate_ty(node.as<Type>()).as<Node>();
+    case L_NODE_VARIANT_EXPR: return mutate_expr(node.as<Expr>()).as<Node>();
+    case L_NODE_VARIANT_STMT: return mutate_stmt(node.as<Stmt>()).as<Node>();
     default: liong::unimplemented();
     }
   }
@@ -168,52 +131,52 @@ struct Mutator {
 
   virtual MemoryRef mutate_mem(MemoryRef& mem) {
     switch (mem->cls) {
-    case L_MEMORY_CLASS_FUNCTION_VARIABLE: return mutate_mem_(std::static_pointer_cast<MemoryFunctionVariable>(mem));
-    case L_MEMORY_CLASS_ITERATION_VARIABLE: return mutate_mem_(std::static_pointer_cast<MemoryIterationVariable>(mem));
-    case L_MEMORY_CLASS_UNIFORM_BUFFER: return mutate_mem_(std::static_pointer_cast<MemoryUniformBuffer>(mem));
-    case L_MEMORY_CLASS_STORAGE_BUFFER: return mutate_mem_(std::static_pointer_cast<MemoryStorageBuffer>(mem));
-    case L_MEMORY_CLASS_SAMPLED_IMAGE: return mutate_mem_(std::static_pointer_cast<MemorySampledImage>(mem));
-    case L_MEMORY_CLASS_STORAGE_IMAGE: return mutate_mem_(std::static_pointer_cast<MemoryStorageImage>(mem));
+    case L_MEMORY_CLASS_FUNCTION_VARIABLE: return mutate_mem_(mem.as<MemoryFunctionVariable>());
+    case L_MEMORY_CLASS_ITERATION_VARIABLE: return mutate_mem_(mem.as<MemoryIterationVariable>());
+    case L_MEMORY_CLASS_UNIFORM_BUFFER: return mutate_mem_(mem.as<MemoryUniformBuffer>());
+    case L_MEMORY_CLASS_STORAGE_BUFFER: return mutate_mem_(mem.as<MemoryStorageBuffer>());
+    case L_MEMORY_CLASS_SAMPLED_IMAGE: return mutate_mem_(mem.as<MemorySampledImage>());
+    case L_MEMORY_CLASS_STORAGE_IMAGE: return mutate_mem_(mem.as<MemoryStorageImage>());
     default: liong::unreachable();
     }
   }
   virtual TypeRef mutate_ty(TypeRef& ty) {
     switch (ty->cls) {
-    case L_TYPE_CLASS_VOID: return mutate_ty_(std::static_pointer_cast<TypeVoid>(ty));
-    case L_TYPE_CLASS_BOOL: return mutate_ty_(std::static_pointer_cast<TypeBool>(ty));
-    case L_TYPE_CLASS_INT: return mutate_ty_(std::static_pointer_cast<TypeInt>(ty));
-    case L_TYPE_CLASS_FLOAT: return mutate_ty_(std::static_pointer_cast<TypeFloat>(ty));
-    case L_TYPE_CLASS_STRUCT: return mutate_ty_(std::static_pointer_cast<TypeStruct>(ty));
-    case L_TYPE_CLASS_POINTER: return mutate_ty_(std::static_pointer_cast<TypePointer>(ty));
+    case L_TYPE_CLASS_VOID: return mutate_ty_(ty.as<TypeVoid>());
+    case L_TYPE_CLASS_BOOL: return mutate_ty_(ty.as<TypeBool>());
+    case L_TYPE_CLASS_INT: return mutate_ty_(ty.as<TypeInt>());
+    case L_TYPE_CLASS_FLOAT: return mutate_ty_(ty.as<TypeFloat>());
+    case L_TYPE_CLASS_STRUCT: return mutate_ty_(ty.as<TypeStruct>());
+    case L_TYPE_CLASS_POINTER: return mutate_ty_(ty.as<TypePointer>());
     default: liong::unreachable();
     }
   }
   virtual ExprRef mutate_expr(ExprRef& expr) {
     switch (expr->op) {
-    case L_EXPR_OP_CONSTANT: return mutate_expr_(std::static_pointer_cast<ExprConstant>(expr));
-    case L_EXPR_OP_LOAD: return mutate_expr_(std::static_pointer_cast<ExprLoad>(expr));
-    case L_EXPR_OP_ADD: return mutate_expr_(std::static_pointer_cast<ExprAdd>(expr));
-    case L_EXPR_OP_SUB: return mutate_expr_(std::static_pointer_cast<ExprSub>(expr));
-    case L_EXPR_OP_LT: return mutate_expr_(std::static_pointer_cast<ExprLt>(expr));
-    case L_EXPR_OP_EQ: return mutate_expr_(std::static_pointer_cast<ExprEq>(expr));
-    case L_EXPR_OP_TYPE_CAST: return mutate_expr_(std::static_pointer_cast<ExprTypeCast>(expr));
+    case L_EXPR_OP_CONSTANT: return mutate_expr_(expr.as<ExprConstant>());
+    case L_EXPR_OP_LOAD: return mutate_expr_(expr.as<ExprLoad>());
+    case L_EXPR_OP_ADD: return mutate_expr_(expr.as<ExprAdd>());
+    case L_EXPR_OP_SUB: return mutate_expr_(expr.as<ExprSub>());
+    case L_EXPR_OP_LT: return mutate_expr_(expr.as<ExprLt>());
+    case L_EXPR_OP_EQ: return mutate_expr_(expr.as<ExprEq>());
+    case L_EXPR_OP_TYPE_CAST: return mutate_expr_(expr.as<ExprTypeCast>());
     default: liong::unreachable();
     }
   }
   virtual StmtRef mutate_stmt(StmtRef& stmt) {
     switch (stmt->op) {
-    case L_STMT_OP_NOP: return mutate_stmt_(std::static_pointer_cast<StmtNop>(stmt));
-    case L_STMT_OP_BLOCK: return mutate_stmt_(std::static_pointer_cast<StmtBlock>(stmt));
-    case L_STMT_OP_CONDITIONAL_BRANCH: return mutate_stmt_(std::static_pointer_cast<StmtConditionalBranch>(stmt));
-    case L_STMT_OP_IF_THEN_ELSE: return mutate_stmt_(std::static_pointer_cast<StmtIfThenElse>(stmt));
-    case L_STMT_OP_LOOP: return mutate_stmt_(std::static_pointer_cast<StmtLoop>(stmt));
-    case L_STMT_OP_RETURN: return mutate_stmt_(std::static_pointer_cast<StmtReturn>(stmt));
-    case L_STMT_OP_IF_THEN_ELSE_MERGE: return mutate_stmt_(std::static_pointer_cast<StmtIfThenElseMerge>(stmt));
-    case L_STMT_OP_LOOP_MERGE: return mutate_stmt_(std::static_pointer_cast<StmtLoopMerge>(stmt));
-    case L_STMT_OP_LOOP_CONTINUE: return mutate_stmt_(std::static_pointer_cast<StmtLoopContinue>(stmt));
-    case L_STMT_OP_LOOP_BACK_EDGE: return mutate_stmt_(std::static_pointer_cast<StmtLoopBackEdge>(stmt));
-    case L_STMT_OP_RANGED_LOOP: return mutate_stmt_(std::static_pointer_cast<StmtRangedLoop>(stmt));
-    case L_STMT_OP_STORE: return mutate_stmt_(std::static_pointer_cast<StmtStore>(stmt));
+    case L_STMT_OP_NOP: return mutate_stmt_(stmt.as<StmtNop>());
+    case L_STMT_OP_BLOCK: return mutate_stmt_(stmt.as<StmtBlock>());
+    case L_STMT_OP_CONDITIONAL_BRANCH: return mutate_stmt_(stmt.as<StmtConditionalBranch>());
+    case L_STMT_OP_IF_THEN_ELSE: return mutate_stmt_(stmt.as<StmtIfThenElse>());
+    case L_STMT_OP_LOOP: return mutate_stmt_(stmt.as<StmtLoop>());
+    case L_STMT_OP_RETURN: return mutate_stmt_(stmt.as<StmtReturn>());
+    case L_STMT_OP_IF_THEN_ELSE_MERGE: return mutate_stmt_(stmt.as<StmtIfThenElseMerge>());
+    case L_STMT_OP_LOOP_MERGE: return mutate_stmt_(stmt.as<StmtLoopMerge>());
+    case L_STMT_OP_LOOP_CONTINUE: return mutate_stmt_(stmt.as<StmtLoopContinue>());
+    case L_STMT_OP_LOOP_BACK_EDGE: return mutate_stmt_(stmt.as<StmtLoopBackEdge>());
+    case L_STMT_OP_RANGED_LOOP: return mutate_stmt_(stmt.as<StmtRangedLoop>());
+    case L_STMT_OP_STORE: return mutate_stmt_(stmt.as<StmtStore>());
     default: liong::unreachable();
     }
   }
@@ -257,75 +220,75 @@ struct Mutator {
 
 template<typename T>
 struct MemoryFunctorVisitor : public Visitor {
-  std::function<void(const std::shared_ptr<T>&)> f;
-  MemoryFunctorVisitor(std::function<void(const std::shared_ptr<T>&)>&& f) :
-    f(std::forward<std::function<void(const std::shared_ptr<T>&)>>(f)) {}
+  std::function<void(const NodeRef<T>&)> f;
+  MemoryFunctorVisitor(std::function<void(const NodeRef<T>&)>&& f) :
+    f(std::forward<std::function<void(const NodeRef<T>&)>>(f)) {}
 
-  virtual void visit_mem_(const std::shared_ptr<T>& mem) override final { f(mem); }
+  virtual void visit_mem_(const NodeRef<T>& mem) override final { f(mem); }
 };
 template<typename T>
 void visit_mem_functor(
-  std::function<void(const std::shared_ptr<T>&)>&& f,
-  const std::shared_ptr<Memory>& x
+  std::function<void(const NodeRef<T>&)>&& f,
+  const NodeRef<Memory>& x
 ) {
-  MemoryFunctorVisitor<T> visitor(std::forward<std::function<void(const std::shared_ptr<T>&)>>(f));
+  MemoryFunctorVisitor<T> visitor(std::forward<std::function<void(const NodeRef<T>&)>>(f));
   visitor.visit_mem(x);
 }
 
 template<typename T>
 struct TypeFunctorVisitor : public Visitor {
-  std::function<void(const std::shared_ptr<T>&)> f;
-  TypeFunctorVisitor(std::function<void(const std::shared_ptr<T>&)>&& f) :
-    f(std::forward<std::function<void(const std::shared_ptr<T>&)>>(f)) {}
+  std::function<void(const NodeRef<T>&)> f;
+  TypeFunctorVisitor(std::function<void(const NodeRef<T>&)>&& f) :
+    f(std::forward<std::function<void(const NodeRef<T>&)>>(f)) {}
 
-  virtual void visit_ty_(const std::shared_ptr<T>& ty) override final { f(ty); }
+  virtual void visit_ty_(const NodeRef<T>& ty) override final { f(ty); }
 };
 template<typename T>
 void visit_ty_functor(
-  std::function<void(const std::shared_ptr<T>&)>&& f,
-  const std::shared_ptr<Type>& x
+  std::function<void(const NodeRef<T>&)>&& f,
+  const NodeRef<Type>& x
 ) {
-  TypeFunctorVisitor<T> visitor(std::forward<std::function<void(const std::shared_ptr<T>&)>>(f));
+  TypeFunctorVisitor<T> visitor(std::forward<std::function<void(const NodeRef<T>&)>>(f));
   visitor.visit_ty(x);
 }
 
 template<typename T>
 struct ExprFunctorVisitor : public Visitor {
-  std::function<void(const std::shared_ptr<T>&)> f;
-  ExprFunctorVisitor(std::function<void(const std::shared_ptr<T>&)>&& f) :
-    f(std::forward<std::function<void(const std::shared_ptr<T>&)>>(f)) {}
+  std::function<void(const NodeRef<T>&)> f;
+  ExprFunctorVisitor(std::function<void(const NodeRef<T>&)>&& f) :
+    f(std::forward<std::function<void(const NodeRef<T>&)>>(f)) {}
 
-  virtual void visit_expr_(const std::shared_ptr<T>& expr) override final { f(expr); }
+  virtual void visit_expr_(const NodeRef<T>& expr) override final { f(expr); }
 };
 template<typename T>
 void visit_expr_functor(
-  std::function<void(const std::shared_ptr<T>&)>&& f,
-  const std::shared_ptr<Expr>& x
+  std::function<void(const NodeRef<T>&)>&& f,
+  const NodeRef<Expr>& x
 ) {
-  ExprFunctorVisitor<T> visitor(std::forward<std::function<void(const std::shared_ptr<T>&)>>(f));
+  ExprFunctorVisitor<T> visitor(std::forward<std::function<void(const NodeRef<T>&)>>(f));
   visitor.visit_expr(x);
 }
 
 template<typename T>
 struct StmtFunctorVisitor : public Visitor {
-  std::function<void(const std::shared_ptr<T>&)> f;
-  StmtFunctorVisitor(std::function<void(const std::shared_ptr<T>&)>&& f) :
-    f(std::forward<std::function<void(const std::shared_ptr<T>&)>>(f)) {}
+  std::function<void(const NodeRef<T>&)> f;
+  StmtFunctorVisitor(std::function<void(const NodeRef<T>&)>&& f) :
+    f(std::forward<std::function<void(const NodeRef<T>&)>>(f)) {}
 
-  virtual void visit_stmt_(const std::shared_ptr<T>& stmt) override final { f(stmt); }
+  virtual void visit_stmt_(const NodeRef<T>& stmt) override final { f(stmt); }
 };
 template<typename T>
 void visit_stmt_functor(
-  std::function<void(const std::shared_ptr<T>&)>&& f,
-  const std::shared_ptr<Stmt>& x
+  std::function<void(const NodeRef<T>&)>&& f,
+  const NodeRef<Stmt>& x
 ) {
-  StmtFunctorVisitor<T> visitor(std::forward<std::function<void(const std::shared_ptr<T>&)>>(f));
+  StmtFunctorVisitor<T> visitor(std::forward<std::function<void(const NodeRef<T>&)>>(f));
   visitor.visit_stmt(x);
 }
 
 template<typename T>
 struct MemoryFunctorMutator : public MemoryMutator {
-  typedef std::shared_ptr<T> TStmtRef;
+  typedef NodeRef<T> TStmtRef;
   std::function<MemoryRef(TStmtRef&)> f;
   MemoryFunctorMutator(std::function<MemoryRef(TStmtRef&)>&& f) :
     f(std::forward<std::function<MemoryRef(TStmtRef&)>>(f)) {}
@@ -334,16 +297,16 @@ struct MemoryFunctorMutator : public MemoryMutator {
 };
 template<typename T>
 void mutate_mem_functor(
-  std::function<MemoryRef(std::shared_ptr<T>&)>&& f,
+  std::function<MemoryRef(NodeRef<T>&)>&& f,
   const Memory& x
 ) {
-  MemoryFunctorMutator<T> mutator(std::forward<std::function<MemoryRef(std::shared_ptr<T>&)>>(f));
+  MemoryFunctorMutator<T> mutator(std::forward<std::function<MemoryRef(NodeRef<T>&)>>(f));
   return mutator.mutate_mem(x);
 }
 
 template<typename T>
 struct TypeFunctorMutator : public TypeMutator {
-  typedef std::shared_ptr<T> TStmtRef;
+  typedef NodeRef<T> TStmtRef;
   std::function<TypeRef(TStmtRef&)> f;
   TypeFunctorMutator(std::function<TypeRef(TStmtRef&)>&& f) :
     f(std::forward<std::function<TypeRef(TStmtRef&)>>(f)) {}
@@ -352,16 +315,16 @@ struct TypeFunctorMutator : public TypeMutator {
 };
 template<typename T>
 void mutate_ty_functor(
-  std::function<TypeRef(std::shared_ptr<T>&)>&& f,
+  std::function<TypeRef(NodeRef<T>&)>&& f,
   const Type& x
 ) {
-  TypeFunctorMutator<T> mutator(std::forward<std::function<TypeRef(std::shared_ptr<T>&)>>(f));
+  TypeFunctorMutator<T> mutator(std::forward<std::function<TypeRef(NodeRef<T>&)>>(f));
   return mutator.mutate_ty(x);
 }
 
 template<typename T>
 struct ExprFunctorMutator : public ExprMutator {
-  typedef std::shared_ptr<T> TStmtRef;
+  typedef NodeRef<T> TStmtRef;
   std::function<ExprRef(TStmtRef&)> f;
   ExprFunctorMutator(std::function<ExprRef(TStmtRef&)>&& f) :
     f(std::forward<std::function<ExprRef(TStmtRef&)>>(f)) {}
@@ -370,16 +333,16 @@ struct ExprFunctorMutator : public ExprMutator {
 };
 template<typename T>
 void mutate_expr_functor(
-  std::function<ExprRef(std::shared_ptr<T>&)>&& f,
+  std::function<ExprRef(NodeRef<T>&)>&& f,
   const Expr& x
 ) {
-  ExprFunctorMutator<T> mutator(std::forward<std::function<ExprRef(std::shared_ptr<T>&)>>(f));
+  ExprFunctorMutator<T> mutator(std::forward<std::function<ExprRef(NodeRef<T>&)>>(f));
   return mutator.mutate_expr(x);
 }
 
 template<typename T>
 struct StmtFunctorMutator : public StmtMutator {
-  typedef std::shared_ptr<T> TStmtRef;
+  typedef NodeRef<T> TStmtRef;
   std::function<StmtRef(TStmtRef&)> f;
   StmtFunctorMutator(std::function<StmtRef(TStmtRef&)>&& f) :
     f(std::forward<std::function<StmtRef(TStmtRef&)>>(f)) {}
@@ -388,9 +351,9 @@ struct StmtFunctorMutator : public StmtMutator {
 };
 template<typename T>
 void mutate_stmt_functor(
-  std::function<StmtRef(std::shared_ptr<T>&)>&& f,
+  std::function<StmtRef(NodeRef<T>&)>&& f,
   const Stmt& x
 ) {
-  StmtFunctorMutator<T> mutator(std::forward<std::function<StmtRef(std::shared_ptr<T>&)>>(f));
+  StmtFunctorMutator<T> mutator(std::forward<std::function<StmtRef(NodeRef<T>&)>>(f));
   return mutator.mutate_stmt(x);
 }

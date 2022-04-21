@@ -16,7 +16,7 @@ struct ForwardBlockEliminationMutator : public Mutator {
     if (x->stmts.size() == 1) {
       return std::move(x->stmts[0]);
     }
-    return x;
+    return x.as<Stmt>();
   }
 };
 StmtRef eliminate_forward_blocks(StmtRef& x) {

@@ -14,10 +14,10 @@ struct StmtNop : public Stmt {
 
 struct StmtBlock : public Stmt {
   static const StmtOp OP = L_STMT_OP_BLOCK;
-  std::vector<std::shared_ptr<Stmt>> stmts;
+  std::vector<NodeRef<Stmt>> stmts;
 
   inline StmtBlock(
-    const std::vector<std::shared_ptr<Stmt>>& stmts
+    const std::vector<NodeRef<Stmt>>& stmts
   ) : Stmt(L_STMT_OP_BLOCK), stmts(stmts) {
     for (const auto& x : stmts) { liong::assert(x != nullptr); }
   }
@@ -25,14 +25,14 @@ struct StmtBlock : public Stmt {
 
 struct StmtConditionalBranch : public Stmt {
   static const StmtOp OP = L_STMT_OP_CONDITIONAL_BRANCH;
-  std::shared_ptr<Expr> cond;
-  std::shared_ptr<Stmt> then_block;
-  std::shared_ptr<Stmt> else_block;
+  NodeRef<Expr> cond;
+  NodeRef<Stmt> then_block;
+  NodeRef<Stmt> else_block;
 
   inline StmtConditionalBranch(
-    const std::shared_ptr<Expr>& cond,
-    const std::shared_ptr<Stmt>& then_block,
-    const std::shared_ptr<Stmt>& else_block
+    const NodeRef<Expr>& cond,
+    const NodeRef<Stmt>& then_block,
+    const NodeRef<Stmt>& else_block
   ) : Stmt(L_STMT_OP_CONDITIONAL_BRANCH), cond(cond), then_block(then_block), else_block(else_block) {
     liong::assert(cond != nullptr);
     liong::assert(then_block != nullptr);
@@ -42,10 +42,10 @@ struct StmtConditionalBranch : public Stmt {
 
 struct StmtIfThenElse : public Stmt {
   static const StmtOp OP = L_STMT_OP_IF_THEN_ELSE;
-  std::shared_ptr<Stmt> body_block;
+  NodeRef<Stmt> body_block;
 
   inline StmtIfThenElse(
-    const std::shared_ptr<Stmt>& body_block
+    const NodeRef<Stmt>& body_block
   ) : Stmt(L_STMT_OP_IF_THEN_ELSE), body_block(body_block) {
     liong::assert(body_block != nullptr);
   }
@@ -53,12 +53,12 @@ struct StmtIfThenElse : public Stmt {
 
 struct StmtLoop : public Stmt {
   static const StmtOp OP = L_STMT_OP_LOOP;
-  std::shared_ptr<Stmt> body_block;
-  std::shared_ptr<Stmt> continue_block;
+  NodeRef<Stmt> body_block;
+  NodeRef<Stmt> continue_block;
 
   inline StmtLoop(
-    const std::shared_ptr<Stmt>& body_block,
-    const std::shared_ptr<Stmt>& continue_block
+    const NodeRef<Stmt>& body_block,
+    const NodeRef<Stmt>& continue_block
   ) : Stmt(L_STMT_OP_LOOP), body_block(body_block), continue_block(continue_block) {
     liong::assert(body_block != nullptr);
     liong::assert(continue_block != nullptr);
@@ -107,18 +107,18 @@ struct StmtLoopBackEdge : public Stmt {
 
 struct StmtRangedLoop : public Stmt {
   static const StmtOp OP = L_STMT_OP_RANGED_LOOP;
-  std::shared_ptr<Stmt> body_block;
-  std::shared_ptr<Memory> itervar;
-  std::shared_ptr<Expr> begin;
-  std::shared_ptr<Expr> end;
-  std::shared_ptr<Expr> stride;
+  NodeRef<Stmt> body_block;
+  NodeRef<Memory> itervar;
+  NodeRef<Expr> begin;
+  NodeRef<Expr> end;
+  NodeRef<Expr> stride;
 
   inline StmtRangedLoop(
-    const std::shared_ptr<Stmt>& body_block,
-    const std::shared_ptr<Memory>& itervar,
-    const std::shared_ptr<Expr>& begin,
-    const std::shared_ptr<Expr>& end,
-    const std::shared_ptr<Expr>& stride
+    const NodeRef<Stmt>& body_block,
+    const NodeRef<Memory>& itervar,
+    const NodeRef<Expr>& begin,
+    const NodeRef<Expr>& end,
+    const NodeRef<Expr>& stride
   ) : Stmt(L_STMT_OP_RANGED_LOOP), body_block(body_block), itervar(itervar), begin(begin), end(end), stride(stride) {
     liong::assert(body_block != nullptr);
     liong::assert(itervar != nullptr);
@@ -130,14 +130,28 @@ struct StmtRangedLoop : public Stmt {
 
 struct StmtStore : public Stmt {
   static const StmtOp OP = L_STMT_OP_STORE;
-  std::shared_ptr<Memory> dst_ptr;
-  std::shared_ptr<Expr> value;
+  NodeRef<Memory> dst_ptr;
+  NodeRef<Expr> value;
 
   inline StmtStore(
-    const std::shared_ptr<Memory>& dst_ptr,
-    const std::shared_ptr<Expr>& value
+    const NodeRef<Memory>& dst_ptr,
+    const NodeRef<Expr>& value
   ) : Stmt(L_STMT_OP_STORE), dst_ptr(dst_ptr), value(value) {
     liong::assert(dst_ptr != nullptr);
     liong::assert(value != nullptr);
   }
 };
+
+typedef NodeRef<Stmt> StmtRef;
+typedef NodeRef<StmtNop> StmtNopRef;
+typedef NodeRef<StmtBlock> StmtBlockRef;
+typedef NodeRef<StmtConditionalBranch> StmtConditionalBranchRef;
+typedef NodeRef<StmtIfThenElse> StmtIfThenElseRef;
+typedef NodeRef<StmtLoop> StmtLoopRef;
+typedef NodeRef<StmtReturn> StmtReturnRef;
+typedef NodeRef<StmtIfThenElseMerge> StmtIfThenElseMergeRef;
+typedef NodeRef<StmtLoopMerge> StmtLoopMergeRef;
+typedef NodeRef<StmtLoopContinue> StmtLoopContinueRef;
+typedef NodeRef<StmtLoopBackEdge> StmtLoopBackEdgeRef;
+typedef NodeRef<StmtRangedLoop> StmtRangedLoopRef;
+typedef NodeRef<StmtStore> StmtStoreRef;

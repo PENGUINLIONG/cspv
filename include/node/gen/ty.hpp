@@ -44,10 +44,10 @@ struct TypeFloat : public Type {
 
 struct TypeStruct : public Type {
   static const TypeClass CLS = L_TYPE_CLASS_STRUCT;
-  std::vector<std::shared_ptr<Type>> members;
+  std::vector<NodeRef<Type>> members;
 
   inline TypeStruct(
-    const std::vector<std::shared_ptr<Type>>& members
+    const std::vector<NodeRef<Type>>& members
   ) : Type(L_TYPE_CLASS_STRUCT), members(members) {
     for (const auto& x : members) { liong::assert(x != nullptr); }
   }
@@ -55,11 +55,19 @@ struct TypeStruct : public Type {
 
 struct TypePointer : public Type {
   static const TypeClass CLS = L_TYPE_CLASS_POINTER;
-  std::shared_ptr<Type> inner;
+  NodeRef<Type> inner;
 
   inline TypePointer(
-    const std::shared_ptr<Type>& inner
+    const NodeRef<Type>& inner
   ) : Type(L_TYPE_CLASS_POINTER), inner(inner) {
     liong::assert(inner != nullptr);
   }
 };
+
+typedef NodeRef<Type> TypeRef;
+typedef NodeRef<TypeVoid> TypeVoidRef;
+typedef NodeRef<TypeBool> TypeBoolRef;
+typedef NodeRef<TypeInt> TypeIntRef;
+typedef NodeRef<TypeFloat> TypeFloatRef;
+typedef NodeRef<TypeStruct> TypeStructRef;
+typedef NodeRef<TypePointer> TypePointerRef;

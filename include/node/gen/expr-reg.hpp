@@ -16,7 +16,7 @@ enum ExprOp {
 
 struct Expr : public Node {
   const ExprOp op;
-  std::shared_ptr<Type> ty;
+  NodeRef<Type> ty;
 
   template<typename T>
   const T& as() const {
@@ -31,7 +31,7 @@ struct Expr : public Node {
 protected:
   inline Expr(
     ExprOp op,
-    const std::shared_ptr<Type>& ty
+    const NodeRef<Type>& ty
   ) : Node(L_NODE_VARIANT_EXPR), op(op), ty(ty)
   {
     liong::assert(ty != nullptr);

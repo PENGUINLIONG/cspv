@@ -8,9 +8,9 @@ using namespace liong;
 
 struct RangedLoopElevationMutator : public Mutator {
   struct Candidate {
-    std::shared_ptr<Memory> func_var;
-    std::shared_ptr<Expr> begin_expr;
-    std::shared_ptr<Expr> stride_expr;
+    MemoryRef func_var;
+    ExprRef begin_expr;
+    ExprRef stride_expr;
     // If the candidate is acknowledged, the value will directly be assigned
     // with `end_expr`.
     StmtStoreRef init_store_stmt;
@@ -32,8 +32,10 @@ struct RangedLoopElevationMutator : public Mutator {
   }
 
   virtual StmtRef mutate_stmt_(StmtStoreRef& x) override final {
-    if (x->dst_ptr->cls != L_MEMORY_CLASS_FUNCTION_VARIABLE) { return x; }
-    log::info(dbg_print(x->dst_ptr), " ", dbg_print(x->value));
+    if (x->dst_ptr->cls != L_MEMORY_CLASS_FUNCTION_VARIABLE) {
+      return x.as<Stmt>();
+    }
+    log::info(dbg_print(x->dst_ptr.as<Node>()), " ", dbg_print(x->value.as<Node>()));
 
     FunctionVariableHistory hist {};
     hist.value = x->value;
@@ -55,10 +57,10 @@ struct RangedLoopElevationMutator : public Mutator {
         mem_value_map.erase(it);
       }
     }
-    return x;
+    return x.as<Stmt>();
   }
   virtual StmtRef mutate_stmt_(StmtLoopRef& x) override final {
-    std::map<std::shared_ptr<Memory>, Candidate> candidates;
+    std::map<MemoryRef, Candidate> candidates;
     visit_stmt_functor<StmtStore>(
       [this, &candidates](const StmtStoreRef& store) {
         visit_expr_functor<ExprLoad>(
@@ -75,7 +77,7 @@ struct RangedLoopElevationMutator : public Mutator {
             if (!store->value->is<ExprAdd>()) { return; }
             const auto& value_expr = store->value->as<ExprAdd>();
 
-            std::shared_ptr<Expr> stride_expr;
+            ExprRef stride_expr;
             if (value_expr.a == load) {
               stride_expr = value_expr.b;
             } else if (value_expr.b == load) {
@@ -106,7 +108,7 @@ struct RangedLoopElevationMutator : public Mutator {
         auto it = candidates.find(cond_expr.a->as<ExprLoad>().src_ptr);
         if (it == candidates.end()) { break; }
 
-        const auto& candidate = it->second;
+        auto& candidate = it->second;
         // FIXME: (penguinliong) Use itervars to replace variables inside loops,
         // so this change in initial store value won't interfered the loop
         // content.

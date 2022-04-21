@@ -68,15 +68,15 @@ void guarded_main() {
   auto entry_points = extract_entry_points(mod);
 
   for (auto& pair : entry_points) {
-    auto code = dbg_print(pair.second);
+    auto code = dbg_print(pair.second.as<Node>());
     log::info("entry point '", pair.first, "': \n", code);
 
     pair.second = eliminate_forward_blocks(pair.second);
-    code = dbg_print(pair.second);
+    code = dbg_print(pair.second.as<Node>());
     log::info("modified entry point '", pair.first, "': \n", code);
 
     pair.second = ranged_loop_elevation(pair.second);
-    code = dbg_print(pair.second);
+    code = dbg_print(pair.second.as<Node>());
     log::info("modified entry point '", pair.first, "': \n", code);
   }
 

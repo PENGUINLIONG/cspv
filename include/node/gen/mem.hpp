@@ -9,8 +9,8 @@ struct MemoryFunctionVariable : public Memory {
   void* handle;
 
   inline MemoryFunctionVariable(
-    const std::shared_ptr<Type>& ty,
-    const std::vector<std::shared_ptr<Expr>>& ac,
+    const NodeRef<Type>& ty,
+    const std::vector<NodeRef<Expr>>& ac,
     void* handle
   ) : Memory(L_MEMORY_CLASS_FUNCTION_VARIABLE, ty, ac), handle(handle) {
   }
@@ -18,16 +18,16 @@ struct MemoryFunctionVariable : public Memory {
 
 struct MemoryIterationVariable : public Memory {
   static const MemoryClass CLS = L_MEMORY_CLASS_ITERATION_VARIABLE;
-  std::shared_ptr<Expr> begin;
-  std::shared_ptr<Expr> end;
-  std::shared_ptr<Expr> stride;
+  NodeRef<Expr> begin;
+  NodeRef<Expr> end;
+  NodeRef<Expr> stride;
 
   inline MemoryIterationVariable(
-    const std::shared_ptr<Type>& ty,
-    const std::vector<std::shared_ptr<Expr>>& ac,
-    const std::shared_ptr<Expr>& begin,
-    const std::shared_ptr<Expr>& end,
-    const std::shared_ptr<Expr>& stride
+    const NodeRef<Type>& ty,
+    const std::vector<NodeRef<Expr>>& ac,
+    const NodeRef<Expr>& begin,
+    const NodeRef<Expr>& end,
+    const NodeRef<Expr>& stride
   ) : Memory(L_MEMORY_CLASS_ITERATION_VARIABLE, ty, ac), begin(begin), end(end), stride(stride) {
     liong::assert(begin != nullptr);
     liong::assert(end != nullptr);
@@ -41,8 +41,8 @@ struct MemoryUniformBuffer : public Memory {
   uint32_t set;
 
   inline MemoryUniformBuffer(
-    const std::shared_ptr<Type>& ty,
-    const std::vector<std::shared_ptr<Expr>>& ac,
+    const NodeRef<Type>& ty,
+    const std::vector<NodeRef<Expr>>& ac,
     uint32_t binding,
     uint32_t set
   ) : Memory(L_MEMORY_CLASS_UNIFORM_BUFFER, ty, ac), binding(binding), set(set) {
@@ -55,8 +55,8 @@ struct MemoryStorageBuffer : public Memory {
   uint32_t set;
 
   inline MemoryStorageBuffer(
-    const std::shared_ptr<Type>& ty,
-    const std::vector<std::shared_ptr<Expr>>& ac,
+    const NodeRef<Type>& ty,
+    const std::vector<NodeRef<Expr>>& ac,
     uint32_t binding,
     uint32_t set
   ) : Memory(L_MEMORY_CLASS_STORAGE_BUFFER, ty, ac), binding(binding), set(set) {
@@ -69,8 +69,8 @@ struct MemorySampledImage : public Memory {
   uint32_t set;
 
   inline MemorySampledImage(
-    const std::shared_ptr<Type>& ty,
-    const std::vector<std::shared_ptr<Expr>>& ac,
+    const NodeRef<Type>& ty,
+    const std::vector<NodeRef<Expr>>& ac,
     uint32_t binding,
     uint32_t set
   ) : Memory(L_MEMORY_CLASS_SAMPLED_IMAGE, ty, ac), binding(binding), set(set) {
@@ -83,10 +83,18 @@ struct MemoryStorageImage : public Memory {
   uint32_t set;
 
   inline MemoryStorageImage(
-    const std::shared_ptr<Type>& ty,
-    const std::vector<std::shared_ptr<Expr>>& ac,
+    const NodeRef<Type>& ty,
+    const std::vector<NodeRef<Expr>>& ac,
     uint32_t binding,
     uint32_t set
   ) : Memory(L_MEMORY_CLASS_STORAGE_IMAGE, ty, ac), binding(binding), set(set) {
   }
 };
+
+typedef NodeRef<Memory> MemoryRef;
+typedef NodeRef<MemoryFunctionVariable> MemoryFunctionVariableRef;
+typedef NodeRef<MemoryIterationVariable> MemoryIterationVariableRef;
+typedef NodeRef<MemoryUniformBuffer> MemoryUniformBufferRef;
+typedef NodeRef<MemoryStorageBuffer> MemoryStorageBufferRef;
+typedef NodeRef<MemorySampledImage> MemorySampledImageRef;
+typedef NodeRef<MemoryStorageImage> MemoryStorageImageRef;

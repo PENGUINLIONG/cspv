@@ -198,45 +198,45 @@ struct SpirvVisitor {
   }
 
 
-  std::shared_ptr<Type> parse_ty(const InstructionRef& instr) {
+  TypeRef parse_ty(const InstructionRef& instr) {
     switch (instr.op()) {
     case spv::Op::OpTypeVoid:
     {
-      return std::shared_ptr<Type>(new TypeVoid);
+      return TypeRef(new TypeVoid);
     }
     case spv::Op::OpTypeBool:
     {
-      return std::shared_ptr<Type>(new TypeBool);
+      return TypeRef(new TypeBool);
     }
     case spv::Op::OpTypeInt:
     {
       auto e = instr.extract_params();
       uint32_t nbit = e.read_u32();
       bool is_signed = e.read_bool();
-      return std::shared_ptr<Type>(new TypeInt(nbit, is_signed));
+      return TypeRef(new TypeInt(nbit, is_signed));
     }
     case spv::Op::OpTypeFloat:
     {
       auto e = instr.extract_params();
       uint32_t nbit = e.read_u32();
-      return std::shared_ptr<Type>(new TypeFloat(nbit));
+      return TypeRef(new TypeFloat(nbit));
     }
     case spv::Op::OpTypeStruct:
     {
       auto e = instr.extract_params();
-      std::vector<std::shared_ptr<Type>> members;
+      std::vector<TypeRef> members;
       while (e) {
         auto member_ty = out.ty_map.at(e.read_id());
         members.emplace_back(member_ty);
       }
-      return std::shared_ptr<Type>(new TypeStruct(std::move(members)));
+      return TypeRef(new TypeStruct(std::move(members)));
     }
     case spv::Op::OpTypePointer:
     {
       auto e = instr.extract_params();
       spv::StorageClass storage_cls = e.read_u32_as<spv::StorageClass>();
       auto inner = out.ty_map.at(e.read_id());
-      return std::shared_ptr<Type>(new TypePointer(inner));
+      return TypeRef(new TypePointer(inner));
     }
     case spv::Op::OpTypeFunction:
     {
@@ -274,7 +274,7 @@ struct SpirvVisitor {
     return false;
   }
 
-  std::shared_ptr<Expr> parse_const(const InstructionRef& instr) {
+  ExprRef parse_const(const InstructionRef& instr) {
     switch (instr.op()) {
     case spv::Op::OpConstant:
     {
@@ -284,21 +284,21 @@ struct SpirvVisitor {
       while (e) {
         lits.emplace_back(e.read_u32());
       }
-      return std::shared_ptr<Expr>(new ExprConstant(ty, std::move(lits)));
+      return ExprRef(new ExprConstant(ty, std::move(lits)));
     }
     case spv::Op::OpConstantTrue:
     {
       auto ty = out.ty_map.at(instr.result_ty_id());
       std::vector<uint32_t> lits;
       lits.emplace_back(1);
-      return std::shared_ptr<Expr>(new ExprConstant(ty, std::move(lits)));
+      return ExprRef(new ExprConstant(ty, std::move(lits)));
     }
     case spv::Op::OpConstantFalse:
     {
       auto ty = out.ty_map.at(instr.result_ty_id());
       std::vector<uint32_t> lits;
       lits.emplace_back(0);
-      return std::shared_ptr<Expr>(new ExprConstant(ty, std::move(lits)));
+      return ExprRef(new ExprConstant(ty, std::move(lits)));
     }
     default: unimplemented();
     }
@@ -324,7 +324,7 @@ struct SpirvVisitor {
     return false;
   }
 
-  std::shared_ptr<Memory> parse_global_mem(const InstructionRef& ptr) {
+  MemoryRef parse_global_mem(const InstructionRef& ptr) {
     auto op = ptr.op();
     if (op == spv::Op::OpVariable) {
       auto ptr_ty = out.ty_map.at(ptr.result_ty_id());
@@ -343,9 +343,9 @@ struct SpirvVisitor {
       uint32_t binding = get_deco_u32(spv::Decoration::Binding, ptr);
       uint32_t set = get_deco_u32(spv::Decoration::DescriptorSet, ptr);
       if (store_cls == spv::StorageClass::Uniform) {
-        return std::shared_ptr<Memory>(new MemoryUniformBuffer(var_ty, {}, binding, set));
+        return MemoryRef(new MemoryUniformBuffer(var_ty, {}, binding, set));
       } else if (store_cls == spv::StorageClass::StorageBuffer) {
-        return std::shared_ptr<Memory>(new MemoryStorageBuffer(var_ty, {}, binding, set));
+        return MemoryRef(new MemoryStorageBuffer(var_ty, {}, binding, set));
       } else {
         panic("unsupported memory allocation");
       }
