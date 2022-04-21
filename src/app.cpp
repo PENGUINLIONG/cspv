@@ -57,6 +57,10 @@ std::vector<uint32_t> load_spv(const char* path) {
 }
 
 
+void print_code(const std::string& name, const NodeRef<Node>& node) {
+  auto code = dbg_print(node);
+  log::info("entry point '", name, "': \n", code);
+}
 
 void guarded_main() {
   if (CFG.in_file_path.empty()) {
@@ -71,13 +75,14 @@ void guarded_main() {
     auto code = dbg_print(pair.second.as<Node>());
     log::info("entry point '", pair.first, "': \n", code);
 
-    pair.second = eliminate_forward_blocks(pair.second);
-    code = dbg_print(pair.second.as<Node>());
-    log::info("modified entry point '", pair.first, "': \n", code);
+    expr_normalization(pair.second);
+    print_code(pair.first, pair.second);
 
-    pair.second = ranged_loop_elevation(pair.second);
-    code = dbg_print(pair.second.as<Node>());
-    log::info("modified entry point '", pair.first, "': \n", code);
+    eliminate_forward_blocks(pair.second);
+    print_code(pair.first, pair.second);
+
+    ranged_loop_elevation(pair.second);
+    print_code(pair.first, pair.second);
   }
 
    log::info("success");

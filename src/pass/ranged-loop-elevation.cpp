@@ -126,7 +126,7 @@ struct RangedLoopElevationMutator : public Mutator {
 
 };
 
-StmtRef ranged_loop_elevation(StmtRef& x) {
+void ranged_loop_elevation(StmtRef& x) {
   RangedLoopElevationMutator mutator;
-  return mutator.mutate_stmt(x);
+  x = mutator.mutate_stmt(x);
 }

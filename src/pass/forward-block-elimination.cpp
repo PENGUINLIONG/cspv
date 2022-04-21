@@ -19,7 +19,7 @@ struct ForwardBlockEliminationMutator : public Mutator {
     return x.as<Stmt>();
   }
 };
-StmtRef eliminate_forward_blocks(StmtRef& x) {
+void eliminate_forward_blocks(StmtRef& x) {
   ForwardBlockEliminationMutator mutator;
-  return mutator.mutate_stmt(x);
+  x = mutator.mutate_stmt(x);
 }

@@ -25,6 +25,11 @@
 // | +-StmtLoopMerge
 // +-StmtLoopMerge
 // ```
-extern StmtRef eliminate_forward_blocks(StmtRef& x);
+extern void eliminate_forward_blocks(StmtRef& x);
 
-extern StmtRef ranged_loop_elevation(StmtRef& x);
+// For any binary expression, if the expression has a constant operand and a
+// non-constant operand, ensure the constant operand is always on the right-
+// hand-side (`b`).
+extern void expr_normalization(StmtRef& x);
+
+extern void ranged_loop_elevation(StmtRef& x);

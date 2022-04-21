@@ -57,6 +57,12 @@ struct NodeRef {
   constexpr bool operator==(nullptr_t) const { return ref == nullptr; }
   constexpr bool operator!=(nullptr_t) const { return ref != nullptr; }
 
+  template<typename U,
+    typename _ = std::enable_if_t<std::is_base_of_v<T, U> || std::is_base_of_v<U, T>>>
+  inline operator NodeRef<U>() {
+    return NodeRef<U>(std::shared_ptr<Node>(alloc), (U*)ref);
+  }
+
   template<typename U>
   constexpr bool operator==(const NodeRef<U>& b) const { return get_alloc() == b.get_alloc(); }
   template<typename U>
