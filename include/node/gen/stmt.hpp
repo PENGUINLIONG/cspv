@@ -146,30 +146,18 @@ struct StmtRangedLoop : public Stmt {
   static const StmtOp OP = L_STMT_OP_RANGED_LOOP;
   NodeRef<Stmt> body_block;
   NodeRef<Memory> itervar;
-  NodeRef<Expr> begin;
-  NodeRef<Expr> end;
-  NodeRef<Expr> stride;
 
   inline StmtRangedLoop(
     const NodeRef<Stmt>& body_block,
-    const NodeRef<Memory>& itervar,
-    const NodeRef<Expr>& begin,
-    const NodeRef<Expr>& end,
-    const NodeRef<Expr>& stride
-  ) : Stmt(L_STMT_OP_RANGED_LOOP), body_block(body_block), itervar(itervar), begin(begin), end(end), stride(stride) {
+    const NodeRef<Memory>& itervar
+  ) : Stmt(L_STMT_OP_RANGED_LOOP), body_block(body_block), itervar(itervar) {
     liong::assert(body_block != nullptr);
     liong::assert(itervar != nullptr);
-    liong::assert(begin != nullptr);
-    liong::assert(end != nullptr);
-    liong::assert(stride != nullptr);
   }
 
   virtual void collect_children(NodeDrain* drain) override final {
     drain->push(body_block);
     drain->push(itervar);
-    drain->push(begin);
-    drain->push(end);
-    drain->push(stride);
   }
 };
 

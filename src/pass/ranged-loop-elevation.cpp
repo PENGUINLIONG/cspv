@@ -11,36 +11,28 @@ struct RangedLoopElevationMutator : public Mutator {
     MemoryRef func_var;
     ExprRef begin_expr;
     ExprRef stride_expr;
-    // If the candidate is acknowledged, the value will directly be assigned
-    // with `end_expr`.
-    StmtStoreRef init_store_stmt;
-  };
-
-  struct FunctionVariableHistory {
-    ExprRef value;
-    StmtStoreRef store_stmt;
   };
 
   // `nullptr` if the value is diverged.
-  std::map<MemoryRef, FunctionVariableHistory> mem_value_map;
+  std::map<MemoryRef, ExprRef> mem_value_map;
+  std::map<MemoryFunctionVariableRef, MemoryIterationVariableRef> itervar_map;
 
   virtual ExprRef mutate_expr_(ExprLoadRef& x) override final {
     if (x->src_ptr->is<MemoryFunctionVariable>()) {
       mem_value_map.erase(x->src_ptr);
+
+      auto it = itervar_map.find(x->src_ptr);
+      if (it != itervar_map.end()) {
+        x->src_ptr = it->second;
+      }
     }
     return Mutator::mutate_expr_(x);
   }
 
   virtual StmtRef mutate_stmt_(StmtStoreRef& x) override final {
-    if (x->dst_ptr->cls != L_MEMORY_CLASS_FUNCTION_VARIABLE) {
-      return x.as<Stmt>();
+    if (x->dst_ptr->is<MemoryFunctionVariable>()) {
+      mem_value_map.emplace(x->dst_ptr, x->value);
     }
-    log::info(dbg_print(x->dst_ptr.as<Node>()), " ", dbg_print(x->value.as<Node>()));
-
-    FunctionVariableHistory hist {};
-    hist.value = x->value;
-    hist.store_stmt = x;
-    mem_value_map.emplace(x->dst_ptr, std::move(hist));
     return Mutator::mutate_stmt_(x);
   }
   virtual StmtRef mutate_stmt_(StmtConditionalBranchRef& x) override final {
@@ -52,7 +44,7 @@ struct RangedLoopElevationMutator : public Mutator {
       auto it = mem_value_map.find(pair.first);
       if (it == mem_value_map.end()) {
         mem_value_map.emplace(pair);
-      } else if (it->second.value != pair.second.value) {
+      } else if (it->second != pair.second) {
         // Mark the memory content as diverged.
         mem_value_map.erase(it);
       }
@@ -89,9 +81,8 @@ struct RangedLoopElevationMutator : public Mutator {
 
             Candidate candidate {};
             candidate.func_var = load->src_ptr;
-            candidate.begin_expr = it->second.value;
+            candidate.begin_expr = it->second;
             candidate.stride_expr = std::move(stride_expr);
-            candidate.init_store_stmt = it->second.store_stmt;
             candidates.emplace(load->src_ptr, std::move(candidate));
 
           }, store->value);
@@ -109,13 +100,23 @@ struct RangedLoopElevationMutator : public Mutator {
         if (it == candidates.end()) { break; }
 
         auto& candidate = it->second;
-        // FIXME: (penguinliong) Use itervars to replace variables inside loops,
-        // so this change in initial store value won't interfered the loop
-        // content.
-        candidate.init_store_stmt->value = cond_expr.b;
-        return StmtRef(new StmtRangedLoop(cond_branch.then_block,
-          candidate.func_var, candidate.begin_expr, cond_expr.b,
-          candidate.stride_expr));
+
+        auto begin_expr = candidate.begin_expr;
+        auto end_expr = cond_expr.b;
+        auto stride_expr = candidate.stride_expr;
+
+        auto itervar = MemoryRef(new MemoryIterationVariable(
+          candidate.func_var->ty, {}, begin_expr, end_expr, stride_expr));
+
+        itervar_map.emplace(candidate.func_var, itervar);
+        auto then_block = mutate(cond_branch.then_block);
+        itervar_map.erase(candidate.func_var);
+        mem_value_map[candidate.func_var] = end_expr;
+
+        return StmtRef(new StmtBlock({
+          new StmtRangedLoop(then_block, itervar),
+          new StmtStore(candidate.func_var, end_expr),
+        }));
       }
       default: break;
       }

@@ -65,6 +65,16 @@ struct DebugPrintVisitor : public Visitor {
     s << "$" << s.get_var_name_by_handle(x->handle) << ":";
     visit(x->ty);
   }
+  virtual void visit_mem_(const MemoryIterationVariableRef& x) override final {
+    s << "IterVar(";
+    visit(x->begin);
+    s << ",";
+    visit(x->end);
+    s << ",";
+    visit(x->stride);
+    s << "):";
+    visit(x->ty);
+  }
   virtual void visit_mem_(const MemoryUniformBufferRef& x) override final {
     s << "UniformBuffer@" << x->binding << "," << x->set << "[";
     visit_access_chain(x->ac);
@@ -246,13 +256,7 @@ struct DebugPrintVisitor : public Visitor {
   virtual void visit_stmt_(const StmtRangedLoopRef& x) override final {
     s << "for ";
     visit(x->itervar);
-    s << " in range(";
-    visit(x->begin);
-    s << ", ";
-    visit(x->end);
-    s << ", ";
-    visit(x->stride);
-    s << ") {" << std::endl;
+    s << " {" << std::endl;
     s.push_indent();
     visit(x->body_block);
     s.pop_indent();

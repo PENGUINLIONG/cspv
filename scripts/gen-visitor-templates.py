@@ -704,9 +704,6 @@ novas = {
                 "fields": {
                     "body_block": "Stmt",
                     "itervar": "Memory",
-                    "begin": "Expr",
-                    "end": "Expr",
-                    "stride": "Expr",
                 }
             },
             "store": {

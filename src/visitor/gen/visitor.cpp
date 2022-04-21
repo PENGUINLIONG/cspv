@@ -203,9 +203,6 @@ StmtRef Mutator::mutate_stmt_(StmtLoopBackEdgeRef& x) {
 StmtRef Mutator::mutate_stmt_(StmtRangedLoopRef& x) {
   x->body_block = mutate_stmt(x->body_block);
   x->itervar = mutate_mem(x->itervar);
-  x->begin = mutate_expr(x->begin);
-  x->end = mutate_expr(x->end);
-  x->stride = mutate_expr(x->stride);
   return x.as<Stmt>();
 }
 StmtRef Mutator::mutate_stmt_(StmtStoreRef& x) {
