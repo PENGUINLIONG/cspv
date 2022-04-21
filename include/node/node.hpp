@@ -14,9 +14,11 @@ enum NodeVariant {
 struct Node {
     const NodeVariant nova;
     inline Node(NodeVariant nova) : nova(nova) {}
+
+    virtual void collect_children(struct NodeDrain* drain) {}
 };
 
-template<typename T = Node>
+template<typename T>
 struct NodeRef {
   NodeRef() : alloc(nullptr), ref(nullptr) {}
   NodeRef(T* ptr) : alloc(std::shared_ptr<Node>(ptr)), ref(ptr) {}
@@ -65,6 +67,23 @@ struct NodeRef {
 private:
   std::shared_ptr<Node> alloc;
   T* ref;
+};
+
+struct NodeDrain {
+  std::vector<NodeRef<Node>> nodes;
+
+  inline size_t size() const {
+    return nodes.size();
+  }
+  template<typename U>
+  inline void push(const NodeRef<U>& node) {
+    nodes.emplace_back(node.as<Node>());
+  }
+  inline NodeRef<Node>& pop() {
+    auto out = std::move(nodes.back());
+    nodes.pop_back();
+    return out;
+  }
 };
 
 struct Memory;

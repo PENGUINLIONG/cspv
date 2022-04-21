@@ -425,6 +425,18 @@ def compose_hpp(novas: Dict[str, NodeVariant]):
                         out += [f"    liong::assert({field_name} != nullptr);"]
             out += [
                 "  }",
+                "",
+                "  virtual void collect_children(NodeDrain* drain) override final {",
+            ]
+            for field in subty.fields:
+                field_name = field.name.to_snake_case()
+                if field.ty.is_ref_ty:
+                    if field.ty.is_plural:
+                        out += [f"    for (const auto& x : {field_name}) {{ drain->push(x); }}"]
+                    else:
+                        out += [f"    drain->push({field_name});"]
+            out += [
+                "  }",
                 "};",
                 ""
             ]

@@ -14,6 +14,9 @@ struct MemoryFunctionVariable : public Memory {
     void* handle
   ) : Memory(L_MEMORY_CLASS_FUNCTION_VARIABLE, ty, ac), handle(handle) {
   }
+
+  virtual void collect_children(NodeDrain* drain) override final {
+  }
 };
 
 struct MemoryIterationVariable : public Memory {
@@ -33,6 +36,12 @@ struct MemoryIterationVariable : public Memory {
     liong::assert(end != nullptr);
     liong::assert(stride != nullptr);
   }
+
+  virtual void collect_children(NodeDrain* drain) override final {
+    drain->push(begin);
+    drain->push(end);
+    drain->push(stride);
+  }
 };
 
 struct MemoryUniformBuffer : public Memory {
@@ -46,6 +55,9 @@ struct MemoryUniformBuffer : public Memory {
     uint32_t binding,
     uint32_t set
   ) : Memory(L_MEMORY_CLASS_UNIFORM_BUFFER, ty, ac), binding(binding), set(set) {
+  }
+
+  virtual void collect_children(NodeDrain* drain) override final {
   }
 };
 
@@ -61,6 +73,9 @@ struct MemoryStorageBuffer : public Memory {
     uint32_t set
   ) : Memory(L_MEMORY_CLASS_STORAGE_BUFFER, ty, ac), binding(binding), set(set) {
   }
+
+  virtual void collect_children(NodeDrain* drain) override final {
+  }
 };
 
 struct MemorySampledImage : public Memory {
@@ -75,6 +90,9 @@ struct MemorySampledImage : public Memory {
     uint32_t set
   ) : Memory(L_MEMORY_CLASS_SAMPLED_IMAGE, ty, ac), binding(binding), set(set) {
   }
+
+  virtual void collect_children(NodeDrain* drain) override final {
+  }
 };
 
 struct MemoryStorageImage : public Memory {
@@ -88,6 +106,9 @@ struct MemoryStorageImage : public Memory {
     uint32_t binding,
     uint32_t set
   ) : Memory(L_MEMORY_CLASS_STORAGE_IMAGE, ty, ac), binding(binding), set(set) {
+  }
+
+  virtual void collect_children(NodeDrain* drain) override final {
   }
 };
 

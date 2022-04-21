@@ -13,6 +13,9 @@ struct ExprConstant : public Expr {
     std::vector<uint32_t> lits
   ) : Expr(L_EXPR_OP_CONSTANT, ty), lits(lits) {
   }
+
+  virtual void collect_children(NodeDrain* drain) override final {
+  }
 };
 
 struct ExprLoad : public Expr {
@@ -24,6 +27,10 @@ struct ExprLoad : public Expr {
     const NodeRef<Memory>& src_ptr
   ) : Expr(L_EXPR_OP_LOAD, ty), src_ptr(src_ptr) {
     liong::assert(src_ptr != nullptr);
+  }
+
+  virtual void collect_children(NodeDrain* drain) override final {
+    drain->push(src_ptr);
   }
 };
 
@@ -40,6 +47,11 @@ struct ExprAdd : public Expr {
     liong::assert(a != nullptr);
     liong::assert(b != nullptr);
   }
+
+  virtual void collect_children(NodeDrain* drain) override final {
+    drain->push(a);
+    drain->push(b);
+  }
 };
 
 struct ExprSub : public Expr {
@@ -54,6 +66,11 @@ struct ExprSub : public Expr {
   ) : Expr(L_EXPR_OP_SUB, ty), a(a), b(b) {
     liong::assert(a != nullptr);
     liong::assert(b != nullptr);
+  }
+
+  virtual void collect_children(NodeDrain* drain) override final {
+    drain->push(a);
+    drain->push(b);
   }
 };
 
@@ -70,6 +87,11 @@ struct ExprLt : public Expr {
     liong::assert(a != nullptr);
     liong::assert(b != nullptr);
   }
+
+  virtual void collect_children(NodeDrain* drain) override final {
+    drain->push(a);
+    drain->push(b);
+  }
 };
 
 struct ExprEq : public Expr {
@@ -85,6 +107,11 @@ struct ExprEq : public Expr {
     liong::assert(a != nullptr);
     liong::assert(b != nullptr);
   }
+
+  virtual void collect_children(NodeDrain* drain) override final {
+    drain->push(a);
+    drain->push(b);
+  }
 };
 
 struct ExprTypeCast : public Expr {
@@ -96,6 +123,10 @@ struct ExprTypeCast : public Expr {
     const NodeRef<Expr>& src
   ) : Expr(L_EXPR_OP_TYPE_CAST, ty), src(src) {
     liong::assert(src != nullptr);
+  }
+
+  virtual void collect_children(NodeDrain* drain) override final {
+    drain->push(src);
   }
 };
 
