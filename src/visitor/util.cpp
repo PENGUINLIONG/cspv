@@ -25,7 +25,7 @@ struct Debug {
   inline void pop_indent() { indent.resize(indent.size() - 2); }
 
   template<typename T>
-  inline Debug& operator<<(const T& x) {
+  inline Debug& operator<<(const T x) {
     if (line_start) {
       s << indent;
       line_start = false;
@@ -61,11 +61,11 @@ struct DebugPrintVisitor : public Visitor {
       visit(idx);
     }
   }
-  virtual void visit_mem_(const MemoryFunctionVariableRef& x) override final {
+  virtual void visit_mem_(MemoryFunctionVariableRef x) override final {
     s << "$" << s.get_var_name_by_handle(x->handle) << ":";
     visit(x->ty);
   }
-  virtual void visit_mem_(const MemoryIterationVariableRef& x) override final {
+  virtual void visit_mem_(MemoryIterationVariableRef x) override final {
     s << "IterVar(";
     visit(x->begin);
     s << ",";
@@ -75,7 +75,7 @@ struct DebugPrintVisitor : public Visitor {
     s << "):";
     visit(x->ty);
   }
-  virtual void visit_mem_(const MemoryUniformBufferRef& x) override final {
+  virtual void visit_mem_(MemoryUniformBufferRef x) override final {
     s << "UniformBuffer@" << x->binding << "," << x->set << "[";
     visit_access_chain(x->ac);
     s << "]:";
@@ -84,19 +84,19 @@ struct DebugPrintVisitor : public Visitor {
 
 
 
-  virtual void visit_ty_(const TypeVoidRef& x) override final {
+  virtual void visit_ty_(TypeVoidRef x) override final {
     s << "void";
   }
-  virtual void visit_ty_(const TypeBoolRef& x) override final {
+  virtual void visit_ty_(TypeBoolRef x) override final {
     s << "bool";
   }
-  virtual void visit_ty_(const TypeIntRef& x) override final {
+  virtual void visit_ty_(TypeIntRef x) override final {
     s << (x->is_signed ? "i" : "u") << x->nbit;
   }
-  virtual void visit_ty_(const TypeFloatRef& x) override final {
+  virtual void visit_ty_(TypeFloatRef x) override final {
     s << "f" << x->nbit;
   }
-  virtual void visit_ty_(const TypeStructRef& x) override final {
+  virtual void visit_ty_(TypeStructRef x) override final {
     s << "Struct<";
     bool first = true;
     for (const auto& member : x->members) {
@@ -109,7 +109,7 @@ struct DebugPrintVisitor : public Visitor {
     }
     s << ">";
   }
-  virtual void visit_ty_(const TypePointerRef& x) override final {
+  virtual void visit_ty_(TypePointerRef x) override final {
     s << "Pointer<";
     visit(x->inner);
     s << ">";
@@ -117,7 +117,7 @@ struct DebugPrintVisitor : public Visitor {
 
 
 
-  virtual void visit_expr_(const ExprConstantRef& x) override final {
+  virtual void visit_expr_(ExprConstantRef x) override final {
     switch (x->ty->cls) {
     case L_TYPE_CLASS_INT:
     {
@@ -157,40 +157,40 @@ struct DebugPrintVisitor : public Visitor {
     s << ":";
     visit(x->ty);
   }
-  virtual void visit_expr_(const ExprLoadRef& x) override final {
+  virtual void visit_expr_(ExprLoadRef x) override final {
     s << "Load(";
     visit(x->src_ptr);
     s << ")";
   }
-  virtual void visit_expr_(const ExprAddRef& x) override final {
+  virtual void visit_expr_(ExprAddRef x) override final {
     s << "(";
     visit(x->a);
     s << " + ";
     visit(x->b);
     s << ")";
   }
-  virtual void visit_expr_(const ExprSubRef& x) override final {
+  virtual void visit_expr_(ExprSubRef x) override final {
     s << "(";
     visit(x->a);
     s << " - ";
     visit(x->b);
     s << ")";
   }
-  virtual void visit_expr_(const ExprLtRef& x) override final {
+  virtual void visit_expr_(ExprLtRef x) override final {
     s << "(";
     visit( x->a);
     s << " < ";
     visit(x->b);
     s << ")";
   }
-  virtual void visit_expr_(const ExprEqRef& x) override final {
+  virtual void visit_expr_(ExprEqRef x) override final {
     s << "(";
     visit(x->a);
     s << " == ";
     visit(x->b);
     s << ")";
   }
-  virtual void visit_expr_(const ExprTypeCastRef& x) override final {
+  virtual void visit_expr_(ExprTypeCastRef x) override final {
     s << "(";
     visit(x->src);
     s << ":";
@@ -199,10 +199,10 @@ struct DebugPrintVisitor : public Visitor {
   }
 
 
-  virtual void visit_stmt_(const StmtNopRef& x) override final {
+  virtual void visit_stmt_(StmtNopRef x) override final {
     s << "nop" << std::endl;
   }
-  virtual void visit_stmt_(const StmtBlockRef& x) override final {
+  virtual void visit_stmt_(StmtBlockRef x) override final {
     s << "{" << std::endl;
     s.push_indent();
     for (const auto& stmt : x->stmts) {
@@ -211,7 +211,7 @@ struct DebugPrintVisitor : public Visitor {
     s.pop_indent();
     s << "}" << std::endl;
   }
-  virtual void visit_stmt_(const StmtConditionalBranchRef& x) override final {
+  virtual void visit_stmt_(StmtConditionalBranchRef x) override final {
     s << "if ";
     visit(x->cond);
     s << " {" << std::endl;
@@ -224,10 +224,10 @@ struct DebugPrintVisitor : public Visitor {
     s.pop_indent();
     s << "}" << std::endl;
   }
-  virtual void visit_stmt_(const StmtIfThenElseRef& x) override final {
+  virtual void visit_stmt_(StmtIfThenElseRef x) override final {
     visit(x->body_block);
   }
-  virtual void visit_stmt_(const StmtLoopRef& x) override final {
+  virtual void visit_stmt_(StmtLoopRef x) override final {
     s << "loop {" << std::endl;
     s.push_indent();
     visit(x->body_block);
@@ -238,22 +238,22 @@ struct DebugPrintVisitor : public Visitor {
     s.pop_indent();
     s << "}" << std::endl;
   }
-  virtual void visit_stmt_(const StmtReturnRef& x) override final {
+  virtual void visit_stmt_(StmtReturnRef x) override final {
     s << "return" << std::endl;
   }
-  virtual void visit_stmt_(const StmtLoopContinueRef& x) override final {
+  virtual void visit_stmt_(StmtLoopContinueRef x) override final {
     s << "continue" << std::endl;
   }
-  virtual void visit_stmt_(const StmtLoopBackEdgeRef& x) override final {
+  virtual void visit_stmt_(StmtLoopBackEdgeRef x) override final {
     s << "back-edge" << std::endl;
   }
-  virtual void visit_stmt_(const StmtIfThenElseMergeRef& x) override final {
+  virtual void visit_stmt_(StmtIfThenElseMergeRef x) override final {
     s << "converge" << std::endl;
   }
-  virtual void visit_stmt_(const StmtLoopMergeRef& x) override final {
+  virtual void visit_stmt_(StmtLoopMergeRef x) override final {
     s << "break" << std::endl;
   }
-  virtual void visit_stmt_(const StmtRangedLoopRef& x) override final {
+  virtual void visit_stmt_(StmtRangedLoopRef x) override final {
     s << "for ";
     visit(x->itervar);
     s << " {" << std::endl;
@@ -262,7 +262,7 @@ struct DebugPrintVisitor : public Visitor {
     s.pop_indent();
     s << "}" << std::endl;
   }
-  virtual void visit_stmt_(const StmtStoreRef& x) override final {
+  virtual void visit_stmt_(StmtStoreRef x) override final {
     s << "Store(";
     visit(x->dst_ptr);
     s << ", ";

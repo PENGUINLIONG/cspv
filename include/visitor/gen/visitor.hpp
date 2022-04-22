@@ -19,12 +19,12 @@ struct Visitor {
     default: liong::unimplemented();
     }
   }
-  inline void visit(MemoryRef& mem) { return visit_mem(mem); }
-  inline void visit(TypeRef& ty) { return visit_ty(ty); }
-  inline void visit(ExprRef& expr) { return visit_expr(expr); }
-  inline void visit(StmtRef& stmt) { return visit_stmt(stmt); }
+  inline void visit(const MemoryRef& mem) { return visit_mem(mem); }
+  inline void visit(const TypeRef& ty) { return visit_ty(ty); }
+  inline void visit(const ExprRef& expr) { return visit_expr(expr); }
+  inline void visit(const StmtRef& stmt) { return visit_stmt(stmt); }
 
-  virtual void visit_mem(const MemoryRef& mem) {
+  inline void visit_mem(const MemoryRef& mem) {
     switch (mem->cls) {
     case L_MEMORY_CLASS_FUNCTION_VARIABLE: visit_mem_(mem.as<MemoryFunctionVariable>()); break;
     case L_MEMORY_CLASS_ITERATION_VARIABLE: visit_mem_(mem.as<MemoryIterationVariable>()); break;
@@ -35,7 +35,7 @@ struct Visitor {
     default: liong::unreachable();
     }
   }
-  virtual void visit_ty(const TypeRef& ty) {
+  inline void visit_ty(const TypeRef& ty) {
     switch (ty->cls) {
     case L_TYPE_CLASS_VOID: visit_ty_(ty.as<TypeVoid>()); break;
     case L_TYPE_CLASS_BOOL: visit_ty_(ty.as<TypeBool>()); break;
@@ -46,7 +46,7 @@ struct Visitor {
     default: liong::unreachable();
     }
   }
-  virtual void visit_expr(const ExprRef& expr) {
+  inline void visit_expr(const ExprRef& expr) {
     switch (expr->op) {
     case L_EXPR_OP_CONSTANT: visit_expr_(expr.as<ExprConstant>()); break;
     case L_EXPR_OP_LOAD: visit_expr_(expr.as<ExprLoad>()); break;
@@ -58,7 +58,7 @@ struct Visitor {
     default: liong::unreachable();
     }
   }
-  virtual void visit_stmt(const StmtRef& stmt) {
+  inline void visit_stmt(const StmtRef& stmt) {
     switch (stmt->op) {
     case L_STMT_OP_NOP: visit_stmt_(stmt.as<StmtNop>()); break;
     case L_STMT_OP_BLOCK: visit_stmt_(stmt.as<StmtBlock>()); break;
@@ -76,40 +76,40 @@ struct Visitor {
     }
   }
 
-  virtual void visit_mem_(const MemoryFunctionVariableRef&);
-  virtual void visit_mem_(const MemoryIterationVariableRef&);
-  virtual void visit_mem_(const MemoryUniformBufferRef&);
-  virtual void visit_mem_(const MemoryStorageBufferRef&);
-  virtual void visit_mem_(const MemorySampledImageRef&);
-  virtual void visit_mem_(const MemoryStorageImageRef&);
+  virtual void visit_mem_(MemoryFunctionVariableRef);
+  virtual void visit_mem_(MemoryIterationVariableRef);
+  virtual void visit_mem_(MemoryUniformBufferRef);
+  virtual void visit_mem_(MemoryStorageBufferRef);
+  virtual void visit_mem_(MemorySampledImageRef);
+  virtual void visit_mem_(MemoryStorageImageRef);
 
-  virtual void visit_ty_(const TypeVoidRef&);
-  virtual void visit_ty_(const TypeBoolRef&);
-  virtual void visit_ty_(const TypeIntRef&);
-  virtual void visit_ty_(const TypeFloatRef&);
-  virtual void visit_ty_(const TypeStructRef&);
-  virtual void visit_ty_(const TypePointerRef&);
+  virtual void visit_ty_(TypeVoidRef);
+  virtual void visit_ty_(TypeBoolRef);
+  virtual void visit_ty_(TypeIntRef);
+  virtual void visit_ty_(TypeFloatRef);
+  virtual void visit_ty_(TypeStructRef);
+  virtual void visit_ty_(TypePointerRef);
 
-  virtual void visit_expr_(const ExprConstantRef&);
-  virtual void visit_expr_(const ExprLoadRef&);
-  virtual void visit_expr_(const ExprAddRef&);
-  virtual void visit_expr_(const ExprSubRef&);
-  virtual void visit_expr_(const ExprLtRef&);
-  virtual void visit_expr_(const ExprEqRef&);
-  virtual void visit_expr_(const ExprTypeCastRef&);
+  virtual void visit_expr_(ExprConstantRef);
+  virtual void visit_expr_(ExprLoadRef);
+  virtual void visit_expr_(ExprAddRef);
+  virtual void visit_expr_(ExprSubRef);
+  virtual void visit_expr_(ExprLtRef);
+  virtual void visit_expr_(ExprEqRef);
+  virtual void visit_expr_(ExprTypeCastRef);
 
-  virtual void visit_stmt_(const StmtNopRef&);
-  virtual void visit_stmt_(const StmtBlockRef&);
-  virtual void visit_stmt_(const StmtConditionalBranchRef&);
-  virtual void visit_stmt_(const StmtIfThenElseRef&);
-  virtual void visit_stmt_(const StmtLoopRef&);
-  virtual void visit_stmt_(const StmtReturnRef&);
-  virtual void visit_stmt_(const StmtIfThenElseMergeRef&);
-  virtual void visit_stmt_(const StmtLoopMergeRef&);
-  virtual void visit_stmt_(const StmtLoopContinueRef&);
-  virtual void visit_stmt_(const StmtLoopBackEdgeRef&);
-  virtual void visit_stmt_(const StmtRangedLoopRef&);
-  virtual void visit_stmt_(const StmtStoreRef&);
+  virtual void visit_stmt_(StmtNopRef);
+  virtual void visit_stmt_(StmtBlockRef);
+  virtual void visit_stmt_(StmtConditionalBranchRef);
+  virtual void visit_stmt_(StmtIfThenElseRef);
+  virtual void visit_stmt_(StmtLoopRef);
+  virtual void visit_stmt_(StmtReturnRef);
+  virtual void visit_stmt_(StmtIfThenElseMergeRef);
+  virtual void visit_stmt_(StmtLoopMergeRef);
+  virtual void visit_stmt_(StmtLoopContinueRef);
+  virtual void visit_stmt_(StmtLoopBackEdgeRef);
+  virtual void visit_stmt_(StmtRangedLoopRef);
+  virtual void visit_stmt_(StmtStoreRef);
 
 };
 
@@ -124,12 +124,12 @@ struct Mutator {
     default: liong::unimplemented();
     }
   }
-  inline MemoryRef mutate(MemoryRef& mem) { return mutate_mem(mem); }
-  inline TypeRef mutate(TypeRef& ty) { return mutate_ty(ty); }
-  inline ExprRef mutate(ExprRef& expr) { return mutate_expr(expr); }
-  inline StmtRef mutate(StmtRef& stmt) { return mutate_stmt(stmt); }
+  inline MemoryRef mutate(const MemoryRef& mem) { return mutate_mem(mem); }
+  inline TypeRef mutate(const TypeRef& ty) { return mutate_ty(ty); }
+  inline ExprRef mutate(const ExprRef& expr) { return mutate_expr(expr); }
+  inline StmtRef mutate(const StmtRef& stmt) { return mutate_stmt(stmt); }
 
-  virtual MemoryRef mutate_mem(MemoryRef& mem) {
+  inline MemoryRef mutate_mem(const MemoryRef& mem) {
     switch (mem->cls) {
     case L_MEMORY_CLASS_FUNCTION_VARIABLE: return mutate_mem_(mem.as<MemoryFunctionVariable>());
     case L_MEMORY_CLASS_ITERATION_VARIABLE: return mutate_mem_(mem.as<MemoryIterationVariable>());
@@ -140,7 +140,7 @@ struct Mutator {
     default: liong::unreachable();
     }
   }
-  virtual TypeRef mutate_ty(TypeRef& ty) {
+  inline TypeRef mutate_ty(const TypeRef& ty) {
     switch (ty->cls) {
     case L_TYPE_CLASS_VOID: return mutate_ty_(ty.as<TypeVoid>());
     case L_TYPE_CLASS_BOOL: return mutate_ty_(ty.as<TypeBool>());
@@ -151,7 +151,7 @@ struct Mutator {
     default: liong::unreachable();
     }
   }
-  virtual ExprRef mutate_expr(ExprRef& expr) {
+  inline ExprRef mutate_expr(const ExprRef& expr) {
     switch (expr->op) {
     case L_EXPR_OP_CONSTANT: return mutate_expr_(expr.as<ExprConstant>());
     case L_EXPR_OP_LOAD: return mutate_expr_(expr.as<ExprLoad>());
@@ -163,7 +163,7 @@ struct Mutator {
     default: liong::unreachable();
     }
   }
-  virtual StmtRef mutate_stmt(StmtRef& stmt) {
+  inline StmtRef mutate_stmt(const StmtRef& stmt) {
     switch (stmt->op) {
     case L_STMT_OP_NOP: return mutate_stmt_(stmt.as<StmtNop>());
     case L_STMT_OP_BLOCK: return mutate_stmt_(stmt.as<StmtBlock>());
@@ -181,108 +181,108 @@ struct Mutator {
     }
   }
 
-  virtual MemoryRef mutate_mem_(MemoryFunctionVariableRef&);
-  virtual MemoryRef mutate_mem_(MemoryIterationVariableRef&);
-  virtual MemoryRef mutate_mem_(MemoryUniformBufferRef&);
-  virtual MemoryRef mutate_mem_(MemoryStorageBufferRef&);
-  virtual MemoryRef mutate_mem_(MemorySampledImageRef&);
-  virtual MemoryRef mutate_mem_(MemoryStorageImageRef&);
+  virtual MemoryRef mutate_mem_(MemoryFunctionVariableRef);
+  virtual MemoryRef mutate_mem_(MemoryIterationVariableRef);
+  virtual MemoryRef mutate_mem_(MemoryUniformBufferRef);
+  virtual MemoryRef mutate_mem_(MemoryStorageBufferRef);
+  virtual MemoryRef mutate_mem_(MemorySampledImageRef);
+  virtual MemoryRef mutate_mem_(MemoryStorageImageRef);
 
-  virtual TypeRef mutate_ty_(TypeVoidRef&);
-  virtual TypeRef mutate_ty_(TypeBoolRef&);
-  virtual TypeRef mutate_ty_(TypeIntRef&);
-  virtual TypeRef mutate_ty_(TypeFloatRef&);
-  virtual TypeRef mutate_ty_(TypeStructRef&);
-  virtual TypeRef mutate_ty_(TypePointerRef&);
+  virtual TypeRef mutate_ty_(TypeVoidRef);
+  virtual TypeRef mutate_ty_(TypeBoolRef);
+  virtual TypeRef mutate_ty_(TypeIntRef);
+  virtual TypeRef mutate_ty_(TypeFloatRef);
+  virtual TypeRef mutate_ty_(TypeStructRef);
+  virtual TypeRef mutate_ty_(TypePointerRef);
 
-  virtual ExprRef mutate_expr_(ExprConstantRef&);
-  virtual ExprRef mutate_expr_(ExprLoadRef&);
-  virtual ExprRef mutate_expr_(ExprAddRef&);
-  virtual ExprRef mutate_expr_(ExprSubRef&);
-  virtual ExprRef mutate_expr_(ExprLtRef&);
-  virtual ExprRef mutate_expr_(ExprEqRef&);
-  virtual ExprRef mutate_expr_(ExprTypeCastRef&);
+  virtual ExprRef mutate_expr_(ExprConstantRef);
+  virtual ExprRef mutate_expr_(ExprLoadRef);
+  virtual ExprRef mutate_expr_(ExprAddRef);
+  virtual ExprRef mutate_expr_(ExprSubRef);
+  virtual ExprRef mutate_expr_(ExprLtRef);
+  virtual ExprRef mutate_expr_(ExprEqRef);
+  virtual ExprRef mutate_expr_(ExprTypeCastRef);
 
-  virtual StmtRef mutate_stmt_(StmtNopRef&);
-  virtual StmtRef mutate_stmt_(StmtBlockRef&);
-  virtual StmtRef mutate_stmt_(StmtConditionalBranchRef&);
-  virtual StmtRef mutate_stmt_(StmtIfThenElseRef&);
-  virtual StmtRef mutate_stmt_(StmtLoopRef&);
-  virtual StmtRef mutate_stmt_(StmtReturnRef&);
-  virtual StmtRef mutate_stmt_(StmtIfThenElseMergeRef&);
-  virtual StmtRef mutate_stmt_(StmtLoopMergeRef&);
-  virtual StmtRef mutate_stmt_(StmtLoopContinueRef&);
-  virtual StmtRef mutate_stmt_(StmtLoopBackEdgeRef&);
-  virtual StmtRef mutate_stmt_(StmtRangedLoopRef&);
-  virtual StmtRef mutate_stmt_(StmtStoreRef&);
+  virtual StmtRef mutate_stmt_(StmtNopRef);
+  virtual StmtRef mutate_stmt_(StmtBlockRef);
+  virtual StmtRef mutate_stmt_(StmtConditionalBranchRef);
+  virtual StmtRef mutate_stmt_(StmtIfThenElseRef);
+  virtual StmtRef mutate_stmt_(StmtLoopRef);
+  virtual StmtRef mutate_stmt_(StmtReturnRef);
+  virtual StmtRef mutate_stmt_(StmtIfThenElseMergeRef);
+  virtual StmtRef mutate_stmt_(StmtLoopMergeRef);
+  virtual StmtRef mutate_stmt_(StmtLoopContinueRef);
+  virtual StmtRef mutate_stmt_(StmtLoopBackEdgeRef);
+  virtual StmtRef mutate_stmt_(StmtRangedLoopRef);
+  virtual StmtRef mutate_stmt_(StmtStoreRef);
 
 };
 
 template<typename T>
 struct MemoryFunctorVisitor : public Visitor {
-  std::function<void(const NodeRef<T>&)> f;
-  MemoryFunctorVisitor(std::function<void(const NodeRef<T>&)>&& f) :
-    f(std::forward<std::function<void(const NodeRef<T>&)>>(f)) {}
+  std::function<void(NodeRef<T>)> f;
+  MemoryFunctorVisitor(std::function<void(NodeRef<T>)>&& f) :
+    f(std::forward<std::function<void(NodeRef<T>)>>(f)) {}
 
-  virtual void visit_mem_(const NodeRef<T>& mem) override final { f(mem); }
+  virtual void visit_mem_(NodeRef<T> mem) override final { f(mem); }
 };
 template<typename T>
 void visit_mem_functor(
-  std::function<void(const NodeRef<T>&)>&& f,
+  std::function<void(NodeRef<T>)>&& f,
   const NodeRef<Memory>& x
 ) {
-  MemoryFunctorVisitor<T> visitor(std::forward<std::function<void(const NodeRef<T>&)>>(f));
+  MemoryFunctorVisitor<T> visitor(std::forward<std::function<void(NodeRef<T>)>>(f));
   visitor.visit_mem(x);
 }
 
 template<typename T>
 struct TypeFunctorVisitor : public Visitor {
-  std::function<void(const NodeRef<T>&)> f;
-  TypeFunctorVisitor(std::function<void(const NodeRef<T>&)>&& f) :
-    f(std::forward<std::function<void(const NodeRef<T>&)>>(f)) {}
+  std::function<void(NodeRef<T>)> f;
+  TypeFunctorVisitor(std::function<void(NodeRef<T>)>&& f) :
+    f(std::forward<std::function<void(NodeRef<T>)>>(f)) {}
 
-  virtual void visit_ty_(const NodeRef<T>& ty) override final { f(ty); }
+  virtual void visit_ty_(NodeRef<T> ty) override final { f(ty); }
 };
 template<typename T>
 void visit_ty_functor(
-  std::function<void(const NodeRef<T>&)>&& f,
+  std::function<void(NodeRef<T>)>&& f,
   const NodeRef<Type>& x
 ) {
-  TypeFunctorVisitor<T> visitor(std::forward<std::function<void(const NodeRef<T>&)>>(f));
+  TypeFunctorVisitor<T> visitor(std::forward<std::function<void(NodeRef<T>)>>(f));
   visitor.visit_ty(x);
 }
 
 template<typename T>
 struct ExprFunctorVisitor : public Visitor {
-  std::function<void(const NodeRef<T>&)> f;
-  ExprFunctorVisitor(std::function<void(const NodeRef<T>&)>&& f) :
-    f(std::forward<std::function<void(const NodeRef<T>&)>>(f)) {}
+  std::function<void(NodeRef<T>)> f;
+  ExprFunctorVisitor(std::function<void(NodeRef<T>)>&& f) :
+    f(std::forward<std::function<void(NodeRef<T>)>>(f)) {}
 
-  virtual void visit_expr_(const NodeRef<T>& expr) override final { f(expr); }
+  virtual void visit_expr_(NodeRef<T> expr) override final { f(expr); }
 };
 template<typename T>
 void visit_expr_functor(
-  std::function<void(const NodeRef<T>&)>&& f,
+  std::function<void(NodeRef<T>)>&& f,
   const NodeRef<Expr>& x
 ) {
-  ExprFunctorVisitor<T> visitor(std::forward<std::function<void(const NodeRef<T>&)>>(f));
+  ExprFunctorVisitor<T> visitor(std::forward<std::function<void(NodeRef<T>)>>(f));
   visitor.visit_expr(x);
 }
 
 template<typename T>
 struct StmtFunctorVisitor : public Visitor {
-  std::function<void(const NodeRef<T>&)> f;
-  StmtFunctorVisitor(std::function<void(const NodeRef<T>&)>&& f) :
-    f(std::forward<std::function<void(const NodeRef<T>&)>>(f)) {}
+  std::function<void(NodeRef<T>)> f;
+  StmtFunctorVisitor(std::function<void(NodeRef<T>)>&& f) :
+    f(std::forward<std::function<void(NodeRef<T>)>>(f)) {}
 
-  virtual void visit_stmt_(const NodeRef<T>& stmt) override final { f(stmt); }
+  virtual void visit_stmt_(NodeRef<T> stmt) override final { f(stmt); }
 };
 template<typename T>
 void visit_stmt_functor(
-  std::function<void(const NodeRef<T>&)>&& f,
+  std::function<void(NodeRef<T>)>&& f,
   const NodeRef<Stmt>& x
 ) {
-  StmtFunctorVisitor<T> visitor(std::forward<std::function<void(const NodeRef<T>&)>>(f));
+  StmtFunctorVisitor<T> visitor(std::forward<std::function<void(NodeRef<T>)>>(f));
   visitor.visit_stmt(x);
 }
 
@@ -290,17 +290,17 @@ template<typename T>
 struct MemoryFunctorMutator : public MemoryMutator {
   typedef NodeRef<T> TStmtRef;
   std::function<MemoryRef(TStmtRef&)> f;
-  MemoryFunctorMutator(std::function<MemoryRef(TStmtRef&)>&& f) :
-    f(std::forward<std::function<MemoryRef(TStmtRef&)>>(f)) {}
+  MemoryFunctorMutator(std::function<MemoryRef(const TStmtRef&)>&& f) :
+    f(std::forward<std::function<MemoryRef(const TStmtRef&)>>(f)) {}
 
-  virtual MemoryRef mutate_mem_(TStmtRef& mem) override final { return f(mem); }
+  virtual MemoryRef mutate_mem_(const TStmtRef& mem) override final { return f(mem); }
 };
 template<typename T>
 void mutate_mem_functor(
-  std::function<MemoryRef(NodeRef<T>&)>&& f,
+  std::function<MemoryRef(NodeRef<T>)>&& f,
   const Memory& x
 ) {
-  MemoryFunctorMutator<T> mutator(std::forward<std::function<MemoryRef(NodeRef<T>&)>>(f));
+  MemoryFunctorMutator<T> mutator(std::forward<std::function<MemoryRef(NodeRef<T>)>>(f));
   return mutator.mutate_mem(x);
 }
 
@@ -308,17 +308,17 @@ template<typename T>
 struct TypeFunctorMutator : public TypeMutator {
   typedef NodeRef<T> TStmtRef;
   std::function<TypeRef(TStmtRef&)> f;
-  TypeFunctorMutator(std::function<TypeRef(TStmtRef&)>&& f) :
-    f(std::forward<std::function<TypeRef(TStmtRef&)>>(f)) {}
+  TypeFunctorMutator(std::function<TypeRef(const TStmtRef&)>&& f) :
+    f(std::forward<std::function<TypeRef(const TStmtRef&)>>(f)) {}
 
-  virtual TypeRef mutate_ty_(TStmtRef& ty) override final { return f(ty); }
+  virtual TypeRef mutate_ty_(const TStmtRef& ty) override final { return f(ty); }
 };
 template<typename T>
 void mutate_ty_functor(
-  std::function<TypeRef(NodeRef<T>&)>&& f,
+  std::function<TypeRef(NodeRef<T>)>&& f,
   const Type& x
 ) {
-  TypeFunctorMutator<T> mutator(std::forward<std::function<TypeRef(NodeRef<T>&)>>(f));
+  TypeFunctorMutator<T> mutator(std::forward<std::function<TypeRef(NodeRef<T>)>>(f));
   return mutator.mutate_ty(x);
 }
 
@@ -326,17 +326,17 @@ template<typename T>
 struct ExprFunctorMutator : public ExprMutator {
   typedef NodeRef<T> TStmtRef;
   std::function<ExprRef(TStmtRef&)> f;
-  ExprFunctorMutator(std::function<ExprRef(TStmtRef&)>&& f) :
-    f(std::forward<std::function<ExprRef(TStmtRef&)>>(f)) {}
+  ExprFunctorMutator(std::function<ExprRef(const TStmtRef&)>&& f) :
+    f(std::forward<std::function<ExprRef(const TStmtRef&)>>(f)) {}
 
-  virtual ExprRef mutate_expr_(TStmtRef& expr) override final { return f(expr); }
+  virtual ExprRef mutate_expr_(const TStmtRef& expr) override final { return f(expr); }
 };
 template<typename T>
 void mutate_expr_functor(
-  std::function<ExprRef(NodeRef<T>&)>&& f,
+  std::function<ExprRef(NodeRef<T>)>&& f,
   const Expr& x
 ) {
-  ExprFunctorMutator<T> mutator(std::forward<std::function<ExprRef(NodeRef<T>&)>>(f));
+  ExprFunctorMutator<T> mutator(std::forward<std::function<ExprRef(NodeRef<T>)>>(f));
   return mutator.mutate_expr(x);
 }
 
@@ -344,16 +344,16 @@ template<typename T>
 struct StmtFunctorMutator : public StmtMutator {
   typedef NodeRef<T> TStmtRef;
   std::function<StmtRef(TStmtRef&)> f;
-  StmtFunctorMutator(std::function<StmtRef(TStmtRef&)>&& f) :
-    f(std::forward<std::function<StmtRef(TStmtRef&)>>(f)) {}
+  StmtFunctorMutator(std::function<StmtRef(const TStmtRef&)>&& f) :
+    f(std::forward<std::function<StmtRef(const TStmtRef&)>>(f)) {}
 
-  virtual StmtRef mutate_stmt_(TStmtRef& stmt) override final { return f(stmt); }
+  virtual StmtRef mutate_stmt_(const TStmtRef& stmt) override final { return f(stmt); }
 };
 template<typename T>
 void mutate_stmt_functor(
-  std::function<StmtRef(NodeRef<T>&)>&& f,
+  std::function<StmtRef(NodeRef<T>)>&& f,
   const Stmt& x
 ) {
-  StmtFunctorMutator<T> mutator(std::forward<std::function<StmtRef(NodeRef<T>&)>>(f));
+  StmtFunctorMutator<T> mutator(std::forward<std::function<StmtRef(NodeRef<T>)>>(f));
   return mutator.mutate_stmt(x);
 }

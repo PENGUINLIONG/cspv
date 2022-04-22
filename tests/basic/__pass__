@@ -1,2 +1,1 @@
-forward-block-elimination
-expr-normalization
+graph-normalization

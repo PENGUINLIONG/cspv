@@ -17,7 +17,7 @@ struct RangedLoopElevationMutator : public Mutator {
   std::map<MemoryRef, ExprRef> mem_value_map;
   std::map<MemoryFunctionVariableRef, MemoryIterationVariableRef> itervar_map;
 
-  virtual ExprRef mutate_expr_(ExprLoadRef& x) override final {
+  virtual ExprRef mutate_expr_(ExprLoadRef x) override final {
     if (x->src_ptr->is<MemoryFunctionVariable>()) {
       mem_value_map.erase(x->src_ptr);
 
@@ -29,13 +29,13 @@ struct RangedLoopElevationMutator : public Mutator {
     return Mutator::mutate_expr_(x);
   }
 
-  virtual StmtRef mutate_stmt_(StmtStoreRef& x) override final {
+  virtual StmtRef mutate_stmt_(StmtStoreRef x) override final {
     if (x->dst_ptr->is<MemoryFunctionVariable>()) {
       mem_value_map.emplace(x->dst_ptr, x->value);
     }
     return Mutator::mutate_stmt_(x);
   }
-  virtual StmtRef mutate_stmt_(StmtConditionalBranchRef& x) override final {
+  virtual StmtRef mutate_stmt_(StmtConditionalBranchRef x) override final {
     auto mem_value_map2 = mem_value_map;
     x->then_block = mutate_stmt(x->then_block);
     mem_value_map = std::exchange(mem_value_map2, std::move(mem_value_map));
@@ -51,7 +51,7 @@ struct RangedLoopElevationMutator : public Mutator {
     }
     return x.as<Stmt>();
   }
-  virtual StmtRef mutate_stmt_(StmtLoopRef& x) override final {
+  virtual StmtRef mutate_stmt_(StmtLoopRef x) override final {
     std::map<MemoryRef, Candidate> candidates;
     visit_stmt_functor<StmtStore>(
       [this, &candidates](const StmtStoreRef& store) {

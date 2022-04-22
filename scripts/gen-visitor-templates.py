@@ -134,7 +134,7 @@ def compose_visitor_hpp(novas: Dict[str, NodeVariant]):
         ty_name = nova.ty_name.to_pascal_case()
         abbr = nova.ty_abbr.to_snake_case()
         out += [
-            f"  inline void visit({ty_name}Ref& {abbr}) {{ return visit_{abbr}({abbr}); }}"
+            f"  inline void visit(const {ty_name}Ref& {abbr}) {{ return visit_{abbr}({abbr}); }}"
         ]
     out += [""]
     # Typed traversal basics.
@@ -144,7 +144,7 @@ def compose_visitor_hpp(novas: Dict[str, NodeVariant]):
         abbr = nova.ty_abbr.to_snake_case()
         enum_var_name = nova.enum_abbr.to_snake_case()
         out += [
-            f"  virtual void visit_{abbr}(const {ty_prefix}Ref& {abbr}) {{",
+            f"  inline void visit_{abbr}(const {ty_prefix}Ref& {abbr}) {{",
             f"    switch ({abbr}->{enum_var_name}) {{",
         ]
         for x in nova.subtys:
@@ -163,7 +163,7 @@ def compose_visitor_hpp(novas: Dict[str, NodeVariant]):
         enum_var_name = nova.enum_abbr.to_snake_case()
         for x in nova.subtys:
             out += [
-                f"  virtual void visit_{abbr}_(const {ty_prefix}{x.name.to_pascal_case()}Ref&);",
+                f"  virtual void visit_{abbr}_({ty_prefix}{x.name.to_pascal_case()}Ref);",
             ]
         out += [""]
     # End of visitor.
@@ -194,7 +194,7 @@ def compose_visitor_hpp(novas: Dict[str, NodeVariant]):
         ty_name = nova.ty_name.to_pascal_case()
         abbr = nova.ty_abbr.to_snake_case()
         out += [
-            f"  inline {ty_name}Ref mutate({ty_name}Ref& {abbr}) {{ return mutate_{abbr}({abbr}); }}"
+            f"  inline {ty_name}Ref mutate(const {ty_name}Ref& {abbr}) {{ return mutate_{abbr}({abbr}); }}"
         ]
     out += [""]
     # Typed traversal basics.
@@ -204,7 +204,7 @@ def compose_visitor_hpp(novas: Dict[str, NodeVariant]):
         abbr = nova.ty_abbr.to_snake_case()
         enum_var_name = nova.enum_abbr.to_snake_case()
         out += [
-            f"  virtual {ty_prefix}Ref mutate_{abbr}({ty_prefix}Ref& {abbr}) {{",
+            f"  inline {ty_prefix}Ref mutate_{abbr}(const {ty_prefix}Ref& {abbr}) {{",
             f"    switch ({abbr}->{enum_var_name}) {{",
         ]
         for x in nova.subtys:
@@ -224,7 +224,7 @@ def compose_visitor_hpp(novas: Dict[str, NodeVariant]):
         for x in nova.subtys:
             subty_prefix = ty_prefix + x.name.to_pascal_case()
             out += [
-                f"  virtual {ty_prefix}Ref mutate_{abbr}_({subty_prefix}Ref&);",
+                f"  virtual {ty_prefix}Ref mutate_{abbr}_({subty_prefix}Ref);",
             ]
         out += [""]
     # End of visitor.
@@ -240,18 +240,18 @@ def compose_visitor_hpp(novas: Dict[str, NodeVariant]):
         out += [
             f"template<typename T>",
             f"struct {ty_prefix}FunctorVisitor : public Visitor {{",
-            f"  std::function<void(const NodeRef<T>&)> f;",
-            f"  {ty_prefix}FunctorVisitor(std::function<void(const NodeRef<T>&)>&& f) :",
-            f"    f(std::forward<std::function<void(const NodeRef<T>&)>>(f)) {{}}",
+            f"  std::function<void(NodeRef<T>)> f;",
+            f"  {ty_prefix}FunctorVisitor(std::function<void(NodeRef<T>)>&& f) :",
+            f"    f(std::forward<std::function<void(NodeRef<T>)>>(f)) {{}}",
             "",
-            f"  virtual void visit_{abbr}_(const NodeRef<T>& {abbr}) override final {{ f({abbr}); }}",
+            f"  virtual void visit_{abbr}_(NodeRef<T> {abbr}) override final {{ f({abbr}); }}",
             "};",
             f"template<typename T>",
             f"void visit_{abbr}_functor(",
-            f"  std::function<void(const NodeRef<T>&)>&& f,",
+            f"  std::function<void(NodeRef<T>)>&& f,",
             f"  const NodeRef<{ty_prefix}>& x",
             ") {",
-            f"  {ty_prefix}FunctorVisitor<T> visitor(std::forward<std::function<void(const NodeRef<T>&)>>(f));",
+            f"  {ty_prefix}FunctorVisitor<T> visitor(std::forward<std::function<void(NodeRef<T>)>>(f));",
             f"  visitor.visit_{abbr}(x);",
             "}",
             "",
@@ -267,17 +267,17 @@ def compose_visitor_hpp(novas: Dict[str, NodeVariant]):
             f"struct {ty_prefix}FunctorMutator : public {ty_prefix}Mutator {{",
             f"  typedef NodeRef<T> TStmtRef;",
             f"  std::function<{ty_ref_prefix}(TStmtRef&)> f;",
-            f"  {ty_prefix}FunctorMutator(std::function<{ty_ref_prefix}(TStmtRef&)>&& f) :",
-            f"    f(std::forward<std::function<{ty_ref_prefix}(TStmtRef&)>>(f)) {{}}",
+            f"  {ty_prefix}FunctorMutator(std::function<{ty_ref_prefix}(const TStmtRef&)>&& f) :",
+            f"    f(std::forward<std::function<{ty_ref_prefix}(const TStmtRef&)>>(f)) {{}}",
             "",
-            f"  virtual {ty_ref_prefix} mutate_{abbr}_(TStmtRef& {abbr}) override final {{ return f({abbr}); }}",
+            f"  virtual {ty_ref_prefix} mutate_{abbr}_(const TStmtRef& {abbr}) override final {{ return f({abbr}); }}",
             "};",
             f"template<typename T>",
             f"void mutate_{abbr}_functor(",
-            f"  std::function<{ty_ref_prefix}(NodeRef<T>&)>&& f,",
+            f"  std::function<{ty_ref_prefix}(NodeRef<T>)>&& f,",
             f"  const {ty_prefix}& x",
             ") {",
-            f"  {ty_prefix}FunctorMutator<T> mutator(std::forward<std::function<{ty_ref_prefix}(NodeRef<T>&)>>(f));",
+            f"  {ty_prefix}FunctorMutator<T> mutator(std::forward<std::function<{ty_ref_prefix}(NodeRef<T>)>>(f));",
             f"  return mutator.mutate_{abbr}(x);",
             "}",
             "",
@@ -466,7 +466,7 @@ def compose_visitor_cpp(novas: Dict[str, NodeVariant]):
         for subty in nova.subtys:
             subty_name = ty_name + subty.name.to_pascal_case()
             out += [
-                f"void Visitor::visit_{nova.ty_abbr.to_snake_case()}_(const {subty_name}Ref& x) {{",
+                f"void Visitor::visit_{nova.ty_abbr.to_snake_case()}_({subty_name}Ref x) {{",
             ]
             for field in subty.fields:
                 if field.ty.raw_name == ty_name:
@@ -491,7 +491,7 @@ def compose_visitor_cpp(novas: Dict[str, NodeVariant]):
         for subty in nova.subtys:
             subty_name = ty_name + subty.name.to_pascal_case()
             out += [
-                f"{ty_name}Ref Mutator::mutate_{nova.ty_abbr.to_snake_case()}_({subty_name}Ref& x) {{",
+                f"{ty_name}Ref Mutator::mutate_{nova.ty_abbr.to_snake_case()}_({subty_name}Ref x) {{",
             ]
             for field in subty.fields:
                 field_name = field.name.to_snake_case()
