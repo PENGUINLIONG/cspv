@@ -1,16 +1,16 @@
 {
   Store($_0:i32, 0:i32)
-  loop {
+  loop@_1 {
     if (Load($_0:i32) < 7:i32) {
       {
         Store($_0:i32, (Load($_0:i32) + 1:i32))
-        continue
+        continue@_1
       }
     } else {
-      break
+      break@_1
     }
-  } continue {
-    back-edge
+  } continue@_1 {
+    back-edge@_1
   }
   return
 }

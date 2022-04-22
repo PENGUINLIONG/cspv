@@ -225,14 +225,15 @@ struct DebugPrintVisitor : public Visitor {
     s << "}" << std::endl;
   }
   virtual void visit_stmt_(StmtIfThenElseRef x) override final {
+    s << "if-then-else@" << s.get_var_name_by_handle(x->handle) << " ";
     visit(x->body_block);
   }
   virtual void visit_stmt_(StmtLoopRef x) override final {
-    s << "loop {" << std::endl;
+    s << "loop@" << s.get_var_name_by_handle(x->handle) << " {" << std::endl;
     s.push_indent();
     visit(x->body_block);
     s.pop_indent();
-    s << "} continue {" << std::endl;
+    s << "} continue@" << s.get_var_name_by_handle(x->handle) << " {" << std::endl;
     s.push_indent();
     visit(x->continue_block);
     s.pop_indent();
@@ -242,16 +243,16 @@ struct DebugPrintVisitor : public Visitor {
     s << "return" << std::endl;
   }
   virtual void visit_stmt_(StmtLoopContinueRef x) override final {
-    s << "continue" << std::endl;
+    s << "continue@" << s.get_var_name_by_handle(x->handle) << std::endl;
   }
   virtual void visit_stmt_(StmtLoopBackEdgeRef x) override final {
-    s << "back-edge" << std::endl;
+    s << "back-edge@" << s.get_var_name_by_handle(x->handle) << std::endl;
   }
   virtual void visit_stmt_(StmtIfThenElseMergeRef x) override final {
-    s << "converge" << std::endl;
+    s << "converge@" << s.get_var_name_by_handle(x->handle) << std::endl;
   }
   virtual void visit_stmt_(StmtLoopMergeRef x) override final {
-    s << "break" << std::endl;
+    s << "break@" << s.get_var_name_by_handle(x->handle) << std::endl;
   }
   virtual void visit_stmt_(StmtRangedLoopRef x) override final {
     s << "for ";

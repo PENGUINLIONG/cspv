@@ -1,0 +1,13 @@
+#version 460
+
+layout(binding=1)
+uniform Uniform {
+    int bound;
+} u;
+
+void main() {
+    for (int i = 0; i < u.bound; ++i) {
+        if (i == 7) { continue; }
+        if (i == 9) { break; }
+    }
+}

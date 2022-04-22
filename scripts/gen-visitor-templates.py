@@ -677,28 +677,38 @@ novas = {
             "if_then_else": {
                 "fields": {
                     "body_block": "Stmt",
+                    "handle": "void*",
                 }
             },
             "loop": {
                 "fields": {
                     "body_block": "Stmt",
                     "continue_block": "Stmt",
+                    "handle": "void*",
                 }
             },
             "return": {
                 "fields": {}
             },
             "if_then_else_merge": {
-                "fields": {}
+                "fields": {
+                    "handle": "void*",
+                }
             },
             "loop_merge": {
-                "fields": {}
+                "fields": {
+                    "handle": "void*",
+                }
             },
             "loop_continue": {
-                "fields": {}
+                "fields": {
+                    "handle": "void*",
+                }
             },
             "loop_back_edge": {
-                "fields": {}
+                "fields": {
+                    "handle": "void*",
+                }
             },
             "ranged_loop": {
                 "fields": {

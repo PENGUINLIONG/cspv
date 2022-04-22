@@ -45,9 +45,11 @@ struct ParserState {
   InstructionRef cur;
   InstructionRef cur_block_label;
 
+  void* loop_handle;
   InstructionRef loop_continue_target;
   InstructionRef loop_merge_target;
   InstructionRef loop_back_edge_target;
+  void* sel_handle;
   InstructionRef sel_merge_target;
 
   bool is_inside_block = false;
@@ -75,19 +77,19 @@ struct ControlFlowParser {
     assert(instr.op() == spv::Op::OpLabel);
 
     if (instr == parser_state.sel_merge_target) {
-      auto stmt = StmtRef(new StmtIfThenElseMerge);
+      auto stmt = StmtRef(new StmtIfThenElseMerge(parser_state.sel_handle));
       stmts.emplace_back(std::move(stmt));
       parser_state.cur = nullptr;
     } else if (instr == parser_state.loop_merge_target) {
-      auto stmt = StmtRef(new StmtLoopMerge);
+      auto stmt = StmtRef(new StmtLoopMerge(parser_state.loop_handle));
       stmts.emplace_back(std::move(stmt));
       parser_state.cur = nullptr;
     } else if (instr == parser_state.loop_continue_target) {
-      auto stmt = StmtRef(new StmtLoopContinue);
+      auto stmt = StmtRef(new StmtLoopContinue(parser_state.loop_handle));
       stmts.emplace_back(std::move(stmt));
       parser_state.cur = nullptr;
     } else if (instr == parser_state.loop_back_edge_target) {
-      auto stmt = StmtRef(new StmtLoopBackEdge);
+      auto stmt = StmtRef(new StmtLoopBackEdge(parser_state.loop_handle));
       stmts.emplace_back(stmt);
       parser_state.cur = nullptr;
     } else {
@@ -241,13 +243,15 @@ struct ControlFlowParser {
     {
       SelectionMerge sr(instr);
       merge_target = mod.lookup_instr(sr.merge_target);
+      void* handle = (void*)instr.inner;
 
       ParserState parser_state2 = parser_state;
       parser_state2.cur = instr.next();
+      parser_state2.sel_handle = handle;
       parser_state2.sel_merge_target = merge_target;
       auto body_stmt = parse(mod, std::move(parser_state2));
 
-      auto stmt = StmtRef(new StmtIfThenElse(body_stmt));
+      auto stmt = StmtRef(new StmtIfThenElse(body_stmt, handle));
       stmts.emplace_back(std::move(stmt));
       break;
     }
@@ -256,9 +260,11 @@ struct ControlFlowParser {
       LoopMerge sr(instr);
       merge_target = mod.lookup_instr(sr.merge_target);
       auto continue_target = mod.lookup_instr(sr.continue_target);
+      void* handle = (void*)instr.inner;
 
       ParserState body_parser_state2 = parser_state;
       body_parser_state2.cur = instr.next();
+      body_parser_state2.loop_handle = handle;
       body_parser_state2.loop_merge_target = merge_target;
       body_parser_state2.loop_continue_target = continue_target;
       body_parser_state2.loop_back_edge_target = parser_state.cur_block_label;
@@ -266,12 +272,13 @@ struct ControlFlowParser {
 
       ParserState continue_parser_state2 = parser_state;
       continue_parser_state2.cur = continue_target.next();
+      continue_parser_state2.loop_handle = handle;
       continue_parser_state2.loop_merge_target = merge_target;
       continue_parser_state2.loop_continue_target = continue_target;
       continue_parser_state2.loop_back_edge_target = parser_state.cur_block_label;
       auto continue_stmt = parse(mod, std::move(continue_parser_state2));
 
-      auto stmt = StmtRef(new StmtLoop(body_stmt, continue_stmt));
+      auto stmt = StmtRef(new StmtLoop(body_stmt, continue_stmt, handle));
       stmts.emplace_back(std::move(stmt));
       break;
     }

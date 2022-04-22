@@ -1,0 +1,28 @@
+{
+  Store($_0:i32, 0:i32)
+  loop@_1 {
+    if (Load($_0:i32) < Load(UniformBuffer@1,0[0:i32]:i32)) {
+      {
+        if-then-else@_2 if (Load($_0:i32) == 7:i32) {
+          continue@_1
+        } else {
+          converge@_2
+        }
+        if-then-else@_3 if (Load($_0:i32) == 9:i32) {
+          break@_1
+        } else {
+          converge@_3
+        }
+        continue@_1
+      }
+    } else {
+      break@_1
+    }
+  } continue@_1 {
+    {
+      Store($_0:i32, (Load($_0:i32) + 1:i32))
+      back-edge@_1
+    }
+  }
+  return
+}
