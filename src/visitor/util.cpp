@@ -225,8 +225,11 @@ struct DebugPrintVisitor : public Visitor {
     s << "}" << std::endl;
   }
   virtual void visit_stmt_(StmtIfThenElseRef x) override final {
-    s << "if-then-else@" << s.get_var_name_by_handle(x->handle) << " ";
+    s << "if-then-else@" << s.get_var_name_by_handle(x->handle) << " {" << std::endl;
+    s.push_indent();
     visit(x->body_block);
+    s.pop_indent();
+    s << "}" << std::endl;
   }
   virtual void visit_stmt_(StmtLoopRef x) override final {
     s << "loop@" << s.get_var_name_by_handle(x->handle) << " {" << std::endl;
