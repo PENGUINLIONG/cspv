@@ -323,12 +323,17 @@ struct ControlFlowParser {
   bool parse_func_ctrl_flow_tail_stmt() {
     const InstructionRef& instr = parser_state.cur;
 
-    StmtRef stmt;
     switch (instr.op()) {
     case spv::Op::OpReturn:
     {
       parser_state.is_inside_block = false;
-      stmt = StmtRef(new StmtReturn({}));
+      StmtRef stmt = new StmtReturn;
+      stmts.emplace_back(std::move(stmt));
+      break;
+    }
+    case spv::Op::OpUnreachable:
+    {
+      parser_state.is_inside_block = false;
       break;
     }
     default: return false;

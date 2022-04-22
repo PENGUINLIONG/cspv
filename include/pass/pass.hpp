@@ -2,34 +2,16 @@
 // @PENGUINLIONG
 #include "visitor/visitor.hpp"
 
-// Unwrap any sole member in block statements.
-//
-// ```
-// StmtLoop
-// +-StmtBlock
-// | +-StmtBranchConditional
-// |   +-StmtBlock
-// |   | +-StmtLoopContinue
-// |   +-StmtBlock
-// |     +-StmtLoopMerge
-// +-StmtBlock
-//   +-StmtLoopMerge
-// ```
-//
-// becomes:
-//
-// ```
-// StmtLoop
-// +-StmtBranchConditional
-// | +-StmtLoopContinue
-// | +-StmtLoopMerge
-// +-StmtLoopMerge
-// ```
-extern void eliminate_forward_blocks(StmtRef& x);
+struct Pass {
+  const std::string name;
+  Pass(const std::string& name) : name(name) {}
 
-// For any binary expression, if the expression has a constant operand and a
-// non-constant operand, ensure the constant operand is always on the right-
-// hand-side (`b`).
-extern void expr_normalization(StmtRef& x);
+  virtual void apply(NodeRef<Node>& node) {}
+};
 
-extern void ranged_loop_elevation(StmtRef& x);
+Pass* reg_pass(std::unique_ptr<Pass>&& pass);
+template<typename T>
+inline Pass* reg_pass() {
+  return reg_pass(std::make_unique<T>());
+}
+void apply_pass(const std::string& name, NodeRef<Node>& node);

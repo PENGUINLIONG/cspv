@@ -21,16 +21,37 @@ static const char* APP_DESC = "GraphiT project template.";
 
 
 struct AppConfig {
-  std::string in_file_path;
+  std::string entry_name = "main";
+  std::string in_file_path = "";
+  std::string dbg_print_file_path = "";
+  std::vector<std::string> passes = {};
   bool verbose = false;
 } CFG;
+
+struct PassListParser {
+  typedef std::vector<std::string> arg_ty;
+  static const uint32_t narg = 1;
+  static bool parse(const char* lit[], void* dst) {
+    ((std::vector<std::string>*)dst)->emplace_back(lit[0]);
+    return true;
+  }
+  static std::string lit(const void* src) {
+    return util::join(",", *(std::vector<std::string>*)src);
+  }
+};
 
 void initialize(int argc, const char** argv) {
   args::init_arg_parse(APP_NAME, APP_DESC);
   args::reg_arg<args::SwitchParser>("-v", "--verbose", CFG.verbose,
     "Produce extra amount of logs for debugging.");
   args::reg_arg<args::StringParser>("-i", "--in-file", CFG.in_file_path,
-    "Path to source code.");
+    "Path to source SPIR-V.");
+  args::reg_arg<args::StringParser>("-e", "--entry-point", CFG.in_file_path,
+    "Entry-point to process in the source SPIR-V.");
+  args::reg_arg<args::StringParser>("", "--dbg-print-file", CFG.dbg_print_file_path,
+    "Path to print human-readable debug representation of the processed IR.");
+  args::reg_arg<PassListParser>("-p", "--pass", CFG.passes,
+    "Passes to applied in order.");
   args::parse_args(argc, argv);
 
   extern void log_cb(log::LogLevel lv, const std::string& msg);
@@ -57,35 +78,31 @@ std::vector<uint32_t> load_spv(const char* path) {
 }
 
 
-void print_code(const std::string& name, const NodeRef<Node>& node) {
-  auto code = dbg_print(node);
-  log::info("entry point '", name, "': \n", code);
-}
 
 void guarded_main() {
+  // Load and parse the input SPIR-V, extract the first entry-point.
   if (CFG.in_file_path.empty()) {
     panic("source file path not given");
   }
   std::vector<uint32_t> spv = load_spv(CFG.in_file_path.c_str());
   SpirvAbstract abstr = scan_spirv(spv);
   SpirvModule mod = parse_spirv_module(std::move(abstr));
-  auto entry_points = extract_entry_points(mod);
+  NodeRef<Node> entry_point = extract_entry_points(mod)[CFG.entry_name];
 
-  for (auto& pair : entry_points) {
-    auto code = dbg_print(pair.second.as<Node>());
-    log::info("entry point '", pair.first, "': \n", code);
-
-    expr_normalization(pair.second);
-    print_code(pair.first, pair.second);
-
-    eliminate_forward_blocks(pair.second);
-    print_code(pair.first, pair.second);
-
-    ranged_loop_elevation(pair.second);
-    print_code(pair.first, pair.second);
+  // Apply passes, if any.
+  for (auto& pass : CFG.passes) {
+    apply_pass(pass, entry_point);
   }
 
-   log::info("success");
+  // Print the human-readable representation for convenience.
+  std::string code = dbg_print(entry_point);
+  if (CFG.dbg_print_file_path.empty()) {
+    log::info(code);
+  } else {
+    util::save_text(CFG.dbg_print_file_path.c_str(), code);
+  }
+
+  log::info("success");
 }
 
 

@@ -35,7 +35,7 @@ struct Debug {
   }
   inline Debug& operator<<(std::ostream& (*f)(std::ostream&)) {
     if (f == std::endl<std::stringstream::char_type, std::stringstream::traits_type>) {
-      s << indent << "\n";
+      s << "\n";
       line_start = true;
       return *this;
     }

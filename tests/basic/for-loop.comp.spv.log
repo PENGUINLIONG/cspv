@@ -1,0 +1,16 @@
+{
+  Store($_0:i32, 0:i32)
+  loop {
+    if (Load($_0:i32) < Load(UniformBuffer@1,0[0:i32]:i32)) {
+      continue
+    } else {
+      break
+    }
+  } continue {
+    {
+      Store($_0:i32, (Load($_0:i32) + 1:i32))
+      back-edge
+    }
+  }
+  return
+}

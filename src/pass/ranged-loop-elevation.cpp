@@ -127,7 +127,11 @@ struct RangedLoopElevationMutator : public Mutator {
 
 };
 
-void ranged_loop_elevation(StmtRef& x) {
-  RangedLoopElevationMutator mutator;
-  x = mutator.mutate_stmt(x);
-}
+struct RangedLoopElevationPass : public Pass {
+  RangedLoopElevationPass() : Pass("ranged-loop-elevation") {}
+  virtual void apply(NodeRef<Node>& x) override final {
+    RangedLoopElevationMutator v;
+    x = v.mutate(x);
+  }
+};
+static Pass* PASS = reg_pass<RangedLoopElevationPass>();

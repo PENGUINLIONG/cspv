@@ -1,6 +1,29 @@
-#include "gft/log.hpp"
-#include "visitor/visitor.hpp"
-#include "visitor/util.hpp"
+// Unwrap any sole member in block statements.
+//
+// ```
+// StmtLoop
+// +-StmtBlock
+// | +-StmtBranchConditional
+// |   +-StmtBlock
+// |   | +-StmtLoopContinue
+// |   +-StmtBlock
+// |     +-StmtLoopMerge
+// +-StmtBlock
+//   +-StmtLoopMerge
+// ```
+//
+// becomes:
+//
+// ```
+// StmtLoop
+// +-StmtBranchConditional
+// | +-StmtLoopContinue
+// | +-StmtLoopMerge
+// +-StmtLoopMerge
+// ```
+//
+// @PENGUINLIONG
+#include "pass/pass.hpp"
 
 struct ForwardBlockEliminationMutator : public Mutator {
   virtual StmtRef mutate_stmt_(StmtBlockRef& x) override final {
@@ -19,7 +42,12 @@ struct ForwardBlockEliminationMutator : public Mutator {
     return x.as<Stmt>();
   }
 };
-void eliminate_forward_blocks(StmtRef& x) {
-  ForwardBlockEliminationMutator mutator;
-  x = mutator.mutate_stmt(x);
-}
+
+struct ForwardBlockEliminationPass : public Pass {
+  ForwardBlockEliminationPass() : Pass("forward-block-elimination") {}
+  virtual void apply(NodeRef<Node>& x) override final {
+    ForwardBlockEliminationMutator mutator;
+    x = mutator.mutate(x);
+  }
+};
+static Pass* PASS = reg_pass<ForwardBlockEliminationPass>();

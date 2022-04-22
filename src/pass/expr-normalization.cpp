@@ -1,6 +1,11 @@
+// For any binary expression, if the expression has a constant operand and a
+// non-constant operand, ensure the constant operand is always on the right-
+// hand-side (`b`).
+//
+// @PENGUINLIONG
 #include "pass/pass.hpp"
 
-struct ExprNormalization : Mutator {
+struct ExprNormalizationMutator : Mutator {
   virtual ExprRef mutate_expr_(ExprAddRef& x) override final {
     if (x->a->is<ExprConstant>() && !x->b->is<ExprConstant>()) {
       x->a = std::exchange(x->b, std::move(x->a));
@@ -24,7 +29,11 @@ struct ExprNormalization : Mutator {
   }
 };
 
-void expr_normalization(StmtRef& x) {
-  ExprNormalization v;
-  x = v.mutate(x);
-}
+struct ExprNormalizationPass : public Pass {
+  ExprNormalizationPass() : Pass("expr-normalization") {}
+  virtual void apply(NodeRef<Node>& x) override final {
+    ExprNormalizationMutator v;
+    x = v.mutate(x);
+  }
+};
+static Pass* PASS = reg_pass<ExprNormalizationPass>();
