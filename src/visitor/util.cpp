@@ -190,6 +190,11 @@ struct DebugPrintVisitor : public Visitor {
     visit(x->b);
     s << ")";
   }
+  virtual void visit_expr_(ExprNotRef x) override final {
+    s << "!";
+    visit(x->a);
+    s << "";
+  }
   virtual void visit_expr_(ExprTypeCastRef x) override final {
     s << "(";
     visit(x->src);
@@ -208,6 +213,15 @@ struct DebugPrintVisitor : public Visitor {
     for (const auto& stmt : x->stmts) {
       visit(stmt);
     }
+    s.pop_indent();
+    s << "}" << std::endl;
+  }
+  virtual void visit_stmt_(StmtConditionalRef x) override final {
+    s << "if ";
+    visit(x->cond);
+    s << " {" << std::endl;
+    s.push_indent();
+    visit(x->then_block);
     s.pop_indent();
     s << "}" << std::endl;
   }

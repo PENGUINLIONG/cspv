@@ -645,6 +645,11 @@ novas = {
                     "b": "Expr",
                 }
             },
+            "not": {
+                "fields": {
+                    "a": "Expr",
+                }
+            },
             "type_cast": {
                 "fields": {
                     "src": "Expr",
@@ -665,6 +670,12 @@ novas = {
             "block": {
                 "fields": {
                     "stmts": "Stmt[]",
+                }
+            },
+            "conditional": {
+                "fields": {
+                    "cond": "Expr",
+                    "then_block": "Stmt",
                 }
             },
             "conditional_branch": {

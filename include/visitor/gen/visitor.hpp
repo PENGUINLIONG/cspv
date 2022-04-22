@@ -54,6 +54,7 @@ struct Visitor {
     case L_EXPR_OP_SUB: visit_expr_(expr.as<ExprSub>()); break;
     case L_EXPR_OP_LT: visit_expr_(expr.as<ExprLt>()); break;
     case L_EXPR_OP_EQ: visit_expr_(expr.as<ExprEq>()); break;
+    case L_EXPR_OP_NOT: visit_expr_(expr.as<ExprNot>()); break;
     case L_EXPR_OP_TYPE_CAST: visit_expr_(expr.as<ExprTypeCast>()); break;
     default: liong::unreachable();
     }
@@ -62,6 +63,7 @@ struct Visitor {
     switch (stmt->op) {
     case L_STMT_OP_NOP: visit_stmt_(stmt.as<StmtNop>()); break;
     case L_STMT_OP_BLOCK: visit_stmt_(stmt.as<StmtBlock>()); break;
+    case L_STMT_OP_CONDITIONAL: visit_stmt_(stmt.as<StmtConditional>()); break;
     case L_STMT_OP_CONDITIONAL_BRANCH: visit_stmt_(stmt.as<StmtConditionalBranch>()); break;
     case L_STMT_OP_IF_THEN_ELSE: visit_stmt_(stmt.as<StmtIfThenElse>()); break;
     case L_STMT_OP_LOOP: visit_stmt_(stmt.as<StmtLoop>()); break;
@@ -96,10 +98,12 @@ struct Visitor {
   virtual void visit_expr_(ExprSubRef);
   virtual void visit_expr_(ExprLtRef);
   virtual void visit_expr_(ExprEqRef);
+  virtual void visit_expr_(ExprNotRef);
   virtual void visit_expr_(ExprTypeCastRef);
 
   virtual void visit_stmt_(StmtNopRef);
   virtual void visit_stmt_(StmtBlockRef);
+  virtual void visit_stmt_(StmtConditionalRef);
   virtual void visit_stmt_(StmtConditionalBranchRef);
   virtual void visit_stmt_(StmtIfThenElseRef);
   virtual void visit_stmt_(StmtLoopRef);
@@ -159,6 +163,7 @@ struct Mutator {
     case L_EXPR_OP_SUB: return mutate_expr_(expr.as<ExprSub>());
     case L_EXPR_OP_LT: return mutate_expr_(expr.as<ExprLt>());
     case L_EXPR_OP_EQ: return mutate_expr_(expr.as<ExprEq>());
+    case L_EXPR_OP_NOT: return mutate_expr_(expr.as<ExprNot>());
     case L_EXPR_OP_TYPE_CAST: return mutate_expr_(expr.as<ExprTypeCast>());
     default: liong::unreachable();
     }
@@ -167,6 +172,7 @@ struct Mutator {
     switch (stmt->op) {
     case L_STMT_OP_NOP: return mutate_stmt_(stmt.as<StmtNop>());
     case L_STMT_OP_BLOCK: return mutate_stmt_(stmt.as<StmtBlock>());
+    case L_STMT_OP_CONDITIONAL: return mutate_stmt_(stmt.as<StmtConditional>());
     case L_STMT_OP_CONDITIONAL_BRANCH: return mutate_stmt_(stmt.as<StmtConditionalBranch>());
     case L_STMT_OP_IF_THEN_ELSE: return mutate_stmt_(stmt.as<StmtIfThenElse>());
     case L_STMT_OP_LOOP: return mutate_stmt_(stmt.as<StmtLoop>());
@@ -201,10 +207,12 @@ struct Mutator {
   virtual ExprRef mutate_expr_(ExprSubRef);
   virtual ExprRef mutate_expr_(ExprLtRef);
   virtual ExprRef mutate_expr_(ExprEqRef);
+  virtual ExprRef mutate_expr_(ExprNotRef);
   virtual ExprRef mutate_expr_(ExprTypeCastRef);
 
   virtual StmtRef mutate_stmt_(StmtNopRef);
   virtual StmtRef mutate_stmt_(StmtBlockRef);
+  virtual StmtRef mutate_stmt_(StmtConditionalRef);
   virtual StmtRef mutate_stmt_(StmtConditionalBranchRef);
   virtual StmtRef mutate_stmt_(StmtIfThenElseRef);
   virtual StmtRef mutate_stmt_(StmtLoopRef);

@@ -52,6 +52,9 @@ void Visitor::visit_expr_(ExprEqRef x) {
   visit_expr(x->a);
   visit_expr(x->b);
 }
+void Visitor::visit_expr_(ExprNotRef x) {
+  visit_expr(x->a);
+}
 void Visitor::visit_expr_(ExprTypeCastRef x) {
   visit_expr(x->src);
 }
@@ -60,6 +63,9 @@ void Visitor::visit_stmt_(StmtNopRef x) {
 }
 void Visitor::visit_stmt_(StmtBlockRef x) {
   for (const auto& x : x->stmts) { visit_stmt(x); }
+}
+void Visitor::visit_stmt_(StmtConditionalRef x) {
+  visit_stmt(x->then_block);
 }
 void Visitor::visit_stmt_(StmtConditionalBranchRef x) {
   visit_stmt(x->then_block);
@@ -158,6 +164,10 @@ ExprRef Mutator::mutate_expr_(ExprEqRef x) {
   x->b = mutate_expr(x->b);
   return x.as<Expr>();
 }
+ExprRef Mutator::mutate_expr_(ExprNotRef x) {
+  x->a = mutate_expr(x->a);
+  return x.as<Expr>();
+}
 ExprRef Mutator::mutate_expr_(ExprTypeCastRef x) {
   x->src = mutate_expr(x->src);
   return x.as<Expr>();
@@ -168,6 +178,11 @@ StmtRef Mutator::mutate_stmt_(StmtNopRef x) {
 }
 StmtRef Mutator::mutate_stmt_(StmtBlockRef x) {
   for (auto& x : x->stmts) { x = mutate_stmt(x); }
+  return x.as<Stmt>();
+}
+StmtRef Mutator::mutate_stmt_(StmtConditionalRef x) {
+  x->cond = mutate_expr(x->cond);
+  x->then_block = mutate_stmt(x->then_block);
   return x.as<Stmt>();
 }
 StmtRef Mutator::mutate_stmt_(StmtConditionalBranchRef x) {

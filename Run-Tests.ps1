@@ -16,6 +16,7 @@ Get-ChildItem tests | ForEach-Object {
             & glslangValidator $InPath -o $OutPath -V
         }
 
+        Write-Host "testing " + $OutPath
         $DbgPrintPath = $OutPath + ".log";
         if ($DryRun) {
             Write-Host "./out/build/x64-Debug/bin/cspv.exe -i $OutPath --dbg-print-file $DbgPrintPath $PassArgs"

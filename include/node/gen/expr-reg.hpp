@@ -11,6 +11,7 @@ enum ExprOp {
   L_EXPR_OP_SUB,
   L_EXPR_OP_LT,
   L_EXPR_OP_EQ,
+  L_EXPR_OP_NOT,
   L_EXPR_OP_TYPE_CAST,
 };
 

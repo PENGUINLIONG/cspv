@@ -114,6 +114,22 @@ struct ExprEq : public Expr {
   }
 };
 
+struct ExprNot : public Expr {
+  static const ExprOp OP = L_EXPR_OP_NOT;
+  NodeRef<Expr> a;
+
+  inline ExprNot(
+    const NodeRef<Type>& ty,
+    const NodeRef<Expr>& a
+  ) : Expr(L_EXPR_OP_NOT, ty), a(a) {
+    liong::assert(a != nullptr);
+  }
+
+  virtual void collect_children(NodeDrain* drain) override final {
+    drain->push(a);
+  }
+};
+
 struct ExprTypeCast : public Expr {
   static const ExprOp OP = L_EXPR_OP_TYPE_CAST;
   NodeRef<Expr> src;
@@ -137,4 +153,5 @@ typedef NodeRef<ExprAdd> ExprAddRef;
 typedef NodeRef<ExprSub> ExprSubRef;
 typedef NodeRef<ExprLt> ExprLtRef;
 typedef NodeRef<ExprEq> ExprEqRef;
+typedef NodeRef<ExprNot> ExprNotRef;
 typedef NodeRef<ExprTypeCast> ExprTypeCastRef;

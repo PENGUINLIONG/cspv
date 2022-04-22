@@ -54,12 +54,15 @@ struct GraphNormalizationMutator : Mutator {
       StmtRef stmt2 = mutate_stmt(stmt);
 
       if (stmt2->is<StmtBlock>()) {
+        const auto& stmts2 = stmt2.as<StmtBlock>()->stmts;
         // If it's a nested block, flatten its content to remove indirection.
-        for (auto stmt : stmt2.as<StmtBlock>()->stmts) {
+        for (auto stmt : stmts2) {
           stmts.emplace_back(stmt);
         }
-      } else if (!stmt2->is<StmtNop>()) {
-        // Ignore any nops.
+      } else if (stmt2->is<StmtNop>()) {
+        // Ignore nops.
+        continue;
+      } else {
         stmts.emplace_back(stmt2);
       }
 
@@ -73,9 +76,49 @@ struct GraphNormalizationMutator : Mutator {
     case 1: return std::move(stmts[0]);
     default: return new StmtBlock(std::move(stmts));
     }
-
   }
+
+  virtual StmtRef mutate_stmt_(StmtConditionalRef x) override final {
+    return Mutator::mutate_stmt_(x);
+  }
+
+  virtual StmtRef mutate_stmt_(StmtConditionalBranchRef x) override final {
+    x->cond = mutate_expr(x->cond);
+    x->then_block = mutate_stmt(x->then_block);
+    x->else_block = mutate_stmt(x->else_block);
+
+    if (x->then_block->is<StmtIfThenElseMerge>()) {
+      if (x->else_block->is<StmtIfThenElseMerge>()) {
+        return new StmtNop;
+      } else {
+        return new StmtConditional(x->cond, x->else_block);
+      }
+    } else {
+      if (x->else_block->is<StmtIfThenElseMerge>()) {
+        return new StmtConditional(new ExprNot(x->cond->ty, x->cond), x->then_block);
+      } else {
+        return x;
+      }
+    }
+  }
+
+  virtual StmtRef mutate_stmt_(StmtIfThenElseRef x) override final {
+    x->body_block = mutate_stmt(x->body_block);
+
+    switch (x->body_block->op) {
+    case L_STMT_OP_CONDITIONAL:
+    case L_STMT_OP_CONDITIONAL_BRANCH:
+      return x;
+    default: 
+      // If-then-else statement should have a conditional branch as its child.
+      // But if the child is not a conditional branch, it becomes a linear
+      // statement stream which never forms an if-then-else-construct.
+      return x->body_block;
+    }
+  }
+
 };
+
 
 struct GraphNormalizationPass : public Pass {
   GraphNormalizationPass() : Pass("graph-normalization") {}
