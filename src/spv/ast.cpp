@@ -77,8 +77,6 @@ struct ControlFlowParser {
     assert(instr.op() == spv::Op::OpLabel);
 
     if (instr == parser_state.sel_merge_target) {
-      auto stmt = StmtRef(new StmtIfThenElseMerge(parser_state.sel_handle));
-      stmts.emplace_back(std::move(stmt));
       parser_state.cur = nullptr;
     } else if (instr == parser_state.loop_merge_target) {
       auto stmt = StmtRef(new StmtLoopMerge(parser_state.loop_handle));
@@ -271,7 +269,7 @@ struct ControlFlowParser {
       parser_state2.sel_merge_target = merge_target;
       auto body_stmt = parse(mod, std::move(parser_state2));
 
-      auto stmt = StmtRef(new StmtIfThenElse(body_stmt, handle));
+      auto stmt = body_stmt;
       stmts.emplace_back(std::move(stmt));
       break;
     }

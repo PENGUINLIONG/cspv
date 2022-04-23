@@ -38,7 +38,6 @@ struct GraphNormalizationMutator : Mutator {
       return is_tail_stmt(stmt.then_block) && is_tail_stmt(stmt.else_block);
     }
     case L_STMT_OP_RETURN:
-    case L_STMT_OP_IF_THEN_ELSE_MERGE:
     case L_STMT_OP_LOOP_MERGE:
     case L_STMT_OP_LOOP_CONTINUE:
     case L_STMT_OP_LOOP_BACK_EDGE:
@@ -75,32 +74,6 @@ struct GraphNormalizationMutator : Mutator {
     case 0: return new StmtNop();
     case 1: return std::move(stmts[0]);
     default: return new StmtBlock(std::move(stmts));
-    }
-  }
-
-  virtual StmtRef mutate_stmt_(StmtConditionalBranchRef x) override final {
-    x->cond = mutate_expr(x->cond);
-    x->then_block = mutate_stmt(x->then_block);
-    x->else_block = mutate_stmt(x->else_block);
-
-    if (x->then_block->is<StmtIfThenElseMerge>() && x->else_block->is<StmtIfThenElseMerge>()) {
-      return new StmtNop;
-    } else {
-      return x;
-    }
-  }
-
-  virtual StmtRef mutate_stmt_(StmtIfThenElseRef x) override final {
-    x->body_block = mutate_stmt(x->body_block);
-
-    switch (x->body_block->op) {
-    case L_STMT_OP_CONDITIONAL_BRANCH:
-      return x;
-    default: 
-      // If-then-else statement should have a conditional branch as its child.
-      // But if the child is not a conditional branch, it becomes a linear
-      // statement stream which never forms an if-then-else-construct.
-      return x->body_block;
     }
   }
 

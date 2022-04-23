@@ -686,12 +686,6 @@ novas = {
                     "else_block": "Stmt",
                 }
             },
-            "if_then_else": {
-                "fields": {
-                    "body_block": "Stmt",
-                    "handle": "std::shared_ptr<uint8_t>",
-                }
-            },
             "loop": {
                 "fields": {
                     "body_block": "Stmt",
@@ -701,11 +695,6 @@ novas = {
             },
             "return": {
                 "fields": {}
-            },
-            "if_then_else_merge": {
-                "fields": {
-                    "handle": "std::shared_ptr<uint8_t>",
-                }
             },
             "loop_merge": {
                 "fields": {

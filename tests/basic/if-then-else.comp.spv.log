@@ -1,1 +1,8 @@
-return
+{
+  if true:bool {
+    nop
+  } else {
+    nop
+  }
+  return
+}

@@ -238,13 +238,6 @@ struct DebugPrintVisitor : public Visitor {
     s.pop_indent();
     s << "}" << std::endl;
   }
-  virtual void visit_stmt_(StmtIfThenElseRef x) override final {
-    s << "if-then-else@" << s.get_var_name_by_handle(x->handle) << " {" << std::endl;
-    s.push_indent();
-    visit(x->body_block);
-    s.pop_indent();
-    s << "}" << std::endl;
-  }
   virtual void visit_stmt_(StmtLoopRef x) override final {
     s << "loop@" << s.get_var_name_by_handle(x->handle) << " {" << std::endl;
     s.push_indent();
@@ -264,9 +257,6 @@ struct DebugPrintVisitor : public Visitor {
   }
   virtual void visit_stmt_(StmtLoopBackEdgeRef x) override final {
     s << "back-edge@" << s.get_var_name_by_handle(x->handle) << std::endl;
-  }
-  virtual void visit_stmt_(StmtIfThenElseMergeRef x) override final {
-    s << "converge@" << s.get_var_name_by_handle(x->handle) << std::endl;
   }
   virtual void visit_stmt_(StmtLoopMergeRef x) override final {
     s << "break@" << s.get_var_name_by_handle(x->handle) << std::endl;

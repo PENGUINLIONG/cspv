@@ -53,23 +53,6 @@ struct StmtConditionalBranch : public Stmt {
   }
 };
 
-struct StmtIfThenElse : public Stmt {
-  static const StmtOp OP = L_STMT_OP_IF_THEN_ELSE;
-  NodeRef<Stmt> body_block;
-  std::shared_ptr<uint8_t> handle;
-
-  inline StmtIfThenElse(
-    const NodeRef<Stmt>& body_block,
-    std::shared_ptr<uint8_t> handle
-  ) : Stmt(L_STMT_OP_IF_THEN_ELSE), body_block(body_block), handle(handle) {
-    liong::assert(body_block != nullptr);
-  }
-
-  virtual void collect_children(NodeDrain* drain) override final {
-    drain->push(body_block);
-  }
-};
-
 struct StmtLoop : public Stmt {
   static const StmtOp OP = L_STMT_OP_LOOP;
   NodeRef<Stmt> body_block;
@@ -96,19 +79,6 @@ struct StmtReturn : public Stmt {
 
   inline StmtReturn(
   ) : Stmt(L_STMT_OP_RETURN) {
-  }
-
-  virtual void collect_children(NodeDrain* drain) override final {
-  }
-};
-
-struct StmtIfThenElseMerge : public Stmt {
-  static const StmtOp OP = L_STMT_OP_IF_THEN_ELSE_MERGE;
-  std::shared_ptr<uint8_t> handle;
-
-  inline StmtIfThenElseMerge(
-    std::shared_ptr<uint8_t> handle
-  ) : Stmt(L_STMT_OP_IF_THEN_ELSE_MERGE), handle(handle) {
   }
 
   virtual void collect_children(NodeDrain* drain) override final {
@@ -196,10 +166,8 @@ typedef NodeRef<Stmt> StmtRef;
 typedef NodeRef<StmtNop> StmtNopRef;
 typedef NodeRef<StmtBlock> StmtBlockRef;
 typedef NodeRef<StmtConditionalBranch> StmtConditionalBranchRef;
-typedef NodeRef<StmtIfThenElse> StmtIfThenElseRef;
 typedef NodeRef<StmtLoop> StmtLoopRef;
 typedef NodeRef<StmtReturn> StmtReturnRef;
-typedef NodeRef<StmtIfThenElseMerge> StmtIfThenElseMergeRef;
 typedef NodeRef<StmtLoopMerge> StmtLoopMergeRef;
 typedef NodeRef<StmtLoopContinue> StmtLoopContinueRef;
 typedef NodeRef<StmtLoopBackEdge> StmtLoopBackEdgeRef;

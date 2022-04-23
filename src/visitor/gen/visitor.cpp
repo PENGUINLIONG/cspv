@@ -73,16 +73,11 @@ void Visitor::visit_stmt_(StmtConditionalBranchRef x) {
   visit_stmt(x->then_block);
   visit_stmt(x->else_block);
 }
-void Visitor::visit_stmt_(StmtIfThenElseRef x) {
-  visit_stmt(x->body_block);
-}
 void Visitor::visit_stmt_(StmtLoopRef x) {
   visit_stmt(x->body_block);
   visit_stmt(x->continue_block);
 }
 void Visitor::visit_stmt_(StmtReturnRef x) {
-}
-void Visitor::visit_stmt_(StmtIfThenElseMergeRef x) {
 }
 void Visitor::visit_stmt_(StmtLoopMergeRef x) {
 }
@@ -194,19 +189,12 @@ StmtRef Mutator::mutate_stmt_(StmtConditionalBranchRef x) {
   x->else_block = mutate_stmt(x->else_block);
   return x.as<Stmt>();
 }
-StmtRef Mutator::mutate_stmt_(StmtIfThenElseRef x) {
-  x->body_block = mutate_stmt(x->body_block);
-  return x.as<Stmt>();
-}
 StmtRef Mutator::mutate_stmt_(StmtLoopRef x) {
   x->body_block = mutate_stmt(x->body_block);
   x->continue_block = mutate_stmt(x->continue_block);
   return x.as<Stmt>();
 }
 StmtRef Mutator::mutate_stmt_(StmtReturnRef x) {
-  return x.as<Stmt>();
-}
-StmtRef Mutator::mutate_stmt_(StmtIfThenElseMergeRef x) {
   return x.as<Stmt>();
 }
 StmtRef Mutator::mutate_stmt_(StmtLoopMergeRef x) {

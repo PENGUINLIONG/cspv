@@ -65,10 +65,8 @@ struct Visitor {
     case L_STMT_OP_NOP: visit_stmt_(stmt.as<StmtNop>()); break;
     case L_STMT_OP_BLOCK: visit_stmt_(stmt.as<StmtBlock>()); break;
     case L_STMT_OP_CONDITIONAL_BRANCH: visit_stmt_(stmt.as<StmtConditionalBranch>()); break;
-    case L_STMT_OP_IF_THEN_ELSE: visit_stmt_(stmt.as<StmtIfThenElse>()); break;
     case L_STMT_OP_LOOP: visit_stmt_(stmt.as<StmtLoop>()); break;
     case L_STMT_OP_RETURN: visit_stmt_(stmt.as<StmtReturn>()); break;
-    case L_STMT_OP_IF_THEN_ELSE_MERGE: visit_stmt_(stmt.as<StmtIfThenElseMerge>()); break;
     case L_STMT_OP_LOOP_MERGE: visit_stmt_(stmt.as<StmtLoopMerge>()); break;
     case L_STMT_OP_LOOP_CONTINUE: visit_stmt_(stmt.as<StmtLoopContinue>()); break;
     case L_STMT_OP_LOOP_BACK_EDGE: visit_stmt_(stmt.as<StmtLoopBackEdge>()); break;
@@ -105,10 +103,8 @@ struct Visitor {
   virtual void visit_stmt_(StmtNopRef);
   virtual void visit_stmt_(StmtBlockRef);
   virtual void visit_stmt_(StmtConditionalBranchRef);
-  virtual void visit_stmt_(StmtIfThenElseRef);
   virtual void visit_stmt_(StmtLoopRef);
   virtual void visit_stmt_(StmtReturnRef);
-  virtual void visit_stmt_(StmtIfThenElseMergeRef);
   virtual void visit_stmt_(StmtLoopMergeRef);
   virtual void visit_stmt_(StmtLoopContinueRef);
   virtual void visit_stmt_(StmtLoopBackEdgeRef);
@@ -174,10 +170,8 @@ struct Mutator {
     case L_STMT_OP_NOP: return mutate_stmt_(stmt.as<StmtNop>());
     case L_STMT_OP_BLOCK: return mutate_stmt_(stmt.as<StmtBlock>());
     case L_STMT_OP_CONDITIONAL_BRANCH: return mutate_stmt_(stmt.as<StmtConditionalBranch>());
-    case L_STMT_OP_IF_THEN_ELSE: return mutate_stmt_(stmt.as<StmtIfThenElse>());
     case L_STMT_OP_LOOP: return mutate_stmt_(stmt.as<StmtLoop>());
     case L_STMT_OP_RETURN: return mutate_stmt_(stmt.as<StmtReturn>());
-    case L_STMT_OP_IF_THEN_ELSE_MERGE: return mutate_stmt_(stmt.as<StmtIfThenElseMerge>());
     case L_STMT_OP_LOOP_MERGE: return mutate_stmt_(stmt.as<StmtLoopMerge>());
     case L_STMT_OP_LOOP_CONTINUE: return mutate_stmt_(stmt.as<StmtLoopContinue>());
     case L_STMT_OP_LOOP_BACK_EDGE: return mutate_stmt_(stmt.as<StmtLoopBackEdge>());
@@ -214,10 +208,8 @@ struct Mutator {
   virtual StmtRef mutate_stmt_(StmtNopRef);
   virtual StmtRef mutate_stmt_(StmtBlockRef);
   virtual StmtRef mutate_stmt_(StmtConditionalBranchRef);
-  virtual StmtRef mutate_stmt_(StmtIfThenElseRef);
   virtual StmtRef mutate_stmt_(StmtLoopRef);
   virtual StmtRef mutate_stmt_(StmtReturnRef);
-  virtual StmtRef mutate_stmt_(StmtIfThenElseMergeRef);
   virtual StmtRef mutate_stmt_(StmtLoopMergeRef);
   virtual StmtRef mutate_stmt_(StmtLoopContinueRef);
   virtual StmtRef mutate_stmt_(StmtLoopBackEdgeRef);
