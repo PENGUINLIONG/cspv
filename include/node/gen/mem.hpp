@@ -6,12 +6,12 @@
 
 struct MemoryFunctionVariable : public Memory {
   static const MemoryClass CLS = L_MEMORY_CLASS_FUNCTION_VARIABLE;
-  void* handle;
+  std::shared_ptr<uint8_t> handle;
 
   inline MemoryFunctionVariable(
     const NodeRef<Type>& ty,
     const std::vector<NodeRef<Expr>>& ac,
-    void* handle
+    std::shared_ptr<uint8_t> handle
   ) : Memory(L_MEMORY_CLASS_FUNCTION_VARIABLE, ty, ac), handle(handle) {
   }
 

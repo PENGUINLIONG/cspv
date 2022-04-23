@@ -45,11 +45,11 @@ struct ParserState {
   InstructionRef cur;
   InstructionRef cur_block_label;
 
-  void* loop_handle;
+  std::shared_ptr<uint8_t> loop_handle;
   InstructionRef loop_continue_target;
   InstructionRef loop_merge_target;
   InstructionRef loop_back_edge_target;
-  void* sel_handle;
+  std::shared_ptr<uint8_t> sel_handle;
   InstructionRef sel_merge_target;
 
   bool is_inside_block = false;
@@ -113,7 +113,7 @@ struct ControlFlowParser {
     spv::StorageClass store_cls = e.read_u32_as<spv::StorageClass>();
     // Merely function vairables.
     assert(store_cls == spv::StorageClass::Function);
-    auto mem = MemoryRef(new MemoryFunctionVariable(var_ty, {}, (void*)instr.inner));
+    auto mem = MemoryRef(new MemoryFunctionVariable(var_ty, {}, std::make_shared<uint8_t>()));
     mod.mem_map.emplace(instr, mem);
 
     parser_state.cur = instr.next();
@@ -263,7 +263,7 @@ struct ControlFlowParser {
     {
       SelectionMerge sr(instr);
       merge_target = mod.lookup_instr(sr.merge_target);
-      void* handle = (void*)instr.inner;
+      std::shared_ptr<uint8_t> handle = std::make_shared<uint8_t>();
 
       ParserState parser_state2 = parser_state;
       parser_state2.cur = instr.next();
@@ -280,7 +280,7 @@ struct ControlFlowParser {
       LoopMerge sr(instr);
       merge_target = mod.lookup_instr(sr.merge_target);
       auto continue_target = mod.lookup_instr(sr.continue_target);
-      void* handle = (void*)instr.inner;
+      std::shared_ptr<uint8_t> handle = std::make_shared<uint8_t>();
 
       ParserState body_parser_state2 = parser_state;
       body_parser_state2.cur = instr.next();

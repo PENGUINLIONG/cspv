@@ -56,11 +56,11 @@ struct StmtConditionalBranch : public Stmt {
 struct StmtIfThenElse : public Stmt {
   static const StmtOp OP = L_STMT_OP_IF_THEN_ELSE;
   NodeRef<Stmt> body_block;
-  void* handle;
+  std::shared_ptr<uint8_t> handle;
 
   inline StmtIfThenElse(
     const NodeRef<Stmt>& body_block,
-    void* handle
+    std::shared_ptr<uint8_t> handle
   ) : Stmt(L_STMT_OP_IF_THEN_ELSE), body_block(body_block), handle(handle) {
     liong::assert(body_block != nullptr);
   }
@@ -74,12 +74,12 @@ struct StmtLoop : public Stmt {
   static const StmtOp OP = L_STMT_OP_LOOP;
   NodeRef<Stmt> body_block;
   NodeRef<Stmt> continue_block;
-  void* handle;
+  std::shared_ptr<uint8_t> handle;
 
   inline StmtLoop(
     const NodeRef<Stmt>& body_block,
     const NodeRef<Stmt>& continue_block,
-    void* handle
+    std::shared_ptr<uint8_t> handle
   ) : Stmt(L_STMT_OP_LOOP), body_block(body_block), continue_block(continue_block), handle(handle) {
     liong::assert(body_block != nullptr);
     liong::assert(continue_block != nullptr);
@@ -104,10 +104,10 @@ struct StmtReturn : public Stmt {
 
 struct StmtIfThenElseMerge : public Stmt {
   static const StmtOp OP = L_STMT_OP_IF_THEN_ELSE_MERGE;
-  void* handle;
+  std::shared_ptr<uint8_t> handle;
 
   inline StmtIfThenElseMerge(
-    void* handle
+    std::shared_ptr<uint8_t> handle
   ) : Stmt(L_STMT_OP_IF_THEN_ELSE_MERGE), handle(handle) {
   }
 
@@ -117,10 +117,10 @@ struct StmtIfThenElseMerge : public Stmt {
 
 struct StmtLoopMerge : public Stmt {
   static const StmtOp OP = L_STMT_OP_LOOP_MERGE;
-  void* handle;
+  std::shared_ptr<uint8_t> handle;
 
   inline StmtLoopMerge(
-    void* handle
+    std::shared_ptr<uint8_t> handle
   ) : Stmt(L_STMT_OP_LOOP_MERGE), handle(handle) {
   }
 
@@ -130,10 +130,10 @@ struct StmtLoopMerge : public Stmt {
 
 struct StmtLoopContinue : public Stmt {
   static const StmtOp OP = L_STMT_OP_LOOP_CONTINUE;
-  void* handle;
+  std::shared_ptr<uint8_t> handle;
 
   inline StmtLoopContinue(
-    void* handle
+    std::shared_ptr<uint8_t> handle
   ) : Stmt(L_STMT_OP_LOOP_CONTINUE), handle(handle) {
   }
 
@@ -143,10 +143,10 @@ struct StmtLoopContinue : public Stmt {
 
 struct StmtLoopBackEdge : public Stmt {
   static const StmtOp OP = L_STMT_OP_LOOP_BACK_EDGE;
-  void* handle;
+  std::shared_ptr<uint8_t> handle;
 
   inline StmtLoopBackEdge(
-    void* handle
+    std::shared_ptr<uint8_t> handle
   ) : Stmt(L_STMT_OP_LOOP_BACK_EDGE), handle(handle) {
   }
 

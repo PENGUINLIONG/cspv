@@ -530,7 +530,7 @@ novas = {
         "variants": {
             "function_variable": {
                 "fields": {
-                    "handle": "void*",
+                    "handle": "std::shared_ptr<uint8_t>",
                 }
             },
             "iteration_variable": {
@@ -689,14 +689,14 @@ novas = {
             "if_then_else": {
                 "fields": {
                     "body_block": "Stmt",
-                    "handle": "void*",
+                    "handle": "std::shared_ptr<uint8_t>",
                 }
             },
             "loop": {
                 "fields": {
                     "body_block": "Stmt",
                     "continue_block": "Stmt",
-                    "handle": "void*",
+                    "handle": "std::shared_ptr<uint8_t>",
                 }
             },
             "return": {
@@ -704,22 +704,22 @@ novas = {
             },
             "if_then_else_merge": {
                 "fields": {
-                    "handle": "void*",
+                    "handle": "std::shared_ptr<uint8_t>",
                 }
             },
             "loop_merge": {
                 "fields": {
-                    "handle": "void*",
+                    "handle": "std::shared_ptr<uint8_t>",
                 }
             },
             "loop_continue": {
                 "fields": {
-                    "handle": "void*",
+                    "handle": "std::shared_ptr<uint8_t>",
                 }
             },
             "loop_back_edge": {
                 "fields": {
-                    "handle": "void*",
+                    "handle": "std::shared_ptr<uint8_t>",
                 }
             },
             "ranged_loop": {

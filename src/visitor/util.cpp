@@ -11,14 +11,14 @@ struct Debug {
 
   std::map<const void*, std::string> var_handle2name_map;
 
-  inline const std::string& get_var_name_by_handle(const void* handle) {
-    auto it = var_handle2name_map.find(handle);
+  inline const std::string& get_var_name_by_handle(const std::shared_ptr<uint8_t>& handle) {
+    auto it = var_handle2name_map.find(handle.get());
     if (it == var_handle2name_map.end()) {
       std::string name = "_";
       name += std::to_string(var_handle2name_map.size());
-      var_handle2name_map.emplace(handle, std::move(name));
+      var_handle2name_map.emplace(handle.get(), std::move(name));
     }
-    return var_handle2name_map.at(handle);
+    return var_handle2name_map.at(handle.get());
   }
 
   inline void push_indent() { indent += "  "; }
