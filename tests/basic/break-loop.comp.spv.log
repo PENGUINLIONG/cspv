@@ -4,12 +4,12 @@
     if (Load($_0:i32) < Load(UniformBuffer@1,0[0:i32]:i32)) {
       {
         if-then-else@_2 {
-          if !(Load($_0:i32) == 7:i32) {
+          if (Load($_0:i32) == 7:i32) {
             continue@_1
           }
         }
         if-then-else@_3 {
-          if !(Load($_0:i32) == 9:i32) {
+          if (Load($_0:i32) == 9:i32) {
             break@_1
           }
         }

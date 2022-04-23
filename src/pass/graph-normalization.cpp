@@ -91,11 +91,11 @@ struct GraphNormalizationMutator : Mutator {
       if (x->else_block->is<StmtIfThenElseMerge>()) {
         return new StmtNop;
       } else {
-        return new StmtConditional(x->cond, x->else_block);
+        return new StmtConditional(new ExprNot(x->cond->ty, x->cond), x->else_block);
       }
     } else {
       if (x->else_block->is<StmtIfThenElseMerge>()) {
-        return new StmtConditional(new ExprNot(x->cond->ty, x->cond), x->then_block);
+        return new StmtConditional(x->cond, x->then_block);
       } else {
         return x;
       }
