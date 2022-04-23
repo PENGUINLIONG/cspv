@@ -202,6 +202,15 @@ struct DebugPrintVisitor : public Visitor {
     visit(x->ty);
     s << ")";
   }
+  virtual void visit_expr_(ExprSelectRef x) override final {
+    s << "(";
+    visit(x->cond);
+    s << "?";
+    visit(x->a);
+    s << ":";
+    visit(x->b);
+    s << ")";
+  }
 
 
   virtual void visit_stmt_(StmtNopRef x) override final {

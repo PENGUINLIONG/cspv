@@ -56,6 +56,7 @@ struct Visitor {
     case L_EXPR_OP_EQ: visit_expr_(expr.as<ExprEq>()); break;
     case L_EXPR_OP_NOT: visit_expr_(expr.as<ExprNot>()); break;
     case L_EXPR_OP_TYPE_CAST: visit_expr_(expr.as<ExprTypeCast>()); break;
+    case L_EXPR_OP_SELECT: visit_expr_(expr.as<ExprSelect>()); break;
     default: liong::unreachable();
     }
   }
@@ -100,6 +101,7 @@ struct Visitor {
   virtual void visit_expr_(ExprEqRef);
   virtual void visit_expr_(ExprNotRef);
   virtual void visit_expr_(ExprTypeCastRef);
+  virtual void visit_expr_(ExprSelectRef);
 
   virtual void visit_stmt_(StmtNopRef);
   virtual void visit_stmt_(StmtBlockRef);
@@ -165,6 +167,7 @@ struct Mutator {
     case L_EXPR_OP_EQ: return mutate_expr_(expr.as<ExprEq>());
     case L_EXPR_OP_NOT: return mutate_expr_(expr.as<ExprNot>());
     case L_EXPR_OP_TYPE_CAST: return mutate_expr_(expr.as<ExprTypeCast>());
+    case L_EXPR_OP_SELECT: return mutate_expr_(expr.as<ExprSelect>());
     default: liong::unreachable();
     }
   }
@@ -209,6 +212,7 @@ struct Mutator {
   virtual ExprRef mutate_expr_(ExprEqRef);
   virtual ExprRef mutate_expr_(ExprNotRef);
   virtual ExprRef mutate_expr_(ExprTypeCastRef);
+  virtual ExprRef mutate_expr_(ExprSelectRef);
 
   virtual StmtRef mutate_stmt_(StmtNopRef);
   virtual StmtRef mutate_stmt_(StmtBlockRef);

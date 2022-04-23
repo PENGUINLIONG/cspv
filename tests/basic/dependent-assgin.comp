@@ -1,0 +1,22 @@
+#version 460
+
+layout(binding=1)
+uniform Uniform {
+    int cond;
+} u;
+
+void main() {
+    int x = 0;
+    int y = 2;
+
+    if (u.cond != 0) {
+        x = 3;
+    }
+    if (u.cond == 9) {
+        x = 4;
+        y = 5;
+    } else {
+        x = 6;
+        y = 7;
+    }
+}

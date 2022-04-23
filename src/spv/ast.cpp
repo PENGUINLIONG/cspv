@@ -226,6 +226,26 @@ struct ControlFlowParser {
       expr = ExprRef(new ExprEq(ty, a, b));
       break;
     }
+    case spv::Op::OpINotEqual:
+    case spv::Op::OpFOrdNotEqual:
+    {
+      auto ty = mod.ty_map.at(instr.result_ty_id());
+      auto e = instr.extract_params();
+      auto a = mod.expr_map.at(e.read_id());
+      auto b = mod.expr_map.at(e.read_id());
+      expr = ExprRef(new ExprNot(ty, new ExprEq(ty, a, b)));
+      break;
+    }
+    case spv::Op::OpSelect:
+    {
+      auto ty = mod.ty_map.at(instr.result_id());
+      auto e = instr.extract_params();
+      auto cond = mod.expr_map.at(e.read_id());
+      assert(cond->ty->is<TypeBool>());
+      auto a = mod.expr_map.at(e.read_id());
+      auto b = mod.expr_map.at(e.read_id());
+      expr = ExprRef(new ExprSelect(ty, cond, a, b));
+    }
     default:
       return false;
     }

@@ -655,6 +655,13 @@ novas = {
                     "src": "Expr",
                 }
             },
+            "select": {
+                "fields": {
+                    "cond": "Expr",
+                    "a": "Expr",
+                    "b": "Expr",
+                }
+            },
         },
     },
     "Stmt": {

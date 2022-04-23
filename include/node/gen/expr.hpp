@@ -146,6 +146,30 @@ struct ExprTypeCast : public Expr {
   }
 };
 
+struct ExprSelect : public Expr {
+  static const ExprOp OP = L_EXPR_OP_SELECT;
+  NodeRef<Expr> cond;
+  NodeRef<Expr> a;
+  NodeRef<Expr> b;
+
+  inline ExprSelect(
+    const NodeRef<Type>& ty,
+    const NodeRef<Expr>& cond,
+    const NodeRef<Expr>& a,
+    const NodeRef<Expr>& b
+  ) : Expr(L_EXPR_OP_SELECT, ty), cond(cond), a(a), b(b) {
+    liong::assert(cond != nullptr);
+    liong::assert(a != nullptr);
+    liong::assert(b != nullptr);
+  }
+
+  virtual void collect_children(NodeDrain* drain) override final {
+    drain->push(cond);
+    drain->push(a);
+    drain->push(b);
+  }
+};
+
 typedef NodeRef<Expr> ExprRef;
 typedef NodeRef<ExprConstant> ExprConstantRef;
 typedef NodeRef<ExprLoad> ExprLoadRef;
@@ -155,3 +179,4 @@ typedef NodeRef<ExprLt> ExprLtRef;
 typedef NodeRef<ExprEq> ExprEqRef;
 typedef NodeRef<ExprNot> ExprNotRef;
 typedef NodeRef<ExprTypeCast> ExprTypeCastRef;
+typedef NodeRef<ExprSelect> ExprSelectRef;

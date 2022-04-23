@@ -58,6 +58,11 @@ void Visitor::visit_expr_(ExprNotRef x) {
 void Visitor::visit_expr_(ExprTypeCastRef x) {
   visit_expr(x->src);
 }
+void Visitor::visit_expr_(ExprSelectRef x) {
+  visit_expr(x->cond);
+  visit_expr(x->a);
+  visit_expr(x->b);
+}
 
 void Visitor::visit_stmt_(StmtNopRef x) {
 }
@@ -170,6 +175,12 @@ ExprRef Mutator::mutate_expr_(ExprNotRef x) {
 }
 ExprRef Mutator::mutate_expr_(ExprTypeCastRef x) {
   x->src = mutate_expr(x->src);
+  return x.as<Expr>();
+}
+ExprRef Mutator::mutate_expr_(ExprSelectRef x) {
+  x->cond = mutate_expr(x->cond);
+  x->a = mutate_expr(x->a);
+  x->b = mutate_expr(x->b);
   return x.as<Expr>();
 }
 

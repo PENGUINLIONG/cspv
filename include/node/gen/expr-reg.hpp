@@ -13,6 +13,7 @@ enum ExprOp {
   L_EXPR_OP_EQ,
   L_EXPR_OP_NOT,
   L_EXPR_OP_TYPE_CAST,
+  L_EXPR_OP_SELECT,
 };
 
 struct Expr : public Node {

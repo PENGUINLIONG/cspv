@@ -1,0 +1,28 @@
+{
+  Store($_0:i32, 0:i32)
+  Store($_1:i32, 2:i32)
+  if-then-else@_2 {
+    if !(Load(UniformBuffer@1,0[0:i32]:i32) == 0:i32) {
+      {
+        Store($_0:i32, 3:i32)
+        converge@_2
+      }
+    }
+  }
+  if-then-else@_3 {
+    if (Load(UniformBuffer@1,0[0:i32]:i32) == 9:i32) {
+      {
+        Store($_0:i32, 4:i32)
+        Store($_1:i32, 5:i32)
+        converge@_3
+      }
+    } else {
+      {
+        Store($_0:i32, 6:i32)
+        Store($_1:i32, 7:i32)
+        converge@_3
+      }
+    }
+  }
+  return
+}
