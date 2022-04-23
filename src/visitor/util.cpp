@@ -225,15 +225,6 @@ struct DebugPrintVisitor : public Visitor {
     s.pop_indent();
     s << "}" << std::endl;
   }
-  virtual void visit_stmt_(StmtConditionalRef x) override final {
-    s << "if ";
-    visit(x->cond);
-    s << " {" << std::endl;
-    s.push_indent();
-    visit(x->then_block);
-    s.pop_indent();
-    s << "}" << std::endl;
-  }
   virtual void visit_stmt_(StmtConditionalBranchRef x) override final {
     s << "if ";
     visit(x->cond);

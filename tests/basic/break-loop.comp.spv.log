@@ -6,11 +6,15 @@
         if-then-else@_2 {
           if (Load($_0:i32) == 7:i32) {
             continue@_1
+          } else {
+            converge@_2
           }
         }
         if-then-else@_3 {
           if (Load($_0:i32) == 9:i32) {
             break@_1
+          } else {
+            converge@_3
           }
         }
         continue@_1

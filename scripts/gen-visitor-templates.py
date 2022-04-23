@@ -679,12 +679,6 @@ novas = {
                     "stmts": "Stmt[]",
                 }
             },
-            "conditional": {
-                "fields": {
-                    "cond": "Expr",
-                    "then_block": "Stmt",
-                }
-            },
             "conditional_branch": {
                 "fields": {
                     "cond": "Expr",

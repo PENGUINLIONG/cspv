@@ -78,35 +78,10 @@ struct GraphNormalizationMutator : Mutator {
     }
   }
 
-  virtual StmtRef mutate_stmt_(StmtConditionalRef x) override final {
-    return Mutator::mutate_stmt_(x);
-  }
-
-  virtual StmtRef mutate_stmt_(StmtConditionalBranchRef x) override final {
-    x->cond = mutate_expr(x->cond);
-    x->then_block = mutate_stmt(x->then_block);
-    x->else_block = mutate_stmt(x->else_block);
-
-    if (x->then_block->is<StmtIfThenElseMerge>()) {
-      if (x->else_block->is<StmtIfThenElseMerge>()) {
-        return new StmtNop;
-      } else {
-        return new StmtConditional(new ExprNot(x->cond->ty, x->cond), x->else_block);
-      }
-    } else {
-      if (x->else_block->is<StmtIfThenElseMerge>()) {
-        return new StmtConditional(x->cond, x->then_block);
-      } else {
-        return x;
-      }
-    }
-  }
-
   virtual StmtRef mutate_stmt_(StmtIfThenElseRef x) override final {
     x->body_block = mutate_stmt(x->body_block);
 
     switch (x->body_block->op) {
-    case L_STMT_OP_CONDITIONAL:
     case L_STMT_OP_CONDITIONAL_BRANCH:
       return x;
     default: 

@@ -64,7 +64,6 @@ struct Visitor {
     switch (stmt->op) {
     case L_STMT_OP_NOP: visit_stmt_(stmt.as<StmtNop>()); break;
     case L_STMT_OP_BLOCK: visit_stmt_(stmt.as<StmtBlock>()); break;
-    case L_STMT_OP_CONDITIONAL: visit_stmt_(stmt.as<StmtConditional>()); break;
     case L_STMT_OP_CONDITIONAL_BRANCH: visit_stmt_(stmt.as<StmtConditionalBranch>()); break;
     case L_STMT_OP_IF_THEN_ELSE: visit_stmt_(stmt.as<StmtIfThenElse>()); break;
     case L_STMT_OP_LOOP: visit_stmt_(stmt.as<StmtLoop>()); break;
@@ -105,7 +104,6 @@ struct Visitor {
 
   virtual void visit_stmt_(StmtNopRef);
   virtual void visit_stmt_(StmtBlockRef);
-  virtual void visit_stmt_(StmtConditionalRef);
   virtual void visit_stmt_(StmtConditionalBranchRef);
   virtual void visit_stmt_(StmtIfThenElseRef);
   virtual void visit_stmt_(StmtLoopRef);
@@ -175,7 +173,6 @@ struct Mutator {
     switch (stmt->op) {
     case L_STMT_OP_NOP: return mutate_stmt_(stmt.as<StmtNop>());
     case L_STMT_OP_BLOCK: return mutate_stmt_(stmt.as<StmtBlock>());
-    case L_STMT_OP_CONDITIONAL: return mutate_stmt_(stmt.as<StmtConditional>());
     case L_STMT_OP_CONDITIONAL_BRANCH: return mutate_stmt_(stmt.as<StmtConditionalBranch>());
     case L_STMT_OP_IF_THEN_ELSE: return mutate_stmt_(stmt.as<StmtIfThenElse>());
     case L_STMT_OP_LOOP: return mutate_stmt_(stmt.as<StmtLoop>());
@@ -216,7 +213,6 @@ struct Mutator {
 
   virtual StmtRef mutate_stmt_(StmtNopRef);
   virtual StmtRef mutate_stmt_(StmtBlockRef);
-  virtual StmtRef mutate_stmt_(StmtConditionalRef);
   virtual StmtRef mutate_stmt_(StmtConditionalBranchRef);
   virtual StmtRef mutate_stmt_(StmtIfThenElseRef);
   virtual StmtRef mutate_stmt_(StmtLoopRef);

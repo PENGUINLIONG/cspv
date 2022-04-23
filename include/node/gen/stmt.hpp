@@ -30,25 +30,6 @@ struct StmtBlock : public Stmt {
   }
 };
 
-struct StmtConditional : public Stmt {
-  static const StmtOp OP = L_STMT_OP_CONDITIONAL;
-  NodeRef<Expr> cond;
-  NodeRef<Stmt> then_block;
-
-  inline StmtConditional(
-    const NodeRef<Expr>& cond,
-    const NodeRef<Stmt>& then_block
-  ) : Stmt(L_STMT_OP_CONDITIONAL), cond(cond), then_block(then_block) {
-    liong::assert(cond != nullptr);
-    liong::assert(then_block != nullptr);
-  }
-
-  virtual void collect_children(NodeDrain* drain) override final {
-    drain->push(cond);
-    drain->push(then_block);
-  }
-};
-
 struct StmtConditionalBranch : public Stmt {
   static const StmtOp OP = L_STMT_OP_CONDITIONAL_BRANCH;
   NodeRef<Expr> cond;
@@ -214,7 +195,6 @@ struct StmtStore : public Stmt {
 typedef NodeRef<Stmt> StmtRef;
 typedef NodeRef<StmtNop> StmtNopRef;
 typedef NodeRef<StmtBlock> StmtBlockRef;
-typedef NodeRef<StmtConditional> StmtConditionalRef;
 typedef NodeRef<StmtConditionalBranch> StmtConditionalBranchRef;
 typedef NodeRef<StmtIfThenElse> StmtIfThenElseRef;
 typedef NodeRef<StmtLoop> StmtLoopRef;

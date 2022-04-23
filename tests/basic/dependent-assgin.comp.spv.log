@@ -7,6 +7,8 @@
         Store($_0:i32, 3:i32)
         converge@_2
       }
+    } else {
+      converge@_2
     }
   }
   if-then-else@_3 {

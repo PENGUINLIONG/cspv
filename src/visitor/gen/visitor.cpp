@@ -69,9 +69,6 @@ void Visitor::visit_stmt_(StmtNopRef x) {
 void Visitor::visit_stmt_(StmtBlockRef x) {
   for (const auto& x : x->stmts) { visit_stmt(x); }
 }
-void Visitor::visit_stmt_(StmtConditionalRef x) {
-  visit_stmt(x->then_block);
-}
 void Visitor::visit_stmt_(StmtConditionalBranchRef x) {
   visit_stmt(x->then_block);
   visit_stmt(x->else_block);
@@ -189,11 +186,6 @@ StmtRef Mutator::mutate_stmt_(StmtNopRef x) {
 }
 StmtRef Mutator::mutate_stmt_(StmtBlockRef x) {
   for (auto& x : x->stmts) { x = mutate_stmt(x); }
-  return x.as<Stmt>();
-}
-StmtRef Mutator::mutate_stmt_(StmtConditionalRef x) {
-  x->cond = mutate_expr(x->cond);
-  x->then_block = mutate_stmt(x->then_block);
   return x.as<Stmt>();
 }
 StmtRef Mutator::mutate_stmt_(StmtConditionalBranchRef x) {
