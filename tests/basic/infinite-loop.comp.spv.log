@@ -1,5 +1,5 @@
 loop@_0 {
-  continue@_0
+  nop
 } continue@_0 {
-  back-edge@_0
+  nop
 }

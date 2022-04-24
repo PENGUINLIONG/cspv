@@ -8,10 +8,9 @@
         nop
       }
       Store($_0:i32, (Load($_0:i32) + 1:i32))
-      continue@_1
     }
   } continue@_1 {
-    back-edge@_1
+    nop
   }
   return
 }
