@@ -5,6 +5,7 @@
 #include "node/node.hpp"
 
 enum ExprOp {
+  L_EXPR_OP_PATTERN_CAPTURE,
   L_EXPR_OP_CONSTANT,
   L_EXPR_OP_LOAD,
   L_EXPR_OP_ADD,

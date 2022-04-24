@@ -4,6 +4,22 @@
 #pragma once
 #include "node/reg.hpp"
 
+struct ExprPatternCapture : public Expr {
+  static const ExprOp OP = L_EXPR_OP_PATTERN_CAPTURE;
+  NodeRef<Expr> captured;
+
+  inline ExprPatternCapture(
+    const NodeRef<Type>& ty,
+    const NodeRef<Expr>& captured
+  ) : Expr(L_EXPR_OP_PATTERN_CAPTURE, ty), captured(captured) {
+    liong::assert(captured != nullptr);
+  }
+
+  virtual void collect_children(NodeDrain* drain) const override final {
+    drain->push(captured);
+  }
+};
+
 struct ExprConstant : public Expr {
   static const ExprOp OP = L_EXPR_OP_CONSTANT;
   std::vector<uint32_t> lits;
@@ -171,6 +187,7 @@ struct ExprSelect : public Expr {
 };
 
 typedef NodeRef<Expr> ExprRef;
+typedef NodeRef<ExprPatternCapture> ExprPatternCaptureRef;
 typedef NodeRef<ExprConstant> ExprConstantRef;
 typedef NodeRef<ExprLoad> ExprLoadRef;
 typedef NodeRef<ExprAdd> ExprAddRef;

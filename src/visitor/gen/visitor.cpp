@@ -4,6 +4,9 @@
 #pragma once
 #include "visitor/gen/visitor.hpp"
 
+void Visitor::visit_mem_(MemoryPatternCaptureRef x) {
+  visit_mem(x->captured);
+}
 void Visitor::visit_mem_(MemoryFunctionVariableRef x) {
 }
 void Visitor::visit_mem_(MemoryIterationVariableRef x) {
@@ -17,6 +20,9 @@ void Visitor::visit_mem_(MemorySampledImageRef x) {
 void Visitor::visit_mem_(MemoryStorageImageRef x) {
 }
 
+void Visitor::visit_ty_(TypePatternCaptureRef x) {
+  visit_ty(x->captured);
+}
 void Visitor::visit_ty_(TypeVoidRef x) {
 }
 void Visitor::visit_ty_(TypeBoolRef x) {
@@ -32,6 +38,9 @@ void Visitor::visit_ty_(TypePointerRef x) {
   visit_ty(x->inner);
 }
 
+void Visitor::visit_expr_(ExprPatternCaptureRef x) {
+  visit_expr(x->captured);
+}
 void Visitor::visit_expr_(ExprConstantRef x) {
 }
 void Visitor::visit_expr_(ExprLoadRef x) {
@@ -64,6 +73,9 @@ void Visitor::visit_expr_(ExprSelectRef x) {
   visit_expr(x->b);
 }
 
+void Visitor::visit_stmt_(StmtPatternCaptureRef x) {
+  visit_stmt(x->captured);
+}
 void Visitor::visit_stmt_(StmtNopRef x) {
 }
 void Visitor::visit_stmt_(StmtBlockRef x) {
@@ -91,6 +103,10 @@ void Visitor::visit_stmt_(StmtRangedLoopRef x) {
 void Visitor::visit_stmt_(StmtStoreRef x) {
 }
 
+MemoryRef Mutator::mutate_mem_(MemoryPatternCaptureRef x) {
+  x->captured = mutate_mem(x->captured);
+  return x.as<Memory>();
+}
 MemoryRef Mutator::mutate_mem_(MemoryFunctionVariableRef x) {
   return x.as<Memory>();
 }
@@ -113,6 +129,10 @@ MemoryRef Mutator::mutate_mem_(MemoryStorageImageRef x) {
   return x.as<Memory>();
 }
 
+TypeRef Mutator::mutate_ty_(TypePatternCaptureRef x) {
+  x->captured = mutate_ty(x->captured);
+  return x.as<Type>();
+}
 TypeRef Mutator::mutate_ty_(TypeVoidRef x) {
   return x.as<Type>();
 }
@@ -134,6 +154,10 @@ TypeRef Mutator::mutate_ty_(TypePointerRef x) {
   return x.as<Type>();
 }
 
+ExprRef Mutator::mutate_expr_(ExprPatternCaptureRef x) {
+  x->captured = mutate_expr(x->captured);
+  return x.as<Expr>();
+}
 ExprRef Mutator::mutate_expr_(ExprConstantRef x) {
   return x.as<Expr>();
 }
@@ -176,6 +200,10 @@ ExprRef Mutator::mutate_expr_(ExprSelectRef x) {
   return x.as<Expr>();
 }
 
+StmtRef Mutator::mutate_stmt_(StmtPatternCaptureRef x) {
+  x->captured = mutate_stmt(x->captured);
+  return x.as<Stmt>();
+}
 StmtRef Mutator::mutate_stmt_(StmtNopRef x) {
   return x.as<Stmt>();
 }

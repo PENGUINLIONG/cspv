@@ -5,6 +5,7 @@
 #include "node/node.hpp"
 
 enum TypeClass {
+  L_TYPE_CLASS_PATTERN_CAPTURE,
   L_TYPE_CLASS_VOID,
   L_TYPE_CLASS_BOOL,
   L_TYPE_CLASS_INT,

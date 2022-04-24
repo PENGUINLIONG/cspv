@@ -4,6 +4,21 @@
 #pragma once
 #include "node/reg.hpp"
 
+struct TypePatternCapture : public Type {
+  static const TypeClass CLS = L_TYPE_CLASS_PATTERN_CAPTURE;
+  NodeRef<Type> captured;
+
+  inline TypePatternCapture(
+    const NodeRef<Type>& captured
+  ) : Type(L_TYPE_CLASS_PATTERN_CAPTURE), captured(captured) {
+    liong::assert(captured != nullptr);
+  }
+
+  virtual void collect_children(NodeDrain* drain) const override final {
+    drain->push(captured);
+  }
+};
+
 struct TypeVoid : public Type {
   static const TypeClass CLS = L_TYPE_CLASS_VOID;
 
@@ -85,6 +100,7 @@ struct TypePointer : public Type {
 };
 
 typedef NodeRef<Type> TypeRef;
+typedef NodeRef<TypePatternCapture> TypePatternCaptureRef;
 typedef NodeRef<TypeVoid> TypeVoidRef;
 typedef NodeRef<TypeBool> TypeBoolRef;
 typedef NodeRef<TypeInt> TypeIntRef;

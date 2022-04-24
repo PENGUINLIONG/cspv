@@ -4,6 +4,21 @@
 #pragma once
 #include "node/reg.hpp"
 
+struct StmtPatternCapture : public Stmt {
+  static const StmtOp OP = L_STMT_OP_PATTERN_CAPTURE;
+  NodeRef<Stmt> captured;
+
+  inline StmtPatternCapture(
+    const NodeRef<Stmt>& captured
+  ) : Stmt(L_STMT_OP_PATTERN_CAPTURE), captured(captured) {
+    liong::assert(captured != nullptr);
+  }
+
+  virtual void collect_children(NodeDrain* drain) const override final {
+    drain->push(captured);
+  }
+};
+
 struct StmtNop : public Stmt {
   static const StmtOp OP = L_STMT_OP_NOP;
 
@@ -163,6 +178,7 @@ struct StmtStore : public Stmt {
 };
 
 typedef NodeRef<Stmt> StmtRef;
+typedef NodeRef<StmtPatternCapture> StmtPatternCaptureRef;
 typedef NodeRef<StmtNop> StmtNopRef;
 typedef NodeRef<StmtBlock> StmtBlockRef;
 typedef NodeRef<StmtConditionalBranch> StmtConditionalBranchRef;

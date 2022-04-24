@@ -369,13 +369,73 @@ bool match_pattern(const NodeRef<Node>& pattern, const NodeRef<Node>& target) {
   }
   switch (pattern->nova) {
   case L_NODE_VARIANT_TYPE:
-    if (pattern.as<Type>()->cls != target.as<Type>()->cls) { return false; } else { break; }
+  {
+    auto pattern2 = pattern.as<Type>();
+    if (pattern2->cls == L_TYPE_CLASS_PATTERN_CAPTURE) {
+      auto pattern3 = pattern2.as<TypePatternCapture>();
+      if (pattern3->captured == nullptr) {
+        pattern3->captured = target.as<Type>();
+        return true;
+      } else {
+        return match_pattern(pattern3->captured, target);
+      }
+    } else if (pattern2->cls != target.as<Type>()->cls) {
+      return false;
+    } else {
+      break;
+    }
+  }
   case L_NODE_VARIANT_MEMORY:
-    if (pattern.as<Memory>()->cls != target.as<Memory>()->cls) { return false; } else { break; }
+  {
+    auto pattern2 = pattern.as<Memory>();
+    if (pattern2->cls == L_MEMORY_CLASS_PATTERN_CAPTURE) {
+      auto pattern3 = pattern2.as<MemoryPatternCapture>();
+      if (pattern3->captured == nullptr) {
+        pattern3->captured = target.as<Memory>();
+        return true;
+      } else {
+        return match_pattern(pattern3->captured, target);
+      }
+    } else if (pattern2->cls != target.as<Memory>()->cls) {
+      return false;
+    } else {
+      break;
+    }
+  }
   case L_NODE_VARIANT_EXPR:
-    if (pattern.as<Expr>()->op != target.as<Expr>()->op) { return false; } else { break; }
+  {
+    auto pattern2 = pattern.as<Expr>();
+    if (pattern2->op == L_EXPR_OP_PATTERN_CAPTURE) {
+      auto pattern3 = pattern2.as<ExprPatternCapture>();
+      if (pattern3->captured == nullptr) {
+        pattern3->captured = target.as<Expr>();
+        return true;
+      } else {
+        return match_pattern(pattern3->captured, target);
+      }
+    } else if (pattern2->op != target.as<Expr>()->op) {
+      return false;
+    } else {
+      break;
+    }
+  }
   case L_NODE_VARIANT_STMT:
-    if (pattern.as<Stmt>()->op != target.as<Stmt>()->op) { return false; } else { break; }
+  {
+    auto pattern2 = pattern.as<Stmt>();
+    if (pattern2->op == L_STMT_OP_PATTERN_CAPTURE) {
+      auto pattern3 = pattern2.as<StmtPatternCapture>();
+      if (pattern3->captured == nullptr) {
+        pattern3->captured = target.as<Stmt>();
+        return true;
+      } else {
+        return match_pattern(pattern3->captured, target);
+      }
+    } else if (pattern2->op != target.as<Stmt>()->op) {
+      return false;
+    } else {
+      break;
+    }
+  }
   default: liong::unreachable();
   }
 

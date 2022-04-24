@@ -426,7 +426,7 @@ def compose_hpp(novas: Dict[str, NodeVariant]):
             out += [
                 "  }",
                 "",
-                "  virtual void collect_children(NodeDrain* drain) override final {",
+                "  virtual void collect_children(NodeDrain* drain) const override final {",
             ]
             for field in subty.fields:
                 field_name = field.name.to_snake_case()
@@ -528,6 +528,11 @@ novas = {
             "ac": "Expr[]",
         },
         "variants": {
+            "pattern_capture": {
+                "fields": {
+                    "captured": "Memory",
+                }
+            },
             "function_variable": {
                 "fields": {
                     "handle": "std::shared_ptr<uint8_t>",
@@ -573,6 +578,11 @@ novas = {
         "enum_abbr": "cls",
         "fields": {},
         "variants": {
+            "pattern_capture": {
+                "fields": {
+                    "captured": "Type",
+                }
+            },
             "void": {
                 "fields": {}
             },
@@ -611,6 +621,11 @@ novas = {
             "ty": "Type",
         },
         "variants": {
+            "pattern_capture": {
+                "fields": {
+                    "captured": "Expr",
+                }
+            },
             "constant": {
                 "fields": {
                     "lits": "uint32_t[]",
@@ -671,6 +686,11 @@ novas = {
         "enum_abbr": "op",
         "fields": {},
         "variants": {
+            "pattern_capture": {
+                "fields": {
+                    "captured": "Stmt",
+                }
+            },
             "nop": {
                 "fields": {}
             },

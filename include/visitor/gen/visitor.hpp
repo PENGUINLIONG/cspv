@@ -26,6 +26,7 @@ struct Visitor {
 
   inline void visit_mem(const MemoryRef& mem) {
     switch (mem->cls) {
+    case L_MEMORY_CLASS_PATTERN_CAPTURE: visit_mem_(mem.as<MemoryPatternCapture>()); break;
     case L_MEMORY_CLASS_FUNCTION_VARIABLE: visit_mem_(mem.as<MemoryFunctionVariable>()); break;
     case L_MEMORY_CLASS_ITERATION_VARIABLE: visit_mem_(mem.as<MemoryIterationVariable>()); break;
     case L_MEMORY_CLASS_UNIFORM_BUFFER: visit_mem_(mem.as<MemoryUniformBuffer>()); break;
@@ -37,6 +38,7 @@ struct Visitor {
   }
   inline void visit_ty(const TypeRef& ty) {
     switch (ty->cls) {
+    case L_TYPE_CLASS_PATTERN_CAPTURE: visit_ty_(ty.as<TypePatternCapture>()); break;
     case L_TYPE_CLASS_VOID: visit_ty_(ty.as<TypeVoid>()); break;
     case L_TYPE_CLASS_BOOL: visit_ty_(ty.as<TypeBool>()); break;
     case L_TYPE_CLASS_INT: visit_ty_(ty.as<TypeInt>()); break;
@@ -48,6 +50,7 @@ struct Visitor {
   }
   inline void visit_expr(const ExprRef& expr) {
     switch (expr->op) {
+    case L_EXPR_OP_PATTERN_CAPTURE: visit_expr_(expr.as<ExprPatternCapture>()); break;
     case L_EXPR_OP_CONSTANT: visit_expr_(expr.as<ExprConstant>()); break;
     case L_EXPR_OP_LOAD: visit_expr_(expr.as<ExprLoad>()); break;
     case L_EXPR_OP_ADD: visit_expr_(expr.as<ExprAdd>()); break;
@@ -62,6 +65,7 @@ struct Visitor {
   }
   inline void visit_stmt(const StmtRef& stmt) {
     switch (stmt->op) {
+    case L_STMT_OP_PATTERN_CAPTURE: visit_stmt_(stmt.as<StmtPatternCapture>()); break;
     case L_STMT_OP_NOP: visit_stmt_(stmt.as<StmtNop>()); break;
     case L_STMT_OP_BLOCK: visit_stmt_(stmt.as<StmtBlock>()); break;
     case L_STMT_OP_CONDITIONAL_BRANCH: visit_stmt_(stmt.as<StmtConditionalBranch>()); break;
@@ -76,6 +80,7 @@ struct Visitor {
     }
   }
 
+  virtual void visit_mem_(MemoryPatternCaptureRef);
   virtual void visit_mem_(MemoryFunctionVariableRef);
   virtual void visit_mem_(MemoryIterationVariableRef);
   virtual void visit_mem_(MemoryUniformBufferRef);
@@ -83,6 +88,7 @@ struct Visitor {
   virtual void visit_mem_(MemorySampledImageRef);
   virtual void visit_mem_(MemoryStorageImageRef);
 
+  virtual void visit_ty_(TypePatternCaptureRef);
   virtual void visit_ty_(TypeVoidRef);
   virtual void visit_ty_(TypeBoolRef);
   virtual void visit_ty_(TypeIntRef);
@@ -90,6 +96,7 @@ struct Visitor {
   virtual void visit_ty_(TypeStructRef);
   virtual void visit_ty_(TypePointerRef);
 
+  virtual void visit_expr_(ExprPatternCaptureRef);
   virtual void visit_expr_(ExprConstantRef);
   virtual void visit_expr_(ExprLoadRef);
   virtual void visit_expr_(ExprAddRef);
@@ -100,6 +107,7 @@ struct Visitor {
   virtual void visit_expr_(ExprTypeCastRef);
   virtual void visit_expr_(ExprSelectRef);
 
+  virtual void visit_stmt_(StmtPatternCaptureRef);
   virtual void visit_stmt_(StmtNopRef);
   virtual void visit_stmt_(StmtBlockRef);
   virtual void visit_stmt_(StmtConditionalBranchRef);
@@ -131,6 +139,7 @@ struct Mutator {
 
   inline MemoryRef mutate_mem(const MemoryRef& mem) {
     switch (mem->cls) {
+    case L_MEMORY_CLASS_PATTERN_CAPTURE: return mutate_mem_(mem.as<MemoryPatternCapture>());
     case L_MEMORY_CLASS_FUNCTION_VARIABLE: return mutate_mem_(mem.as<MemoryFunctionVariable>());
     case L_MEMORY_CLASS_ITERATION_VARIABLE: return mutate_mem_(mem.as<MemoryIterationVariable>());
     case L_MEMORY_CLASS_UNIFORM_BUFFER: return mutate_mem_(mem.as<MemoryUniformBuffer>());
@@ -142,6 +151,7 @@ struct Mutator {
   }
   inline TypeRef mutate_ty(const TypeRef& ty) {
     switch (ty->cls) {
+    case L_TYPE_CLASS_PATTERN_CAPTURE: return mutate_ty_(ty.as<TypePatternCapture>());
     case L_TYPE_CLASS_VOID: return mutate_ty_(ty.as<TypeVoid>());
     case L_TYPE_CLASS_BOOL: return mutate_ty_(ty.as<TypeBool>());
     case L_TYPE_CLASS_INT: return mutate_ty_(ty.as<TypeInt>());
@@ -153,6 +163,7 @@ struct Mutator {
   }
   inline ExprRef mutate_expr(const ExprRef& expr) {
     switch (expr->op) {
+    case L_EXPR_OP_PATTERN_CAPTURE: return mutate_expr_(expr.as<ExprPatternCapture>());
     case L_EXPR_OP_CONSTANT: return mutate_expr_(expr.as<ExprConstant>());
     case L_EXPR_OP_LOAD: return mutate_expr_(expr.as<ExprLoad>());
     case L_EXPR_OP_ADD: return mutate_expr_(expr.as<ExprAdd>());
@@ -167,6 +178,7 @@ struct Mutator {
   }
   inline StmtRef mutate_stmt(const StmtRef& stmt) {
     switch (stmt->op) {
+    case L_STMT_OP_PATTERN_CAPTURE: return mutate_stmt_(stmt.as<StmtPatternCapture>());
     case L_STMT_OP_NOP: return mutate_stmt_(stmt.as<StmtNop>());
     case L_STMT_OP_BLOCK: return mutate_stmt_(stmt.as<StmtBlock>());
     case L_STMT_OP_CONDITIONAL_BRANCH: return mutate_stmt_(stmt.as<StmtConditionalBranch>());
@@ -181,6 +193,7 @@ struct Mutator {
     }
   }
 
+  virtual MemoryRef mutate_mem_(MemoryPatternCaptureRef);
   virtual MemoryRef mutate_mem_(MemoryFunctionVariableRef);
   virtual MemoryRef mutate_mem_(MemoryIterationVariableRef);
   virtual MemoryRef mutate_mem_(MemoryUniformBufferRef);
@@ -188,6 +201,7 @@ struct Mutator {
   virtual MemoryRef mutate_mem_(MemorySampledImageRef);
   virtual MemoryRef mutate_mem_(MemoryStorageImageRef);
 
+  virtual TypeRef mutate_ty_(TypePatternCaptureRef);
   virtual TypeRef mutate_ty_(TypeVoidRef);
   virtual TypeRef mutate_ty_(TypeBoolRef);
   virtual TypeRef mutate_ty_(TypeIntRef);
@@ -195,6 +209,7 @@ struct Mutator {
   virtual TypeRef mutate_ty_(TypeStructRef);
   virtual TypeRef mutate_ty_(TypePointerRef);
 
+  virtual ExprRef mutate_expr_(ExprPatternCaptureRef);
   virtual ExprRef mutate_expr_(ExprConstantRef);
   virtual ExprRef mutate_expr_(ExprLoadRef);
   virtual ExprRef mutate_expr_(ExprAddRef);
@@ -205,6 +220,7 @@ struct Mutator {
   virtual ExprRef mutate_expr_(ExprTypeCastRef);
   virtual ExprRef mutate_expr_(ExprSelectRef);
 
+  virtual StmtRef mutate_stmt_(StmtPatternCaptureRef);
   virtual StmtRef mutate_stmt_(StmtNopRef);
   virtual StmtRef mutate_stmt_(StmtBlockRef);
   virtual StmtRef mutate_stmt_(StmtConditionalBranchRef);

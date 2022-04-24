@@ -4,6 +4,23 @@
 #pragma once
 #include "node/reg.hpp"
 
+struct MemoryPatternCapture : public Memory {
+  static const MemoryClass CLS = L_MEMORY_CLASS_PATTERN_CAPTURE;
+  NodeRef<Memory> captured;
+
+  inline MemoryPatternCapture(
+    const NodeRef<Type>& ty,
+    const std::vector<NodeRef<Expr>>& ac,
+    const NodeRef<Memory>& captured
+  ) : Memory(L_MEMORY_CLASS_PATTERN_CAPTURE, ty, ac), captured(captured) {
+    liong::assert(captured != nullptr);
+  }
+
+  virtual void collect_children(NodeDrain* drain) const override final {
+    drain->push(captured);
+  }
+};
+
 struct MemoryFunctionVariable : public Memory {
   static const MemoryClass CLS = L_MEMORY_CLASS_FUNCTION_VARIABLE;
   std::shared_ptr<uint8_t> handle;
@@ -113,6 +130,7 @@ struct MemoryStorageImage : public Memory {
 };
 
 typedef NodeRef<Memory> MemoryRef;
+typedef NodeRef<MemoryPatternCapture> MemoryPatternCaptureRef;
 typedef NodeRef<MemoryFunctionVariable> MemoryFunctionVariableRef;
 typedef NodeRef<MemoryIterationVariable> MemoryIterationVariableRef;
 typedef NodeRef<MemoryUniformBuffer> MemoryUniformBufferRef;
