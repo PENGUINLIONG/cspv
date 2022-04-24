@@ -10,15 +10,6 @@ struct CtrlflowLinearizationMutator : public Mutator {
 
   std::shared_ptr<uint8_t> outer_loop_handle;
 
-  StmtRef& get_tail_stmt(StmtRef& stmt) {
-    if (stmt->is<StmtBlock>()) {
-      auto& block = stmt->as<StmtBlock>();
-      assert(!block.stmts.empty());
-      return get_tail_stmt((StmtRef&)block.stmts.back());
-    } else {
-      return stmt;
-    }
-  }
   virtual StmtRef mutate_stmt_(StmtConditionalBranchRef x) override final {
     ExprRef cond = mutate_expr(x->cond);
     StmtRef then_block = mutate_stmt(x->then_block);

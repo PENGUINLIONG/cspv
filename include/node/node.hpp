@@ -85,11 +85,6 @@ struct NodeDrain {
   inline void push(const NodeRef<U>& node) {
     nodes.emplace_back(node.as<Node>());
   }
-  inline NodeRef<Node>& pop() {
-    auto out = std::move(nodes.back());
-    nodes.pop_back();
-    return out;
-  }
 };
 
 struct Memory;

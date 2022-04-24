@@ -49,80 +49,43 @@ struct RangedLoopElevationMutator : public Mutator {
         mem_value_map.erase(it);
       }
     }
-    return x.as<Stmt>();
+    return x;
   }
   virtual StmtRef mutate_stmt_(StmtLoopRef x) override final {
-    std::map<MemoryRef, Candidate> candidates;
-    visit_stmt_functor<StmtStore>(
-      [this, &candidates](const StmtStoreRef& store) {
-        visit_expr_functor<ExprLoad>(
-          [this, &candidates, &store](const ExprLoadRef& load) {
-            bool load_store_func_vars =
-              load->src_ptr->is<MemoryFunctionVariable>() &&
-              store->dst_ptr->is<MemoryFunctionVariable>();
-            if (!load_store_func_vars) { return; }
+    x->body_block = mutate_stmt(x->body_block);
 
-            const auto& load_var = load->src_ptr->as<MemoryFunctionVariable>();
-            const auto& store_var = store->dst_ptr->as<MemoryFunctionVariable>();
-            if (load_var.handle != store_var.handle) { return; }
+    // Ranged loop has an only itervar mutated in the continue block.
+    if (!x->continue_block->is<StmtStore>()) { return x; }
+    auto store = x->continue_block->as<StmtStore>();
+    auto update_expr = store.value;
+    auto stride_expr = update_expr.as<ExprAdd>()->b;
 
-            if (!store->value->is<ExprAdd>()) { return; }
-            const auto& value_expr = store->value->as<ExprAdd>();
+    if (!store.dst_ptr->is<MemoryFunctionVariable>()) { return x; }
+    auto init_value = mem_value_map.find(store.dst_ptr);
+    if (init_value == mem_value_map.end()) { return x; }
+    auto begin_expr = init_value->second;
 
-            ExprRef stride_expr;
-            if (value_expr.a == load) {
-              stride_expr = value_expr.b;
-            } else if (value_expr.b == load) {
-              stride_expr = value_expr.a;
-            } else { return; }
+    x->continue_block = mutate_stmt(x->continue_block);
 
-            auto it = mem_value_map.find(load->src_ptr);
-            if (it == mem_value_map.end()) { return; }
+    auto& body_head = get_head_stmt(x->body_block);
+    if (!body_head->is<StmtConditionalBranch>()) { return x; }
+    auto branch = body_head->as<StmtConditionalBranch>();
+    // Match simple breaks.
+    if (!branch.then_block->is<StmtLoopMerge>() || !branch.else_block->is<StmtNop>()) { return x; }
+    auto cond = branch.cond;
+    auto end_expr = cond.as<ExprNot>()->a.as<ExprLt>()->b;
+    mem_value_map[store.dst_ptr] = end_expr;
 
-            Candidate candidate {};
-            candidate.func_var = load->src_ptr;
-            candidate.begin_expr = it->second;
-            candidate.stride_expr = std::move(stride_expr);
-            candidates.emplace(load->src_ptr, std::move(candidate));
+    MemoryRef itervar = new MemoryIterationVariable(
+      store.dst_ptr->ty, {}, begin_expr, end_expr, stride_expr);
+    StmtRef new_body = x->body_block->is<StmtBlock>() ?
+      StmtRef(new StmtBlock({ x->body_block.as<StmtBlock>()->stmts.begin() + 1, x->body_block.as<StmtBlock>()->stmts.end() })) :
+      StmtRef(new StmtNop);
 
-          }, store->value);
-      }, x->continue_block);
-
-    const auto& cond_branch = x->body_block->as<StmtConditionalBranch>();
-    if (cond_branch.else_block->is<StmtLoopMerge>()) {
-      switch (cond_branch.cond->op) {
-      case L_EXPR_OP_LT:
-      {
-        const auto& cond_expr = cond_branch.cond->as<ExprLt>();
-        if (!cond_expr.a->is<ExprLoad>()) { break; }
-
-        auto it = candidates.find(cond_expr.a->as<ExprLoad>().src_ptr);
-        if (it == candidates.end()) { break; }
-
-        auto& candidate = it->second;
-
-        auto begin_expr = candidate.begin_expr;
-        auto end_expr = cond_expr.b;
-        auto stride_expr = candidate.stride_expr;
-
-        auto itervar = MemoryRef(new MemoryIterationVariable(
-          candidate.func_var->ty, {}, begin_expr, end_expr, stride_expr));
-
-        itervar_map.emplace(candidate.func_var, itervar);
-        auto then_block = mutate(cond_branch.then_block);
-        itervar_map.erase(candidate.func_var);
-        mem_value_map[candidate.func_var] = end_expr;
-
-        return StmtRef(new StmtBlock({
-          new StmtRangedLoop(then_block, itervar),
-          new StmtStore(candidate.func_var, end_expr),
-        }));
-      }
-      default: break;
-      }
-    }
-
-    return Mutator::mutate_stmt_(x);
+    return StmtRef(new StmtBlock({
+      new StmtRangedLoop(new_body, itervar),
+      new StmtStore(store.dst_ptr, end_expr),
+    }));
   }
 
 };

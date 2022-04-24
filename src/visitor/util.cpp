@@ -336,3 +336,23 @@ StmtRef flatten_block(const StmtRef& x) {
   default: return new StmtBlock(std::move(stmts));
   }
 }
+
+StmtRef& get_head_stmt(StmtRef& stmt) {
+  if (stmt->is<StmtBlock>()) {
+    auto& block = stmt->as<StmtBlock>();
+    assert(!block.stmts.empty());
+    return get_tail_stmt((StmtRef&)block.stmts.front());
+  } else {
+    return stmt;
+  }
+}
+
+StmtRef& get_tail_stmt(StmtRef& stmt) {
+  if (stmt->is<StmtBlock>()) {
+    auto& block = stmt->as<StmtBlock>();
+    assert(!block.stmts.empty());
+    return get_tail_stmt((StmtRef&)block.stmts.back());
+  } else {
+    return stmt;
+  }
+}
