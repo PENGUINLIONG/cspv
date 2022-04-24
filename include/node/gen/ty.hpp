@@ -11,7 +11,7 @@ struct TypeVoid : public Type {
   ) : Type(L_TYPE_CLASS_VOID) {
   }
 
-  virtual void collect_children(NodeDrain* drain) override final {
+  virtual void collect_children(NodeDrain* drain) const override final {
   }
 };
 
@@ -22,7 +22,7 @@ struct TypeBool : public Type {
   ) : Type(L_TYPE_CLASS_BOOL) {
   }
 
-  virtual void collect_children(NodeDrain* drain) override final {
+  virtual void collect_children(NodeDrain* drain) const override final {
   }
 };
 
@@ -37,7 +37,7 @@ struct TypeInt : public Type {
   ) : Type(L_TYPE_CLASS_INT), nbit(nbit), is_signed(is_signed) {
   }
 
-  virtual void collect_children(NodeDrain* drain) override final {
+  virtual void collect_children(NodeDrain* drain) const override final {
   }
 };
 
@@ -50,7 +50,7 @@ struct TypeFloat : public Type {
   ) : Type(L_TYPE_CLASS_FLOAT), nbit(nbit) {
   }
 
-  virtual void collect_children(NodeDrain* drain) override final {
+  virtual void collect_children(NodeDrain* drain) const override final {
   }
 };
 
@@ -64,7 +64,7 @@ struct TypeStruct : public Type {
     for (const auto& x : members) { liong::assert(x != nullptr); }
   }
 
-  virtual void collect_children(NodeDrain* drain) override final {
+  virtual void collect_children(NodeDrain* drain) const override final {
     for (const auto& x : members) { drain->push(x); }
   }
 };
@@ -79,7 +79,7 @@ struct TypePointer : public Type {
     liong::assert(inner != nullptr);
   }
 
-  virtual void collect_children(NodeDrain* drain) override final {
+  virtual void collect_children(NodeDrain* drain) const override final {
     drain->push(inner);
   }
 };

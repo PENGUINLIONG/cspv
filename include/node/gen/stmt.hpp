@@ -11,7 +11,7 @@ struct StmtNop : public Stmt {
   ) : Stmt(L_STMT_OP_NOP) {
   }
 
-  virtual void collect_children(NodeDrain* drain) override final {
+  virtual void collect_children(NodeDrain* drain) const override final {
   }
 };
 
@@ -25,7 +25,7 @@ struct StmtBlock : public Stmt {
     for (const auto& x : stmts) { liong::assert(x != nullptr); }
   }
 
-  virtual void collect_children(NodeDrain* drain) override final {
+  virtual void collect_children(NodeDrain* drain) const override final {
     for (const auto& x : stmts) { drain->push(x); }
   }
 };
@@ -46,7 +46,7 @@ struct StmtConditionalBranch : public Stmt {
     liong::assert(else_block != nullptr);
   }
 
-  virtual void collect_children(NodeDrain* drain) override final {
+  virtual void collect_children(NodeDrain* drain) const override final {
     drain->push(cond);
     drain->push(then_block);
     drain->push(else_block);
@@ -68,7 +68,7 @@ struct StmtLoop : public Stmt {
     liong::assert(continue_block != nullptr);
   }
 
-  virtual void collect_children(NodeDrain* drain) override final {
+  virtual void collect_children(NodeDrain* drain) const override final {
     drain->push(body_block);
     drain->push(continue_block);
   }
@@ -81,7 +81,7 @@ struct StmtReturn : public Stmt {
   ) : Stmt(L_STMT_OP_RETURN) {
   }
 
-  virtual void collect_children(NodeDrain* drain) override final {
+  virtual void collect_children(NodeDrain* drain) const override final {
   }
 };
 
@@ -94,7 +94,7 @@ struct StmtLoopMerge : public Stmt {
   ) : Stmt(L_STMT_OP_LOOP_MERGE), handle(handle) {
   }
 
-  virtual void collect_children(NodeDrain* drain) override final {
+  virtual void collect_children(NodeDrain* drain) const override final {
   }
 };
 
@@ -107,7 +107,7 @@ struct StmtLoopContinue : public Stmt {
   ) : Stmt(L_STMT_OP_LOOP_CONTINUE), handle(handle) {
   }
 
-  virtual void collect_children(NodeDrain* drain) override final {
+  virtual void collect_children(NodeDrain* drain) const override final {
   }
 };
 
@@ -120,7 +120,7 @@ struct StmtLoopBackEdge : public Stmt {
   ) : Stmt(L_STMT_OP_LOOP_BACK_EDGE), handle(handle) {
   }
 
-  virtual void collect_children(NodeDrain* drain) override final {
+  virtual void collect_children(NodeDrain* drain) const override final {
   }
 };
 
@@ -137,7 +137,7 @@ struct StmtRangedLoop : public Stmt {
     liong::assert(itervar != nullptr);
   }
 
-  virtual void collect_children(NodeDrain* drain) override final {
+  virtual void collect_children(NodeDrain* drain) const override final {
     drain->push(body_block);
     drain->push(itervar);
   }
@@ -156,7 +156,7 @@ struct StmtStore : public Stmt {
     liong::assert(value != nullptr);
   }
 
-  virtual void collect_children(NodeDrain* drain) override final {
+  virtual void collect_children(NodeDrain* drain) const override final {
     drain->push(dst_ptr);
     drain->push(value);
   }

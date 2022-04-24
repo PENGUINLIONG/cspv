@@ -356,3 +356,39 @@ StmtRef& get_tail_stmt(StmtRef& stmt) {
     return stmt;
   }
 }
+
+std::vector<NodeRef<Node>> collect_children(const NodeRef<Node>& node) {
+  NodeDrain drain;
+  node->collect_children(&drain);
+  return drain.nodes;
+}
+
+bool match_pattern(const NodeRef<Node>& pattern, const NodeRef<Node>& target) {
+  if (pattern->nova != target->nova) {
+    return false;
+  }
+  switch (pattern->nova) {
+  case L_NODE_VARIANT_TYPE:
+    if (pattern.as<Type>()->cls != target.as<Type>()->cls) { return false; } else { break; }
+  case L_NODE_VARIANT_MEMORY:
+    if (pattern.as<Memory>()->cls != target.as<Memory>()->cls) { return false; } else { break; }
+  case L_NODE_VARIANT_EXPR:
+    if (pattern.as<Expr>()->op != target.as<Expr>()->op) { return false; } else { break; }
+  case L_NODE_VARIANT_STMT:
+    if (pattern.as<Stmt>()->op != target.as<Stmt>()->op) { return false; } else { break; }
+  default: liong::unreachable();
+  }
+
+  auto pattern_nodes = collect_children(pattern);
+  auto target_nodes = collect_children(target);
+  if (pattern_nodes.size() != target_nodes.size()) {
+    return false;
+  }
+  for (size_t i = 0; i < pattern_nodes.size(); ++i) {
+    if (!match_pattern(pattern_nodes[i], target_nodes[i])) {
+      return false;
+    }
+  }
+
+  return true;
+}
