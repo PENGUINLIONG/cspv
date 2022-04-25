@@ -41,6 +41,10 @@ void Visitor::visit_ty_(TypePointerRef x) {
 void Visitor::visit_expr_(ExprPatternCaptureRef x) {
   visit_expr(x->captured);
 }
+void Visitor::visit_expr_(ExprPatternBinaryOpRef x) {
+  visit_expr(x->a);
+  visit_expr(x->b);
+}
 void Visitor::visit_expr_(ExprConstantRef x) {
 }
 void Visitor::visit_expr_(ExprLoadRef x) {
@@ -75,6 +79,12 @@ void Visitor::visit_expr_(ExprSelectRef x) {
 
 void Visitor::visit_stmt_(StmtPatternCaptureRef x) {
   visit_stmt(x->captured);
+}
+void Visitor::visit_stmt_(StmtPatternHeadRef x) {
+  visit_stmt(x->inner);
+}
+void Visitor::visit_stmt_(StmtPatternTailRef x) {
+  visit_stmt(x->inner);
 }
 void Visitor::visit_stmt_(StmtNopRef x) {
 }
@@ -158,6 +168,11 @@ ExprRef Mutator::mutate_expr_(ExprPatternCaptureRef x) {
   x->captured = mutate_expr(x->captured);
   return x.as<Expr>();
 }
+ExprRef Mutator::mutate_expr_(ExprPatternBinaryOpRef x) {
+  x->a = mutate_expr(x->a);
+  x->b = mutate_expr(x->b);
+  return x.as<Expr>();
+}
 ExprRef Mutator::mutate_expr_(ExprConstantRef x) {
   return x.as<Expr>();
 }
@@ -202,6 +217,14 @@ ExprRef Mutator::mutate_expr_(ExprSelectRef x) {
 
 StmtRef Mutator::mutate_stmt_(StmtPatternCaptureRef x) {
   x->captured = mutate_stmt(x->captured);
+  return x.as<Stmt>();
+}
+StmtRef Mutator::mutate_stmt_(StmtPatternHeadRef x) {
+  x->inner = mutate_stmt(x->inner);
+  return x.as<Stmt>();
+}
+StmtRef Mutator::mutate_stmt_(StmtPatternTailRef x) {
+  x->inner = mutate_stmt(x->inner);
   return x.as<Stmt>();
 }
 StmtRef Mutator::mutate_stmt_(StmtNopRef x) {

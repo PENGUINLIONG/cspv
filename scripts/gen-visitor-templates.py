@@ -3,12 +3,16 @@ Generate visitor templates for tree-like types.
 @PENGUINLIONG
 """
 
+from collections import defaultdict
+from re import M
 from typing import Dict, List
 
 class Name:
     def __init__(self, s):
         """Input `s` is in snake case."""
         self.segs = s.split('_')
+    def __hash__(self):
+        return hash(self.to_snake_case())
     def to_spinal_case(self):
         return '-'.join(x.lower() for x in self.segs)
     def to_snake_case(self):
@@ -49,9 +53,11 @@ class NodeField:
         self.ty = ty
 
 class NodeSubtype:
-    def __init__(self, name, fields: List[NodeField]):
+    def __init__(self, name, fields: List[NodeField], categories: List[Name], is_default_constructable: bool):
         self.name = Name(name)
         self.fields = fields
+        self.categories = categories
+        self.is_default_constructable = is_default_constructable
 
 class NodeVariant:
     def __init__(self, formal_name, ty_name, ty_abbr, enum_name, enum_abbr, fields: List[NodeField], subtys: List[NodeSubtype]):
@@ -79,7 +85,9 @@ def json2nova(json) -> Dict[str, NodeVariant]:
         subtys = []
         for name, variant in variants.items():
             fields = [NodeField(name, NodeFieldType(ty)) for name, ty in variant["fields"].items()]
-            subtys += [NodeSubtype(name, fields)]
+            categories = [Name(x) for x in variant["categories"]] if "categories" in variant else []
+            is_default_constructable = "is_default_constructable" in variant and variant["is_default_constructable"]
+            subtys += [NodeSubtype(name, fields, categories, is_default_constructable)]
 
         out[formal_name] = NodeVariant(formal_name, ty_name, ty_abbr, enum_name, enum_abbr, common_fields, subtys)
     return out
@@ -383,6 +391,7 @@ def compose_hpp(novas: Dict[str, NodeVariant]):
         ty_name = nova.ty_name.to_pascal_case()
         enum_name = ty_name + nova.enum_name.to_pascal_case()
         enum_case_prefix = f"L_{nova.ty_name.to_screaming_snake_case()}_{nova.enum_name.to_screaming_snake_case()}_"
+        enum_abbr = nova.enum_abbr.to_snake_case()
 
         for subty in nova.subtys:
             subty_name = ty_name + subty.name.to_pascal_case()
@@ -425,9 +434,27 @@ def compose_hpp(novas: Dict[str, NodeVariant]):
                         out += [f"    liong::assert({field_name} != nullptr);"]
             out += [
                 "  }",
+            ]
+            if subty.is_default_constructable:
+                out += [
+                    f"  inline {subty_name}("
+                ]
+                out[-1] += ', '.join(f"{field.ty.param_ty} {field.name.to_snake_case()}" for field in nova.fields)
+                out[-1] += f") : {ty_name}({enum_case}"
+                for field in nova.fields:
+                    out[-1] += f", {field.name.to_snake_case()}"
+                out[-1] += ") {}"
+            out += [
                 "",
                 "  virtual void collect_children(NodeDrain* drain) const override final {",
             ]
+            for field in nova.fields:
+                field_name = field.name.to_snake_case()
+                if field.ty.is_ref_ty:
+                    if field.ty.is_plural:
+                        out += [f"    for (const auto& x : {field_name}) {{ drain->push(x); }}"]
+                    else:
+                        out += [f"    drain->push({field_name});"]
             for field in subty.fields:
                 field_name = field.name.to_snake_case()
                 if field.ty.is_ref_ty:
@@ -449,6 +476,27 @@ def compose_hpp(novas: Dict[str, NodeVariant]):
             out += [f"typedef NodeRef<{ty_prefix}{subty_prefix}> {ty_prefix}{subty_prefix}Ref;"]
         out += [""]
 
+        # Category identifier functions.
+        categories = defaultdict(set)
+        for subty in nova.subtys:
+            for category in subty.categories:
+                categories[category.to_snake_case()].add(subty)
+        
+        for category, category_members in sorted(categories.items(), key=lambda x: x[0]):
+            out += [
+                f"constexpr bool is_{nova.ty_abbr.to_snake_case()}_{category}({enum_name} {enum_abbr}) {{",
+                f"  switch ({enum_abbr}) {{",
+            ]
+            for category_member in category_members:
+                out += [
+                    f"  case {enum_case_prefix}{category_member.name.to_screaming_snake_case()}:"
+                ]
+            out += [
+                "    return true;",
+                "  default: return false;",
+                "  }",
+                "}",
+            ]
 
         with open(f"./include/node/gen/{nova.ty_abbr.to_spinal_case()}.hpp", "w") as f:
             f.write('\n'.join(out))
@@ -529,9 +577,10 @@ novas = {
         },
         "variants": {
             "pattern_capture": {
+                "is_default_constructable": True,
                 "fields": {
                     "captured": "Memory",
-                }
+                },
             },
             "function_variable": {
                 "fields": {
@@ -579,6 +628,7 @@ novas = {
         "fields": {},
         "variants": {
             "pattern_capture": {
+                "is_default_constructable": True,
                 "fields": {
                     "captured": "Type",
                 }
@@ -622,8 +672,17 @@ novas = {
         },
         "variants": {
             "pattern_capture": {
+                "is_default_constructable": True,
                 "fields": {
                     "captured": "Expr",
+                }
+            },
+            "pattern_binary_op": {
+                "is_default_constructable": True,
+                "fields": {
+                    "op": "std::shared_ptr<ExprOp>",
+                    "a": "Expr",
+                    "b": "Expr",
                 }
             },
             "constant": {
@@ -637,35 +696,41 @@ novas = {
                 }
             },
             "add": {
+                "categories": ["binary_op"],
                 "fields": {
                     "a": "Expr",
                     "b": "Expr",
                 }
             },
             "sub": {
+                "categories": ["binary_op"],
                 "fields": {
                     "a": "Expr",
                     "b": "Expr",
                 }
             },
             "lt": {
+                "categories": ["binary_op"],
                 "fields": {
                     "a": "Expr",
                     "b": "Expr",
                 }
             },
             "eq": {
+                "categories": ["binary_op"],
                 "fields": {
                     "a": "Expr",
                     "b": "Expr",
                 }
             },
             "not": {
+                "categories": ["unary_op"],
                 "fields": {
                     "a": "Expr",
                 }
             },
             "type_cast": {
+                "categories": ["unary_op"],
                 "fields": {
                     "src": "Expr",
                 }
@@ -687,8 +752,19 @@ novas = {
         "fields": {},
         "variants": {
             "pattern_capture": {
+                "is_default_constructable": True,
                 "fields": {
                     "captured": "Stmt",
+                }
+            },
+            "pattern_head": {
+                "fields": {
+                    "inner": "Stmt",
+                }
+            },
+            "pattern_tail": {
+                "fields": {
+                    "inner": "Stmt",
                 }
             },
             "nop": {

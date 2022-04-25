@@ -14,9 +14,35 @@ struct ExprPatternCapture : public Expr {
   ) : Expr(L_EXPR_OP_PATTERN_CAPTURE, ty), captured(captured) {
     liong::assert(captured != nullptr);
   }
+  inline ExprPatternCapture(const NodeRef<Type>& ty) : Expr(L_EXPR_OP_PATTERN_CAPTURE, ty) {}
 
   virtual void collect_children(NodeDrain* drain) const override final {
+    drain->push(ty);
     drain->push(captured);
+  }
+};
+
+struct ExprPatternBinaryOp : public Expr {
+  static const ExprOp OP = L_EXPR_OP_PATTERN_BINARY_OP;
+  std::shared_ptr<ExprOp> op;
+  NodeRef<Expr> a;
+  NodeRef<Expr> b;
+
+  inline ExprPatternBinaryOp(
+    const NodeRef<Type>& ty,
+    std::shared_ptr<ExprOp> op,
+    const NodeRef<Expr>& a,
+    const NodeRef<Expr>& b
+  ) : Expr(L_EXPR_OP_PATTERN_BINARY_OP, ty), op(op), a(a), b(b) {
+    liong::assert(a != nullptr);
+    liong::assert(b != nullptr);
+  }
+  inline ExprPatternBinaryOp(const NodeRef<Type>& ty) : Expr(L_EXPR_OP_PATTERN_BINARY_OP, ty) {}
+
+  virtual void collect_children(NodeDrain* drain) const override final {
+    drain->push(ty);
+    drain->push(a);
+    drain->push(b);
   }
 };
 
@@ -31,6 +57,7 @@ struct ExprConstant : public Expr {
   }
 
   virtual void collect_children(NodeDrain* drain) const override final {
+    drain->push(ty);
   }
 };
 
@@ -46,6 +73,7 @@ struct ExprLoad : public Expr {
   }
 
   virtual void collect_children(NodeDrain* drain) const override final {
+    drain->push(ty);
     drain->push(src_ptr);
   }
 };
@@ -65,6 +93,7 @@ struct ExprAdd : public Expr {
   }
 
   virtual void collect_children(NodeDrain* drain) const override final {
+    drain->push(ty);
     drain->push(a);
     drain->push(b);
   }
@@ -85,6 +114,7 @@ struct ExprSub : public Expr {
   }
 
   virtual void collect_children(NodeDrain* drain) const override final {
+    drain->push(ty);
     drain->push(a);
     drain->push(b);
   }
@@ -105,6 +135,7 @@ struct ExprLt : public Expr {
   }
 
   virtual void collect_children(NodeDrain* drain) const override final {
+    drain->push(ty);
     drain->push(a);
     drain->push(b);
   }
@@ -125,6 +156,7 @@ struct ExprEq : public Expr {
   }
 
   virtual void collect_children(NodeDrain* drain) const override final {
+    drain->push(ty);
     drain->push(a);
     drain->push(b);
   }
@@ -142,6 +174,7 @@ struct ExprNot : public Expr {
   }
 
   virtual void collect_children(NodeDrain* drain) const override final {
+    drain->push(ty);
     drain->push(a);
   }
 };
@@ -158,6 +191,7 @@ struct ExprTypeCast : public Expr {
   }
 
   virtual void collect_children(NodeDrain* drain) const override final {
+    drain->push(ty);
     drain->push(src);
   }
 };
@@ -180,6 +214,7 @@ struct ExprSelect : public Expr {
   }
 
   virtual void collect_children(NodeDrain* drain) const override final {
+    drain->push(ty);
     drain->push(cond);
     drain->push(a);
     drain->push(b);
@@ -188,6 +223,7 @@ struct ExprSelect : public Expr {
 
 typedef NodeRef<Expr> ExprRef;
 typedef NodeRef<ExprPatternCapture> ExprPatternCaptureRef;
+typedef NodeRef<ExprPatternBinaryOp> ExprPatternBinaryOpRef;
 typedef NodeRef<ExprConstant> ExprConstantRef;
 typedef NodeRef<ExprLoad> ExprLoadRef;
 typedef NodeRef<ExprAdd> ExprAddRef;
@@ -197,3 +233,22 @@ typedef NodeRef<ExprEq> ExprEqRef;
 typedef NodeRef<ExprNot> ExprNotRef;
 typedef NodeRef<ExprTypeCast> ExprTypeCastRef;
 typedef NodeRef<ExprSelect> ExprSelectRef;
+
+constexpr bool is_expr_binary_op(ExprOp op) {
+  switch (op) {
+  case L_EXPR_OP_LT:
+  case L_EXPR_OP_SUB:
+  case L_EXPR_OP_ADD:
+  case L_EXPR_OP_EQ:
+    return true;
+  default: return false;
+  }
+}
+constexpr bool is_expr_unary_op(ExprOp op) {
+  switch (op) {
+  case L_EXPR_OP_NOT:
+  case L_EXPR_OP_TYPE_CAST:
+    return true;
+  default: return false;
+  }
+}

@@ -13,6 +13,7 @@ struct TypePatternCapture : public Type {
   ) : Type(L_TYPE_CLASS_PATTERN_CAPTURE), captured(captured) {
     liong::assert(captured != nullptr);
   }
+  inline TypePatternCapture() : Type(L_TYPE_CLASS_PATTERN_CAPTURE) {}
 
   virtual void collect_children(NodeDrain* drain) const override final {
     drain->push(captured);

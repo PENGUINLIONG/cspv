@@ -13,9 +13,40 @@ struct StmtPatternCapture : public Stmt {
   ) : Stmt(L_STMT_OP_PATTERN_CAPTURE), captured(captured) {
     liong::assert(captured != nullptr);
   }
+  inline StmtPatternCapture() : Stmt(L_STMT_OP_PATTERN_CAPTURE) {}
 
   virtual void collect_children(NodeDrain* drain) const override final {
     drain->push(captured);
+  }
+};
+
+struct StmtPatternHead : public Stmt {
+  static const StmtOp OP = L_STMT_OP_PATTERN_HEAD;
+  NodeRef<Stmt> inner;
+
+  inline StmtPatternHead(
+    const NodeRef<Stmt>& inner
+  ) : Stmt(L_STMT_OP_PATTERN_HEAD), inner(inner) {
+    liong::assert(inner != nullptr);
+  }
+
+  virtual void collect_children(NodeDrain* drain) const override final {
+    drain->push(inner);
+  }
+};
+
+struct StmtPatternTail : public Stmt {
+  static const StmtOp OP = L_STMT_OP_PATTERN_TAIL;
+  NodeRef<Stmt> inner;
+
+  inline StmtPatternTail(
+    const NodeRef<Stmt>& inner
+  ) : Stmt(L_STMT_OP_PATTERN_TAIL), inner(inner) {
+    liong::assert(inner != nullptr);
+  }
+
+  virtual void collect_children(NodeDrain* drain) const override final {
+    drain->push(inner);
   }
 };
 
@@ -179,6 +210,8 @@ struct StmtStore : public Stmt {
 
 typedef NodeRef<Stmt> StmtRef;
 typedef NodeRef<StmtPatternCapture> StmtPatternCaptureRef;
+typedef NodeRef<StmtPatternHead> StmtPatternHeadRef;
+typedef NodeRef<StmtPatternTail> StmtPatternTailRef;
 typedef NodeRef<StmtNop> StmtNopRef;
 typedef NodeRef<StmtBlock> StmtBlockRef;
 typedef NodeRef<StmtConditionalBranch> StmtConditionalBranchRef;

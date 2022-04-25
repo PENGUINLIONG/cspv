@@ -413,6 +413,32 @@ bool match_pattern(const NodeRef<Node>& pattern, const NodeRef<Node>& target) {
       } else {
         return match_pattern(pattern3->captured, target);
       }
+    } else if (pattern2->op == L_EXPR_OP_PATTERN_BINARY_OP) {
+      auto pattern3 = pattern2.as<ExprPatternBinaryOp>();
+      auto target2 = target.as<Expr>();
+      auto operands = collect_children(target2);
+      bool out = true;
+      if (pattern3->op == nullptr) {
+        pattern3->op = std::make_shared<ExprOp>(target2->op);
+      } else {
+        out &= *pattern3->op == target2->op;
+      }
+      if (pattern3->ty == nullptr) {
+        pattern3->ty = operands[0];
+      } else {
+        out &= match_pattern(pattern3->ty, operands[0]);
+      }
+      if (pattern3->a == nullptr) {
+        pattern3->a = operands[1];
+      } else {
+        out &= match_pattern(pattern3->a, operands[1]);
+      }
+      if (pattern3->b == nullptr) {
+        pattern3->b = operands[1];
+      } else {
+        out &= match_pattern(pattern3->b, operands[2]);
+      }
+      return out;
     } else if (pattern2->op != target.as<Expr>()->op) {
       return false;
     } else {
@@ -422,6 +448,7 @@ bool match_pattern(const NodeRef<Node>& pattern, const NodeRef<Node>& target) {
   case L_NODE_VARIANT_STMT:
   {
     auto pattern2 = pattern.as<Stmt>();
+    auto target2 = target.as<Stmt>();
     if (pattern2->op == L_STMT_OP_PATTERN_CAPTURE) {
       auto pattern3 = pattern2.as<StmtPatternCapture>();
       if (pattern3->captured == nullptr) {
@@ -429,6 +456,20 @@ bool match_pattern(const NodeRef<Node>& pattern, const NodeRef<Node>& target) {
         return true;
       } else {
         return match_pattern(pattern3->captured, target);
+      }
+    } else if (pattern2->op == L_STMT_OP_PATTERN_HEAD) {
+      auto pattern3 = pattern2.as<StmtPatternHead>();
+      if (target2->is<StmtBlock>()) {
+        return match_pattern(pattern3->inner, target2->as<StmtBlock>().stmts.front().as<Node>());
+      } else {
+        return match_pattern(pattern3->inner, target2);
+      }
+    } else if (pattern2->op == L_STMT_OP_PATTERN_TAIL) {
+      auto pattern3 = pattern2.as<StmtPatternTail>();
+      if (target2->is<StmtBlock>()) {
+        return match_pattern(pattern3->inner, target2->as<StmtBlock>().stmts.back().as<Node>());
+      } else {
+        return match_pattern(pattern3->inner, target2);
       }
     } else if (pattern2->op != target.as<Stmt>()->op) {
       return false;

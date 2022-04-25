@@ -15,8 +15,11 @@ struct MemoryPatternCapture : public Memory {
   ) : Memory(L_MEMORY_CLASS_PATTERN_CAPTURE, ty, ac), captured(captured) {
     liong::assert(captured != nullptr);
   }
+  inline MemoryPatternCapture(const NodeRef<Type>& ty, const std::vector<NodeRef<Expr>>& ac) : Memory(L_MEMORY_CLASS_PATTERN_CAPTURE, ty, ac) {}
 
   virtual void collect_children(NodeDrain* drain) const override final {
+    drain->push(ty);
+    for (const auto& x : ac) { drain->push(x); }
     drain->push(captured);
   }
 };
@@ -33,6 +36,8 @@ struct MemoryFunctionVariable : public Memory {
   }
 
   virtual void collect_children(NodeDrain* drain) const override final {
+    drain->push(ty);
+    for (const auto& x : ac) { drain->push(x); }
   }
 };
 
@@ -55,6 +60,8 @@ struct MemoryIterationVariable : public Memory {
   }
 
   virtual void collect_children(NodeDrain* drain) const override final {
+    drain->push(ty);
+    for (const auto& x : ac) { drain->push(x); }
     drain->push(begin);
     drain->push(end);
     drain->push(stride);
@@ -75,6 +82,8 @@ struct MemoryUniformBuffer : public Memory {
   }
 
   virtual void collect_children(NodeDrain* drain) const override final {
+    drain->push(ty);
+    for (const auto& x : ac) { drain->push(x); }
   }
 };
 
@@ -92,6 +101,8 @@ struct MemoryStorageBuffer : public Memory {
   }
 
   virtual void collect_children(NodeDrain* drain) const override final {
+    drain->push(ty);
+    for (const auto& x : ac) { drain->push(x); }
   }
 };
 
@@ -109,6 +120,8 @@ struct MemorySampledImage : public Memory {
   }
 
   virtual void collect_children(NodeDrain* drain) const override final {
+    drain->push(ty);
+    for (const auto& x : ac) { drain->push(x); }
   }
 };
 
@@ -126,6 +139,8 @@ struct MemoryStorageImage : public Memory {
   }
 
   virtual void collect_children(NodeDrain* drain) const override final {
+    drain->push(ty);
+    for (const auto& x : ac) { drain->push(x); }
   }
 };
 

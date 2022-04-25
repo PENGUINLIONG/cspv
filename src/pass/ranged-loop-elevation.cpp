@@ -52,39 +52,65 @@ struct RangedLoopElevationMutator : public Mutator {
     return x;
   }
   virtual StmtRef mutate_stmt_(StmtLoopRef x) override final {
-    x->body_block = mutate_stmt(x->body_block);
 
     // Ranged loop has an only itervar mutated in the continue block.
-    if (!x->continue_block->is<StmtStore>()) { return x; }
-    auto store = x->continue_block->as<StmtStore>();
-    auto update_expr = store.value;
-    auto stride_expr = update_expr.as<ExprAdd>()->b;
+    TypePatternCaptureRef func_var_ty_pat = new TypePatternCapture;
+    MemoryPatternCaptureRef func_var_pat = new MemoryPatternCapture(func_var_ty_pat, {});
+    ExprPatternCaptureRef stride_pat = new ExprPatternCapture(func_var_ty_pat);
+    ExprPatternCaptureRef end_pat = new ExprPatternCapture(func_var_ty_pat);
 
-    if (!store.dst_ptr->is<MemoryFunctionVariable>()) { return x; }
-    auto init_value = mem_value_map.find(store.dst_ptr);
+    StmtRef update_pat = new StmtStore(
+      func_var_pat,
+      new ExprPatternBinaryOp(
+        func_var_ty_pat,
+        {},
+        new ExprLoad(func_var_ty_pat, func_var_pat),
+        stride_pat
+      )
+    );
+    StmtRef cond_pat = new StmtPatternHead(
+      new StmtConditionalBranch(
+        new ExprNot(
+          new TypeBool,
+          new ExprPatternBinaryOp(
+            new TypeBool,
+            {},
+            new ExprLoad(func_var_ty_pat, func_var_pat),
+            end_pat
+          )
+        ),
+        new StmtLoopMerge(x->handle),
+        new StmtNop
+      )
+    );
+
+    if (!match_pattern(update_pat, x->continue_block)) { return x; }
+
+    auto func_var = func_var_pat->captured;
+    if (!func_var->is<MemoryFunctionVariable>()) { return x; }
+    auto func_var_ty = func_var_ty_pat->captured;
+
+    auto init_value = mem_value_map.find(func_var);
     if (init_value == mem_value_map.end()) { return x; }
     auto begin_expr = init_value->second;
 
+    if (!match_pattern(cond_pat, x->body_block)) { return x; }
     x->continue_block = mutate_stmt(x->continue_block);
+    x->body_block = mutate_stmt(x->body_block);
 
-    auto& body_head = get_head_stmt(x->body_block);
-    if (!body_head->is<StmtConditionalBranch>()) { return x; }
-    auto branch = body_head->as<StmtConditionalBranch>();
-    // Match simple breaks.
-    if (!branch.then_block->is<StmtLoopMerge>() || !branch.else_block->is<StmtNop>()) { return x; }
-    auto cond = branch.cond;
-    auto end_expr = cond.as<ExprNot>()->a.as<ExprLt>()->b;
-    mem_value_map[store.dst_ptr] = end_expr;
+
+    auto stride_expr = stride_pat->captured;
+    auto end_expr = end_pat->captured;
 
     MemoryRef itervar = new MemoryIterationVariable(
-      store.dst_ptr->ty, {}, begin_expr, end_expr, stride_expr);
+      func_var_ty, {}, begin_expr, end_expr, stride_expr);
     StmtRef new_body = x->body_block->is<StmtBlock>() ?
       StmtRef(new StmtBlock({ x->body_block.as<StmtBlock>()->stmts.begin() + 1, x->body_block.as<StmtBlock>()->stmts.end() })) :
       StmtRef(new StmtNop);
 
     return StmtRef(new StmtBlock({
       new StmtRangedLoop(new_body, itervar),
-      new StmtStore(store.dst_ptr, end_expr),
+      new StmtStore(func_var, end_expr),
     }));
   }
 
