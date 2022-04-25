@@ -1,0 +1,19 @@
+#version 460
+
+layout(binding=1)
+uniform Uniform {
+    int x;
+} u;
+
+void main() {
+    int _0 = 1;
+    int _1 = 1 + 1;
+    int _2 = 1 + 1 + 1;
+    int _3 = 1 + (1 + 1);
+    int _4 = u.x + (1 + 1);
+    int _5 = 1 + (u.x + 1);
+    int _6 = 1 + (1 + u.x);
+    int _7 = 1 + (u.x + u.x);
+    int _8 = u.x + (1 + u.x);
+    int _9 = u.x + (u.x + u.x);
+}
