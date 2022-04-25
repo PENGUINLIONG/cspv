@@ -416,6 +416,8 @@ bool match_pattern(const NodeRef& pattern, const NodeRef& target) {
     } else if (pattern2->op == L_EXPR_OP_PATTERN_BINARY_OP) {
       auto pattern3 = pattern2.as<ExprPatternBinaryOp>();
       auto target2 = target.as<Expr>();
+      if (!is_expr_binary_op(target2->op)) { return false; }
+
       auto operands = collect_children(target2);
       bool out = true;
       if (pattern3->op == nullptr) {
@@ -437,6 +439,26 @@ bool match_pattern(const NodeRef& pattern, const NodeRef& target) {
         pattern3->b = operands[1];
       } else {
         out &= match_pattern(pattern3->b, operands[2]);
+      }
+      return out;
+    } else if (pattern2->op == L_EXPR_OP_CONSTANT) {
+      auto pattern3 = pattern2.as<ExprConstant>();
+      auto target2 = target.as<ExprConstant>();
+
+      if (target2->op != L_EXPR_OP_CONSTANT) {
+        return false;
+      }
+
+      bool out = true;
+      if (pattern3->ty == nullptr) {
+        pattern3->ty = target2->ty;
+        pattern3->lits = target2->lits;
+      } else {
+        out &= match_pattern(pattern3->ty, target2->ty);
+        out &= pattern3->lits.size() == target2->lits.size();
+        for (size_t i = 0; i < pattern3->lits.size(); ++i) {
+          out &= pattern3->lits.at(i) == target2->lits.at(i);
+        }
       }
       return out;
     } else if (pattern2->op != target.as<Expr>()->op) {
@@ -492,4 +514,42 @@ bool match_pattern(const NodeRef& pattern, const NodeRef& target) {
   }
 
   return true;
+}
+
+PredefinedType get_predefined_ty(const TypeRef& ty) {
+  switch (ty->cls) {
+  case L_TYPE_CLASS_BOOL:
+  {
+    return L_PREDEFINED_TYPE_BOOL;
+  }
+  case L_TYPE_CLASS_INT:
+  {
+    const auto& ty2 = ty->as<TypeInt>();
+    if (ty2.nbit == 32) {
+      if (ty2.is_signed) {
+        return L_PREDEFINED_TYPE_I32;
+      } else {
+        return L_PREDEFINED_TYPE_U32;
+      }
+    } else if (ty2.nbit == 64) {
+      if (ty2.is_signed) {
+        return L_PREDEFINED_TYPE_I64;
+      } else {
+        return L_PREDEFINED_TYPE_U64;
+      }
+    }
+    break;
+  }
+  case L_TYPE_CLASS_FLOAT:
+  {
+    const auto& ty2 = ty->as<TypeFloat>();
+    if (ty2.nbit == 32) {
+      return L_PREDEFINED_TYPE_F32;
+    } else if (ty2.nbit == 64) {
+      return L_PREDEFINED_TYPE_F64;
+    }
+    break;
+  }
+  }
+  return L_PREDEFINED_TYPE_UNDEFINED;
 }
