@@ -5,6 +5,9 @@
 #include <vector>
 #include "gft/assert.hpp"
 
+enum AttributeClass;
+struct Attribute;
+
 enum NodeVariant {
   L_NODE_VARIANT_MEMORY,
   L_NODE_VARIANT_TYPE,
@@ -13,7 +16,18 @@ enum NodeVariant {
 };
 struct Node {
   const NodeVariant nova;
+  std::map<AttributeClass, std::unique_ptr<Attribute>> attrs;
+
   inline Node(NodeVariant nova) : nova(nova) {}
+
+  template<typename TAttr>
+  void set_attr(TAttr&& attr) {
+    attrs.emplace(TAttr::CLS, std::make_unique<TAttr>(std::forward<TAttr>(attr)));
+  }
+  template<typename TAttr>
+  const TAttr& get_attr() const {
+    return *attrs.at(TAttr::CLS);
+  }
 
   virtual void collect_children(struct NodeDrain* drain) const {}
 };
