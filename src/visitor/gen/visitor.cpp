@@ -45,7 +45,11 @@ void Visitor::visit_expr_(ExprPatternBinaryOpRef x) {
   visit_expr(x->a);
   visit_expr(x->b);
 }
-void Visitor::visit_expr_(ExprConstantRef x) {
+void Visitor::visit_expr_(ExprBoolImmRef x) {
+}
+void Visitor::visit_expr_(ExprIntImmRef x) {
+}
+void Visitor::visit_expr_(ExprFloatImmRef x) {
 }
 void Visitor::visit_expr_(ExprLoadRef x) {
 }
@@ -54,6 +58,18 @@ void Visitor::visit_expr_(ExprAddRef x) {
   visit_expr(x->b);
 }
 void Visitor::visit_expr_(ExprSubRef x) {
+  visit_expr(x->a);
+  visit_expr(x->b);
+}
+void Visitor::visit_expr_(ExprMulRef x) {
+  visit_expr(x->a);
+  visit_expr(x->b);
+}
+void Visitor::visit_expr_(ExprDivRef x) {
+  visit_expr(x->a);
+  visit_expr(x->b);
+}
+void Visitor::visit_expr_(ExprModRef x) {
   visit_expr(x->a);
   visit_expr(x->b);
 }
@@ -173,7 +189,13 @@ ExprRef Mutator::mutate_expr_(ExprPatternBinaryOpRef x) {
   x->b = mutate_expr(x->b);
   return x.as<Expr>();
 }
-ExprRef Mutator::mutate_expr_(ExprConstantRef x) {
+ExprRef Mutator::mutate_expr_(ExprBoolImmRef x) {
+  return x.as<Expr>();
+}
+ExprRef Mutator::mutate_expr_(ExprIntImmRef x) {
+  return x.as<Expr>();
+}
+ExprRef Mutator::mutate_expr_(ExprFloatImmRef x) {
   return x.as<Expr>();
 }
 ExprRef Mutator::mutate_expr_(ExprLoadRef x) {
@@ -186,6 +208,21 @@ ExprRef Mutator::mutate_expr_(ExprAddRef x) {
   return x.as<Expr>();
 }
 ExprRef Mutator::mutate_expr_(ExprSubRef x) {
+  x->a = mutate_expr(x->a);
+  x->b = mutate_expr(x->b);
+  return x.as<Expr>();
+}
+ExprRef Mutator::mutate_expr_(ExprMulRef x) {
+  x->a = mutate_expr(x->a);
+  x->b = mutate_expr(x->b);
+  return x.as<Expr>();
+}
+ExprRef Mutator::mutate_expr_(ExprDivRef x) {
+  x->a = mutate_expr(x->a);
+  x->b = mutate_expr(x->b);
+  return x.as<Expr>();
+}
+ExprRef Mutator::mutate_expr_(ExprModRef x) {
   x->a = mutate_expr(x->a);
   x->b = mutate_expr(x->b);
   return x.as<Expr>();

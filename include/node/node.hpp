@@ -16,7 +16,7 @@ enum NodeVariant {
 };
 struct Node {
   const NodeVariant nova;
-  std::map<AttributeClass, std::unique_ptr<Attribute>> attrs;
+  //std::map<AttributeClass, std::unique_ptr<Attribute>> attrs;
 
   inline Node(NodeVariant nova) : nova(nova) {}
 

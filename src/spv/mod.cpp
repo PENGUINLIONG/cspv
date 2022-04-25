@@ -284,21 +284,55 @@ struct SpirvVisitor {
       while (e) {
         lits.emplace_back(e.read_u32());
       }
-      return ExprRef(new ExprConstant(ty, std::move(lits)));
+      if (ty->cls == L_TYPE_CLASS_INT) {
+        TypeIntRef ty2 = ty;
+        int64_t lit;
+        switch (ty2->nbit) {
+        case 32:
+        {
+          if (ty2->is_signed) {
+            lit = *(const int32_t*)lits.data();
+          } else {
+            lit = *(const uint32_t*)lits.data();
+          }
+          break;
+        }
+        case 64:
+        {
+          if (ty2->is_signed) {
+            lit = *(const int64_t*)lits.data();
+          } else {
+            uint64_t lit2 = *(const uint64_t*)lits.data();
+            assert(lit2 >> 63 == 0);
+            lit = lit2;
+          }
+          break;
+        }
+        default: unimplemented();
+        }
+        return ExprRef(new ExprIntImm(ty, lit));
+      } else if (ty->cls == L_TYPE_CLASS_FLOAT) {
+        TypeFloatRef ty2 = ty;
+        double lit;
+        switch (ty2->nbit) {
+        case 32: lit = *(const float*)lits.data();
+        case 64: lit = *(const double*)lits.data();
+        default: unimplemented();
+        }
+        return ExprRef(new ExprFloatImm(ty, lit));
+      } else {
+        unimplemented();
+      }
     }
     case spv::Op::OpConstantTrue:
     {
       auto ty = out.ty_map.at(instr.result_ty_id());
-      std::vector<uint32_t> lits;
-      lits.emplace_back(1);
-      return ExprRef(new ExprConstant(ty, std::move(lits)));
+      return ExprRef(new ExprBoolImm(ty, true));
     }
     case spv::Op::OpConstantFalse:
     {
       auto ty = out.ty_map.at(instr.result_ty_id());
-      std::vector<uint32_t> lits;
-      lits.emplace_back(0);
-      return ExprRef(new ExprConstant(ty, std::move(lits)));
+      return ExprRef(new ExprBoolImm(ty, false));
     }
     default: unimplemented();
     }

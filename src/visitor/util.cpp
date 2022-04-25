@@ -117,45 +117,14 @@ struct DebugPrintVisitor : public Visitor {
 
 
 
-  virtual void visit_expr_(ExprConstantRef x) override final {
-    switch (x->ty->cls) {
-    case L_TYPE_CLASS_INT:
-    {
-      const auto& ty2 = *(const TypeInt*)x->ty.get();
-      if (ty2.is_signed) {
-        if (ty2.nbit == 32) {
-          s << *(const int32_t*)&x->lits[0];
-        } else {
-          liong::unimplemented();
-        }
-      } else {
-        if (ty2.nbit == 32) {
-          s << *(const uint32_t*)&x->lits[0];
-        } else {
-          liong::unimplemented();
-        }
-      }
-      break;
-    }
-    case L_TYPE_CLASS_FLOAT:
-    {
-      const auto& ty2 = *(const TypeFloat*)x->ty.get();
-      if (ty2.nbit == 32) {
-        s << *(const float*)&x->lits[0];
-      } else {
-        liong::unimplemented();
-      }
-      break;
-    }
-    case L_TYPE_CLASS_BOOL:
-    {
-      s << (x->lits[0] != 0 ? "true" : "false");
-      break;
-    }
-    default: unimplemented();
-    }
-    s << ":";
-    visit(x->ty);
+  virtual void visit_expr_(ExprBoolImmRef x) override final {
+    s << (x->lit ? "true" : "false");
+  }
+  virtual void visit_expr_(ExprIntImmRef x) override final {
+    s << x->lit;
+  }
+  virtual void visit_expr_(ExprFloatImmRef x) override final {
+    s << x->lit;
   }
   virtual void visit_expr_(ExprLoadRef x) override final {
     s << "Load(";
@@ -441,24 +410,38 @@ bool match_pattern(const NodeRef& pattern, const NodeRef& target) {
         out &= match_pattern(pattern3->b, operands[2]);
       }
       return out;
-    } else if (pattern2->op == L_EXPR_OP_CONSTANT) {
-      auto pattern3 = pattern2.as<ExprConstant>();
-      auto target2 = target.as<ExprConstant>();
+    } else if (pattern2->op == L_EXPR_OP_INT_IMM) {
+      auto pattern3 = pattern2.as<ExprIntImm>();
+      auto target2 = target.as<ExprIntImm>();
 
-      if (target2->op != L_EXPR_OP_CONSTANT) {
+      if (target2->op != L_EXPR_OP_INT_IMM) {
         return false;
       }
 
       bool out = true;
       if (pattern3->ty == nullptr) {
         pattern3->ty = target2->ty;
-        pattern3->lits = target2->lits;
+        pattern3->lit = target2->lit;
       } else {
         out &= match_pattern(pattern3->ty, target2->ty);
-        out &= pattern3->lits.size() == target2->lits.size();
-        for (size_t i = 0; i < pattern3->lits.size(); ++i) {
-          out &= pattern3->lits.at(i) == target2->lits.at(i);
-        }
+        out &= pattern3->lit == target2->lit;
+      }
+      return out;
+    } else if (pattern2->op == L_EXPR_OP_FLOAT_IMM) {
+      auto pattern3 = pattern2.as<ExprFloatImm>();
+      auto target2 = target.as<ExprFloatImm>();
+
+      if (target2->op != L_EXPR_OP_FLOAT_IMM) {
+        return false;
+      }
+
+      bool out = true;
+      if (pattern3->ty == nullptr) {
+        pattern3->ty = target2->ty;
+        pattern3->lit = target2->lit;
+      } else {
+        out &= match_pattern(pattern3->ty, target2->ty);
+        out &= pattern3->lit == target2->lit;
       }
       return out;
     } else if (pattern2->op != target.as<Expr>()->op) {

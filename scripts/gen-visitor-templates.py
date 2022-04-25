@@ -684,9 +684,22 @@ novas = {
                     "b": "Expr",
                 }
             },
-            "constant": {
+            "bool_imm": {
+                "categories": ["constant"],
                 "fields": {
-                    "lits": "uint32_t[]",
+                    "lit": "bool",
+                }
+            },
+            "int_imm": {
+                "categories": ["constant"],
+                "fields": {
+                    "lit": "int64_t",
+                }
+            },
+            "float_imm": {
+                "categories": ["constant"],
+                "fields": {
+                    "lit": "double",
                 }
             },
             "load": {
@@ -702,6 +715,27 @@ novas = {
                 }
             },
             "sub": {
+                "categories": ["binary_op"],
+                "fields": {
+                    "a": "Expr",
+                    "b": "Expr",
+                }
+            },
+            "mul": {
+                "categories": ["binary_op"],
+                "fields": {
+                    "a": "Expr",
+                    "b": "Expr",
+                }
+            },
+            "div": {
+                "categories": ["binary_op"],
+                "fields": {
+                    "a": "Expr",
+                    "b": "Expr",
+                }
+            },
+            "mod": {
                 "categories": ["binary_op"],
                 "fields": {
                     "a": "Expr",

@@ -7,26 +7,38 @@
 #include "visitor/util.hpp"
 
 struct GraphNormalizationMutator : Mutator {
-  virtual ExprRef mutate_expr_(ExprAddRef x) override final {
-    if (x->a->is<ExprConstant>() && !x->b->is<ExprConstant>()) {
-      x->a = std::exchange(x->b, std::move(x->a));
-      return x.as<Expr>();
+  void prioritize_binary_op_var(ExprRef& a, ExprRef& b) {
+    auto a2 = mutate_expr(a);
+    auto b2 = mutate_expr(b);
+    if (is_expr_constant(a2->op) && !(is_expr_constant(b2->op))) {
+      a2 = std::exchange(b2, std::move(a2));
     }
-    return Mutator::mutate_expr_(x);
+    a = std::move(a2);
+    b = std::move(b2);
+  }
+  virtual ExprRef mutate_expr_(ExprAddRef x) override final {
+    prioritize_binary_op_var(x->a, x->b);
+    return x;
+  }
+  virtual ExprRef mutate_expr_(ExprMulRef x) override final {
+    prioritize_binary_op_var(x->a, x->b);
+    return x;
+  }
+  virtual ExprRef mutate_expr_(ExprDivRef x) override final {
+    prioritize_binary_op_var(x->a, x->b);
+    return x;
+  }
+  virtual ExprRef mutate_expr_(ExprModRef x) override final {
+    prioritize_binary_op_var(x->a, x->b);
+    return x;
   }
   virtual ExprRef mutate_expr_(ExprEqRef x) override final {
-    if (x->a->is<ExprConstant>() && !x->b->is<ExprConstant>()) {
-      x->a = std::exchange(x->b, std::move(x->a));
-      return x.as<Expr>();
-    }
-    return Mutator::mutate_expr_(x);
+    prioritize_binary_op_var(x->a, x->b);
+    return x;
   }
   virtual ExprRef mutate_expr_(ExprLtRef x) override final {
-    if (x->a->is<ExprConstant>() && !x->b->is<ExprConstant>()) {
-      x->a = std::exchange(x->b, std::move(x->a));
-      return x.as<Expr>();
-    }
-    return Mutator::mutate_expr_(x);
+    prioritize_binary_op_var(x->a, x->b);
+    return x;
   }
 
   virtual StmtRef mutate_stmt_(StmtBlockRef x) override final {

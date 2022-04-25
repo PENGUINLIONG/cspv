@@ -52,10 +52,15 @@ struct Visitor {
     switch (expr->op) {
     case L_EXPR_OP_PATTERN_CAPTURE: visit_expr_(expr.as<ExprPatternCapture>()); break;
     case L_EXPR_OP_PATTERN_BINARY_OP: visit_expr_(expr.as<ExprPatternBinaryOp>()); break;
-    case L_EXPR_OP_CONSTANT: visit_expr_(expr.as<ExprConstant>()); break;
+    case L_EXPR_OP_BOOL_IMM: visit_expr_(expr.as<ExprBoolImm>()); break;
+    case L_EXPR_OP_INT_IMM: visit_expr_(expr.as<ExprIntImm>()); break;
+    case L_EXPR_OP_FLOAT_IMM: visit_expr_(expr.as<ExprFloatImm>()); break;
     case L_EXPR_OP_LOAD: visit_expr_(expr.as<ExprLoad>()); break;
     case L_EXPR_OP_ADD: visit_expr_(expr.as<ExprAdd>()); break;
     case L_EXPR_OP_SUB: visit_expr_(expr.as<ExprSub>()); break;
+    case L_EXPR_OP_MUL: visit_expr_(expr.as<ExprMul>()); break;
+    case L_EXPR_OP_DIV: visit_expr_(expr.as<ExprDiv>()); break;
+    case L_EXPR_OP_MOD: visit_expr_(expr.as<ExprMod>()); break;
     case L_EXPR_OP_LT: visit_expr_(expr.as<ExprLt>()); break;
     case L_EXPR_OP_EQ: visit_expr_(expr.as<ExprEq>()); break;
     case L_EXPR_OP_NOT: visit_expr_(expr.as<ExprNot>()); break;
@@ -101,10 +106,15 @@ struct Visitor {
 
   virtual void visit_expr_(ExprPatternCaptureRef);
   virtual void visit_expr_(ExprPatternBinaryOpRef);
-  virtual void visit_expr_(ExprConstantRef);
+  virtual void visit_expr_(ExprBoolImmRef);
+  virtual void visit_expr_(ExprIntImmRef);
+  virtual void visit_expr_(ExprFloatImmRef);
   virtual void visit_expr_(ExprLoadRef);
   virtual void visit_expr_(ExprAddRef);
   virtual void visit_expr_(ExprSubRef);
+  virtual void visit_expr_(ExprMulRef);
+  virtual void visit_expr_(ExprDivRef);
+  virtual void visit_expr_(ExprModRef);
   virtual void visit_expr_(ExprLtRef);
   virtual void visit_expr_(ExprEqRef);
   virtual void visit_expr_(ExprNotRef);
@@ -171,10 +181,15 @@ struct Mutator {
     switch (expr->op) {
     case L_EXPR_OP_PATTERN_CAPTURE: return mutate_expr_(expr.as<ExprPatternCapture>());
     case L_EXPR_OP_PATTERN_BINARY_OP: return mutate_expr_(expr.as<ExprPatternBinaryOp>());
-    case L_EXPR_OP_CONSTANT: return mutate_expr_(expr.as<ExprConstant>());
+    case L_EXPR_OP_BOOL_IMM: return mutate_expr_(expr.as<ExprBoolImm>());
+    case L_EXPR_OP_INT_IMM: return mutate_expr_(expr.as<ExprIntImm>());
+    case L_EXPR_OP_FLOAT_IMM: return mutate_expr_(expr.as<ExprFloatImm>());
     case L_EXPR_OP_LOAD: return mutate_expr_(expr.as<ExprLoad>());
     case L_EXPR_OP_ADD: return mutate_expr_(expr.as<ExprAdd>());
     case L_EXPR_OP_SUB: return mutate_expr_(expr.as<ExprSub>());
+    case L_EXPR_OP_MUL: return mutate_expr_(expr.as<ExprMul>());
+    case L_EXPR_OP_DIV: return mutate_expr_(expr.as<ExprDiv>());
+    case L_EXPR_OP_MOD: return mutate_expr_(expr.as<ExprMod>());
     case L_EXPR_OP_LT: return mutate_expr_(expr.as<ExprLt>());
     case L_EXPR_OP_EQ: return mutate_expr_(expr.as<ExprEq>());
     case L_EXPR_OP_NOT: return mutate_expr_(expr.as<ExprNot>());
@@ -220,10 +235,15 @@ struct Mutator {
 
   virtual ExprRef mutate_expr_(ExprPatternCaptureRef);
   virtual ExprRef mutate_expr_(ExprPatternBinaryOpRef);
-  virtual ExprRef mutate_expr_(ExprConstantRef);
+  virtual ExprRef mutate_expr_(ExprBoolImmRef);
+  virtual ExprRef mutate_expr_(ExprIntImmRef);
+  virtual ExprRef mutate_expr_(ExprFloatImmRef);
   virtual ExprRef mutate_expr_(ExprLoadRef);
   virtual ExprRef mutate_expr_(ExprAddRef);
   virtual ExprRef mutate_expr_(ExprSubRef);
+  virtual ExprRef mutate_expr_(ExprMulRef);
+  virtual ExprRef mutate_expr_(ExprDivRef);
+  virtual ExprRef mutate_expr_(ExprModRef);
   virtual ExprRef mutate_expr_(ExprLtRef);
   virtual ExprRef mutate_expr_(ExprEqRef);
   virtual ExprRef mutate_expr_(ExprNotRef);

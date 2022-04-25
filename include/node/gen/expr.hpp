@@ -6,10 +6,15 @@
 
 typedef Reference<struct ExprPatternCapture> ExprPatternCaptureRef;
 typedef Reference<struct ExprPatternBinaryOp> ExprPatternBinaryOpRef;
-typedef Reference<struct ExprConstant> ExprConstantRef;
+typedef Reference<struct ExprBoolImm> ExprBoolImmRef;
+typedef Reference<struct ExprIntImm> ExprIntImmRef;
+typedef Reference<struct ExprFloatImm> ExprFloatImmRef;
 typedef Reference<struct ExprLoad> ExprLoadRef;
 typedef Reference<struct ExprAdd> ExprAddRef;
 typedef Reference<struct ExprSub> ExprSubRef;
+typedef Reference<struct ExprMul> ExprMulRef;
+typedef Reference<struct ExprDiv> ExprDivRef;
+typedef Reference<struct ExprMod> ExprModRef;
 typedef Reference<struct ExprLt> ExprLtRef;
 typedef Reference<struct ExprEq> ExprEqRef;
 typedef Reference<struct ExprNot> ExprNotRef;
@@ -58,14 +63,44 @@ struct ExprPatternBinaryOp : public Expr {
   }
 };
 
-struct ExprConstant : public Expr {
-  static const ExprOp OP = L_EXPR_OP_CONSTANT;
-  std::vector<uint32_t> lits;
+struct ExprBoolImm : public Expr {
+  static const ExprOp OP = L_EXPR_OP_BOOL_IMM;
+  bool lit;
 
-  inline ExprConstant(
+  inline ExprBoolImm(
     const TypeRef& ty,
-    std::vector<uint32_t> lits
-  ) : Expr(L_EXPR_OP_CONSTANT, ty), lits(lits) {
+    bool lit
+  ) : Expr(L_EXPR_OP_BOOL_IMM, ty), lit(lit) {
+  }
+
+  virtual void collect_children(NodeDrain* drain) const override final {
+    drain->push(ty);
+  }
+};
+
+struct ExprIntImm : public Expr {
+  static const ExprOp OP = L_EXPR_OP_INT_IMM;
+  int64_t lit;
+
+  inline ExprIntImm(
+    const TypeRef& ty,
+    int64_t lit
+  ) : Expr(L_EXPR_OP_INT_IMM, ty), lit(lit) {
+  }
+
+  virtual void collect_children(NodeDrain* drain) const override final {
+    drain->push(ty);
+  }
+};
+
+struct ExprFloatImm : public Expr {
+  static const ExprOp OP = L_EXPR_OP_FLOAT_IMM;
+  double lit;
+
+  inline ExprFloatImm(
+    const TypeRef& ty,
+    double lit
+  ) : Expr(L_EXPR_OP_FLOAT_IMM, ty), lit(lit) {
   }
 
   virtual void collect_children(NodeDrain* drain) const override final {
@@ -121,6 +156,69 @@ struct ExprSub : public Expr {
     const ExprRef& a,
     const ExprRef& b
   ) : Expr(L_EXPR_OP_SUB, ty), a(a), b(b) {
+    liong::assert(a != nullptr);
+    liong::assert(b != nullptr);
+  }
+
+  virtual void collect_children(NodeDrain* drain) const override final {
+    drain->push(ty);
+    drain->push(a);
+    drain->push(b);
+  }
+};
+
+struct ExprMul : public Expr {
+  static const ExprOp OP = L_EXPR_OP_MUL;
+  ExprRef a;
+  ExprRef b;
+
+  inline ExprMul(
+    const TypeRef& ty,
+    const ExprRef& a,
+    const ExprRef& b
+  ) : Expr(L_EXPR_OP_MUL, ty), a(a), b(b) {
+    liong::assert(a != nullptr);
+    liong::assert(b != nullptr);
+  }
+
+  virtual void collect_children(NodeDrain* drain) const override final {
+    drain->push(ty);
+    drain->push(a);
+    drain->push(b);
+  }
+};
+
+struct ExprDiv : public Expr {
+  static const ExprOp OP = L_EXPR_OP_DIV;
+  ExprRef a;
+  ExprRef b;
+
+  inline ExprDiv(
+    const TypeRef& ty,
+    const ExprRef& a,
+    const ExprRef& b
+  ) : Expr(L_EXPR_OP_DIV, ty), a(a), b(b) {
+    liong::assert(a != nullptr);
+    liong::assert(b != nullptr);
+  }
+
+  virtual void collect_children(NodeDrain* drain) const override final {
+    drain->push(ty);
+    drain->push(a);
+    drain->push(b);
+  }
+};
+
+struct ExprMod : public Expr {
+  static const ExprOp OP = L_EXPR_OP_MOD;
+  ExprRef a;
+  ExprRef b;
+
+  inline ExprMod(
+    const TypeRef& ty,
+    const ExprRef& a,
+    const ExprRef& b
+  ) : Expr(L_EXPR_OP_MOD, ty), a(a), b(b) {
     liong::assert(a != nullptr);
     liong::assert(b != nullptr);
   }
@@ -237,16 +335,28 @@ constexpr bool is_expr_binary_op(ExprOp op) {
   switch (op) {
   case L_EXPR_OP_LT:
   case L_EXPR_OP_SUB:
+  case L_EXPR_OP_MOD:
   case L_EXPR_OP_ADD:
+  case L_EXPR_OP_DIV:
   case L_EXPR_OP_EQ:
+  case L_EXPR_OP_MUL:
+    return true;
+  default: return false;
+  }
+}
+constexpr bool is_expr_constant(ExprOp op) {
+  switch (op) {
+  case L_EXPR_OP_FLOAT_IMM:
+  case L_EXPR_OP_BOOL_IMM:
+  case L_EXPR_OP_INT_IMM:
     return true;
   default: return false;
   }
 }
 constexpr bool is_expr_unary_op(ExprOp op) {
   switch (op) {
-  case L_EXPR_OP_NOT:
   case L_EXPR_OP_TYPE_CAST:
+  case L_EXPR_OP_NOT:
     return true;
   default: return false;
   }
