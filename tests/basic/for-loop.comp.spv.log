@@ -1,10 +1,10 @@
 {
-  Store($_0:i32, 0:i32)
+  Store($_0:i32, 0)
   {
-    for IterVar(0:i32,Load(UniformBuffer@1,0[0:i32]:i32),1:i32):i32 {
+    for IterVar(0,Load(UniformBuffer@1,0[0]:i32),1):i32 {
       nop
     }
-    Store($_0:i32, Load(UniformBuffer@1,0[0:i32]:i32))
+    Store($_0:i32, Load(UniformBuffer@1,0[0]:i32))
   }
   return
 }

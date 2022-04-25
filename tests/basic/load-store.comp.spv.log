@@ -1,5 +1,5 @@
 {
-  Store($_0:i32, 0:i32)
-  Store($_0:i32, (Load($_0:i32) + 1:i32))
+  Store($_0:i32, 0)
+  Store($_0:i32, (Load($_0:i32) + 1))
   return
 }
