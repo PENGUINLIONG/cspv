@@ -87,7 +87,7 @@ void guarded_main() {
   std::vector<uint32_t> spv = load_spv(CFG.in_file_path.c_str());
   SpirvAbstract abstr = scan_spirv(spv);
   SpirvModule mod = parse_spirv_module(std::move(abstr));
-  NodeRef<Node> entry_point = extract_entry_points(mod)[CFG.entry_name];
+  NodeRef entry_point = extract_entry_points(mod)[CFG.entry_name];
 
   // Apply passes, if any.
   for (auto& pass : CFG.passes) {

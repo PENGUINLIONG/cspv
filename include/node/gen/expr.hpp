@@ -4,17 +4,29 @@
 #pragma once
 #include "node/reg.hpp"
 
+typedef Reference<struct ExprPatternCapture> ExprPatternCaptureRef;
+typedef Reference<struct ExprPatternBinaryOp> ExprPatternBinaryOpRef;
+typedef Reference<struct ExprConstant> ExprConstantRef;
+typedef Reference<struct ExprLoad> ExprLoadRef;
+typedef Reference<struct ExprAdd> ExprAddRef;
+typedef Reference<struct ExprSub> ExprSubRef;
+typedef Reference<struct ExprLt> ExprLtRef;
+typedef Reference<struct ExprEq> ExprEqRef;
+typedef Reference<struct ExprNot> ExprNotRef;
+typedef Reference<struct ExprTypeCast> ExprTypeCastRef;
+typedef Reference<struct ExprSelect> ExprSelectRef;
+
 struct ExprPatternCapture : public Expr {
   static const ExprOp OP = L_EXPR_OP_PATTERN_CAPTURE;
-  NodeRef<Expr> captured;
+  ExprRef captured;
 
   inline ExprPatternCapture(
-    const NodeRef<Type>& ty,
-    const NodeRef<Expr>& captured
+    const TypeRef& ty,
+    const ExprRef& captured
   ) : Expr(L_EXPR_OP_PATTERN_CAPTURE, ty), captured(captured) {
     liong::assert(captured != nullptr);
   }
-  inline ExprPatternCapture(const NodeRef<Type>& ty) : Expr(L_EXPR_OP_PATTERN_CAPTURE, ty) {}
+  inline ExprPatternCapture(const TypeRef& ty) : Expr(L_EXPR_OP_PATTERN_CAPTURE, ty) {}
 
   virtual void collect_children(NodeDrain* drain) const override final {
     drain->push(ty);
@@ -25,19 +37,19 @@ struct ExprPatternCapture : public Expr {
 struct ExprPatternBinaryOp : public Expr {
   static const ExprOp OP = L_EXPR_OP_PATTERN_BINARY_OP;
   std::shared_ptr<ExprOp> op;
-  NodeRef<Expr> a;
-  NodeRef<Expr> b;
+  ExprRef a;
+  ExprRef b;
 
   inline ExprPatternBinaryOp(
-    const NodeRef<Type>& ty,
+    const TypeRef& ty,
     std::shared_ptr<ExprOp> op,
-    const NodeRef<Expr>& a,
-    const NodeRef<Expr>& b
+    const ExprRef& a,
+    const ExprRef& b
   ) : Expr(L_EXPR_OP_PATTERN_BINARY_OP, ty), op(op), a(a), b(b) {
     liong::assert(a != nullptr);
     liong::assert(b != nullptr);
   }
-  inline ExprPatternBinaryOp(const NodeRef<Type>& ty) : Expr(L_EXPR_OP_PATTERN_BINARY_OP, ty) {}
+  inline ExprPatternBinaryOp(const TypeRef& ty) : Expr(L_EXPR_OP_PATTERN_BINARY_OP, ty) {}
 
   virtual void collect_children(NodeDrain* drain) const override final {
     drain->push(ty);
@@ -51,7 +63,7 @@ struct ExprConstant : public Expr {
   std::vector<uint32_t> lits;
 
   inline ExprConstant(
-    const NodeRef<Type>& ty,
+    const TypeRef& ty,
     std::vector<uint32_t> lits
   ) : Expr(L_EXPR_OP_CONSTANT, ty), lits(lits) {
   }
@@ -63,11 +75,11 @@ struct ExprConstant : public Expr {
 
 struct ExprLoad : public Expr {
   static const ExprOp OP = L_EXPR_OP_LOAD;
-  NodeRef<Memory> src_ptr;
+  MemoryRef src_ptr;
 
   inline ExprLoad(
-    const NodeRef<Type>& ty,
-    const NodeRef<Memory>& src_ptr
+    const TypeRef& ty,
+    const MemoryRef& src_ptr
   ) : Expr(L_EXPR_OP_LOAD, ty), src_ptr(src_ptr) {
     liong::assert(src_ptr != nullptr);
   }
@@ -80,13 +92,13 @@ struct ExprLoad : public Expr {
 
 struct ExprAdd : public Expr {
   static const ExprOp OP = L_EXPR_OP_ADD;
-  NodeRef<Expr> a;
-  NodeRef<Expr> b;
+  ExprRef a;
+  ExprRef b;
 
   inline ExprAdd(
-    const NodeRef<Type>& ty,
-    const NodeRef<Expr>& a,
-    const NodeRef<Expr>& b
+    const TypeRef& ty,
+    const ExprRef& a,
+    const ExprRef& b
   ) : Expr(L_EXPR_OP_ADD, ty), a(a), b(b) {
     liong::assert(a != nullptr);
     liong::assert(b != nullptr);
@@ -101,13 +113,13 @@ struct ExprAdd : public Expr {
 
 struct ExprSub : public Expr {
   static const ExprOp OP = L_EXPR_OP_SUB;
-  NodeRef<Expr> a;
-  NodeRef<Expr> b;
+  ExprRef a;
+  ExprRef b;
 
   inline ExprSub(
-    const NodeRef<Type>& ty,
-    const NodeRef<Expr>& a,
-    const NodeRef<Expr>& b
+    const TypeRef& ty,
+    const ExprRef& a,
+    const ExprRef& b
   ) : Expr(L_EXPR_OP_SUB, ty), a(a), b(b) {
     liong::assert(a != nullptr);
     liong::assert(b != nullptr);
@@ -122,13 +134,13 @@ struct ExprSub : public Expr {
 
 struct ExprLt : public Expr {
   static const ExprOp OP = L_EXPR_OP_LT;
-  NodeRef<Expr> a;
-  NodeRef<Expr> b;
+  ExprRef a;
+  ExprRef b;
 
   inline ExprLt(
-    const NodeRef<Type>& ty,
-    const NodeRef<Expr>& a,
-    const NodeRef<Expr>& b
+    const TypeRef& ty,
+    const ExprRef& a,
+    const ExprRef& b
   ) : Expr(L_EXPR_OP_LT, ty), a(a), b(b) {
     liong::assert(a != nullptr);
     liong::assert(b != nullptr);
@@ -143,13 +155,13 @@ struct ExprLt : public Expr {
 
 struct ExprEq : public Expr {
   static const ExprOp OP = L_EXPR_OP_EQ;
-  NodeRef<Expr> a;
-  NodeRef<Expr> b;
+  ExprRef a;
+  ExprRef b;
 
   inline ExprEq(
-    const NodeRef<Type>& ty,
-    const NodeRef<Expr>& a,
-    const NodeRef<Expr>& b
+    const TypeRef& ty,
+    const ExprRef& a,
+    const ExprRef& b
   ) : Expr(L_EXPR_OP_EQ, ty), a(a), b(b) {
     liong::assert(a != nullptr);
     liong::assert(b != nullptr);
@@ -164,11 +176,11 @@ struct ExprEq : public Expr {
 
 struct ExprNot : public Expr {
   static const ExprOp OP = L_EXPR_OP_NOT;
-  NodeRef<Expr> a;
+  ExprRef a;
 
   inline ExprNot(
-    const NodeRef<Type>& ty,
-    const NodeRef<Expr>& a
+    const TypeRef& ty,
+    const ExprRef& a
   ) : Expr(L_EXPR_OP_NOT, ty), a(a) {
     liong::assert(a != nullptr);
   }
@@ -181,11 +193,11 @@ struct ExprNot : public Expr {
 
 struct ExprTypeCast : public Expr {
   static const ExprOp OP = L_EXPR_OP_TYPE_CAST;
-  NodeRef<Expr> src;
+  ExprRef src;
 
   inline ExprTypeCast(
-    const NodeRef<Type>& ty,
-    const NodeRef<Expr>& src
+    const TypeRef& ty,
+    const ExprRef& src
   ) : Expr(L_EXPR_OP_TYPE_CAST, ty), src(src) {
     liong::assert(src != nullptr);
   }
@@ -198,15 +210,15 @@ struct ExprTypeCast : public Expr {
 
 struct ExprSelect : public Expr {
   static const ExprOp OP = L_EXPR_OP_SELECT;
-  NodeRef<Expr> cond;
-  NodeRef<Expr> a;
-  NodeRef<Expr> b;
+  ExprRef cond;
+  ExprRef a;
+  ExprRef b;
 
   inline ExprSelect(
-    const NodeRef<Type>& ty,
-    const NodeRef<Expr>& cond,
-    const NodeRef<Expr>& a,
-    const NodeRef<Expr>& b
+    const TypeRef& ty,
+    const ExprRef& cond,
+    const ExprRef& a,
+    const ExprRef& b
   ) : Expr(L_EXPR_OP_SELECT, ty), cond(cond), a(a), b(b) {
     liong::assert(cond != nullptr);
     liong::assert(a != nullptr);
@@ -220,19 +232,6 @@ struct ExprSelect : public Expr {
     drain->push(b);
   }
 };
-
-typedef NodeRef<Expr> ExprRef;
-typedef NodeRef<ExprPatternCapture> ExprPatternCaptureRef;
-typedef NodeRef<ExprPatternBinaryOp> ExprPatternBinaryOpRef;
-typedef NodeRef<ExprConstant> ExprConstantRef;
-typedef NodeRef<ExprLoad> ExprLoadRef;
-typedef NodeRef<ExprAdd> ExprAddRef;
-typedef NodeRef<ExprSub> ExprSubRef;
-typedef NodeRef<ExprLt> ExprLtRef;
-typedef NodeRef<ExprEq> ExprEqRef;
-typedef NodeRef<ExprNot> ExprNotRef;
-typedef NodeRef<ExprTypeCast> ExprTypeCastRef;
-typedef NodeRef<ExprSelect> ExprSelectRef;
 
 constexpr bool is_expr_binary_op(ExprOp op) {
   switch (op) {

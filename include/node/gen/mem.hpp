@@ -4,18 +4,26 @@
 #pragma once
 #include "node/reg.hpp"
 
+typedef Reference<struct MemoryPatternCapture> MemoryPatternCaptureRef;
+typedef Reference<struct MemoryFunctionVariable> MemoryFunctionVariableRef;
+typedef Reference<struct MemoryIterationVariable> MemoryIterationVariableRef;
+typedef Reference<struct MemoryUniformBuffer> MemoryUniformBufferRef;
+typedef Reference<struct MemoryStorageBuffer> MemoryStorageBufferRef;
+typedef Reference<struct MemorySampledImage> MemorySampledImageRef;
+typedef Reference<struct MemoryStorageImage> MemoryStorageImageRef;
+
 struct MemoryPatternCapture : public Memory {
   static const MemoryClass CLS = L_MEMORY_CLASS_PATTERN_CAPTURE;
-  NodeRef<Memory> captured;
+  MemoryRef captured;
 
   inline MemoryPatternCapture(
-    const NodeRef<Type>& ty,
-    const std::vector<NodeRef<Expr>>& ac,
-    const NodeRef<Memory>& captured
+    const TypeRef& ty,
+    const std::vector<ExprRef>& ac,
+    const MemoryRef& captured
   ) : Memory(L_MEMORY_CLASS_PATTERN_CAPTURE, ty, ac), captured(captured) {
     liong::assert(captured != nullptr);
   }
-  inline MemoryPatternCapture(const NodeRef<Type>& ty, const std::vector<NodeRef<Expr>>& ac) : Memory(L_MEMORY_CLASS_PATTERN_CAPTURE, ty, ac) {}
+  inline MemoryPatternCapture(const TypeRef& ty, const std::vector<ExprRef>& ac) : Memory(L_MEMORY_CLASS_PATTERN_CAPTURE, ty, ac) {}
 
   virtual void collect_children(NodeDrain* drain) const override final {
     drain->push(ty);
@@ -29,8 +37,8 @@ struct MemoryFunctionVariable : public Memory {
   std::shared_ptr<uint8_t> handle;
 
   inline MemoryFunctionVariable(
-    const NodeRef<Type>& ty,
-    const std::vector<NodeRef<Expr>>& ac,
+    const TypeRef& ty,
+    const std::vector<ExprRef>& ac,
     std::shared_ptr<uint8_t> handle
   ) : Memory(L_MEMORY_CLASS_FUNCTION_VARIABLE, ty, ac), handle(handle) {
   }
@@ -43,16 +51,16 @@ struct MemoryFunctionVariable : public Memory {
 
 struct MemoryIterationVariable : public Memory {
   static const MemoryClass CLS = L_MEMORY_CLASS_ITERATION_VARIABLE;
-  NodeRef<Expr> begin;
-  NodeRef<Expr> end;
-  NodeRef<Expr> stride;
+  ExprRef begin;
+  ExprRef end;
+  ExprRef stride;
 
   inline MemoryIterationVariable(
-    const NodeRef<Type>& ty,
-    const std::vector<NodeRef<Expr>>& ac,
-    const NodeRef<Expr>& begin,
-    const NodeRef<Expr>& end,
-    const NodeRef<Expr>& stride
+    const TypeRef& ty,
+    const std::vector<ExprRef>& ac,
+    const ExprRef& begin,
+    const ExprRef& end,
+    const ExprRef& stride
   ) : Memory(L_MEMORY_CLASS_ITERATION_VARIABLE, ty, ac), begin(begin), end(end), stride(stride) {
     liong::assert(begin != nullptr);
     liong::assert(end != nullptr);
@@ -74,8 +82,8 @@ struct MemoryUniformBuffer : public Memory {
   uint32_t set;
 
   inline MemoryUniformBuffer(
-    const NodeRef<Type>& ty,
-    const std::vector<NodeRef<Expr>>& ac,
+    const TypeRef& ty,
+    const std::vector<ExprRef>& ac,
     uint32_t binding,
     uint32_t set
   ) : Memory(L_MEMORY_CLASS_UNIFORM_BUFFER, ty, ac), binding(binding), set(set) {
@@ -93,8 +101,8 @@ struct MemoryStorageBuffer : public Memory {
   uint32_t set;
 
   inline MemoryStorageBuffer(
-    const NodeRef<Type>& ty,
-    const std::vector<NodeRef<Expr>>& ac,
+    const TypeRef& ty,
+    const std::vector<ExprRef>& ac,
     uint32_t binding,
     uint32_t set
   ) : Memory(L_MEMORY_CLASS_STORAGE_BUFFER, ty, ac), binding(binding), set(set) {
@@ -112,8 +120,8 @@ struct MemorySampledImage : public Memory {
   uint32_t set;
 
   inline MemorySampledImage(
-    const NodeRef<Type>& ty,
-    const std::vector<NodeRef<Expr>>& ac,
+    const TypeRef& ty,
+    const std::vector<ExprRef>& ac,
     uint32_t binding,
     uint32_t set
   ) : Memory(L_MEMORY_CLASS_SAMPLED_IMAGE, ty, ac), binding(binding), set(set) {
@@ -131,8 +139,8 @@ struct MemoryStorageImage : public Memory {
   uint32_t set;
 
   inline MemoryStorageImage(
-    const NodeRef<Type>& ty,
-    const std::vector<NodeRef<Expr>>& ac,
+    const TypeRef& ty,
+    const std::vector<ExprRef>& ac,
     uint32_t binding,
     uint32_t set
   ) : Memory(L_MEMORY_CLASS_STORAGE_IMAGE, ty, ac), binding(binding), set(set) {
@@ -143,12 +151,3 @@ struct MemoryStorageImage : public Memory {
     for (const auto& x : ac) { drain->push(x); }
   }
 };
-
-typedef NodeRef<Memory> MemoryRef;
-typedef NodeRef<MemoryPatternCapture> MemoryPatternCaptureRef;
-typedef NodeRef<MemoryFunctionVariable> MemoryFunctionVariableRef;
-typedef NodeRef<MemoryIterationVariable> MemoryIterationVariableRef;
-typedef NodeRef<MemoryUniformBuffer> MemoryUniformBufferRef;
-typedef NodeRef<MemoryStorageBuffer> MemoryStorageBufferRef;
-typedef NodeRef<MemorySampledImage> MemorySampledImageRef;
-typedef NodeRef<MemoryStorageImage> MemoryStorageImageRef;

@@ -280,7 +280,7 @@ struct DebugPrintVisitor : public Visitor {
   }
 };
 
-std::string dbg_print(const NodeRef<Node>& node) {
+std::string dbg_print(const NodeRef& node) {
   Debug s;
   DebugPrintVisitor v(s);
   v.visit(node);
@@ -357,13 +357,13 @@ StmtRef& get_tail_stmt(StmtRef& stmt) {
   }
 }
 
-std::vector<NodeRef<Node>> collect_children(const NodeRef<Node>& node) {
+std::vector<NodeRef> collect_children(const NodeRef& node) {
   NodeDrain drain;
   node->collect_children(&drain);
   return drain.nodes;
 }
 
-bool match_pattern(const NodeRef<Node>& pattern, const NodeRef<Node>& target) {
+bool match_pattern(const NodeRef& pattern, const NodeRef& target) {
   if (pattern->nova != target->nova) {
     return false;
   }

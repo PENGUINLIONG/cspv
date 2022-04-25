@@ -30,15 +30,15 @@ class NodeFieldType:
         if is_plural:
             ty = ty[:-2]
             if is_ref_ty:
-                self.field_ty = f"std::vector<NodeRef<{ty}>>"
-                self.param_ty = f"const std::vector<NodeRef<{ty}>>&"
+                self.field_ty = f"std::vector<{ty}Ref>"
+                self.param_ty = f"const std::vector<{ty}Ref>&"
             else:
                 self.field_ty = f"std::vector<{ty}>"
                 self.param_ty = f"std::vector<{ty}>"
         else:
             if is_ref_ty:
-                self.field_ty = f"NodeRef<{ty}>"
-                self.param_ty = f"const NodeRef<{ty}>&"
+                self.field_ty = f"{ty}Ref"
+                self.param_ty = f"const {ty}Ref&"
             else:
                 self.field_ty = f"{ty}"
                 self.param_ty = f"{ty}"
@@ -125,7 +125,7 @@ def compose_visitor_hpp(novas: Dict[str, NodeVariant]):
     # Node traversal basics.
     out += [
         "  template<typename T>",
-        "  void visit(const NodeRef<T>& node) {",
+        "  void visit(const Reference<T>& node) {",
         f"    switch (node->nova) {{"
     ]
     for _, nova in novas.items():
@@ -185,7 +185,7 @@ def compose_visitor_hpp(novas: Dict[str, NodeVariant]):
     # Node traversal basics.
     out += [
         "  template<typename T>",
-        "  NodeRef<Node> mutate(const NodeRef<T>& node) {",
+        "  NodeRef mutate(const Reference<T>& node) {",
         f"    switch (node->nova) {{"
     ]
     for _, nova in novas.items():
@@ -248,18 +248,18 @@ def compose_visitor_hpp(novas: Dict[str, NodeVariant]):
         out += [
             f"template<typename T>",
             f"struct {ty_prefix}FunctorVisitor : public Visitor {{",
-            f"  std::function<void(NodeRef<T>)> f;",
-            f"  {ty_prefix}FunctorVisitor(std::function<void(NodeRef<T>)>&& f) :",
-            f"    f(std::forward<std::function<void(NodeRef<T>)>>(f)) {{}}",
+            f"  std::function<void(Reference<T>)> f;",
+            f"  {ty_prefix}FunctorVisitor(std::function<void(Reference<T>)>&& f) :",
+            f"    f(std::forward<std::function<void(Reference<T>)>>(f)) {{}}",
             "",
-            f"  virtual void visit_{abbr}_(NodeRef<T> {abbr}) override final {{ f({abbr}); }}",
+            f"  virtual void visit_{abbr}_(Reference<T> {abbr}) override final {{ f({abbr}); }}",
             "};",
             f"template<typename T>",
             f"void visit_{abbr}_functor(",
-            f"  std::function<void(NodeRef<T>)>&& f,",
-            f"  const NodeRef<{ty_prefix}>& x",
+            f"  std::function<void(Reference<T>)>&& f,",
+            f"  const Reference<{ty_prefix}>& x",
             ") {",
-            f"  {ty_prefix}FunctorVisitor<T> visitor(std::forward<std::function<void(NodeRef<T>)>>(f));",
+            f"  {ty_prefix}FunctorVisitor<T> visitor(std::forward<std::function<void(Reference<T>)>>(f));",
             f"  visitor.visit_{abbr}(x);",
             "}",
             "",
@@ -273,7 +273,7 @@ def compose_visitor_hpp(novas: Dict[str, NodeVariant]):
         out += [
             f"template<typename T>",
             f"struct {ty_prefix}FunctorMutator : public {ty_prefix}Mutator {{",
-            f"  typedef NodeRef<T> TStmtRef;",
+            f"  typedef Reference<T> TStmtRef;",
             f"  std::function<{ty_ref_prefix}(TStmtRef&)> f;",
             f"  {ty_prefix}FunctorMutator(std::function<{ty_ref_prefix}(const TStmtRef&)>&& f) :",
             f"    f(std::forward<std::function<{ty_ref_prefix}(const TStmtRef&)>>(f)) {{}}",
@@ -282,10 +282,10 @@ def compose_visitor_hpp(novas: Dict[str, NodeVariant]):
             "};",
             f"template<typename T>",
             f"void mutate_{abbr}_functor(",
-            f"  std::function<{ty_ref_prefix}(NodeRef<T>)>&& f,",
+            f"  std::function<{ty_ref_prefix}(Reference<T>)>&& f,",
             f"  const {ty_prefix}& x",
             ") {",
-            f"  {ty_prefix}FunctorMutator<T> mutator(std::forward<std::function<{ty_ref_prefix}(NodeRef<T>)>>(f));",
+            f"  {ty_prefix}FunctorMutator<T> mutator(std::forward<std::function<{ty_ref_prefix}(Reference<T>)>>(f));",
             f"  return mutator.mutate_{abbr}(x);",
             "}",
             "",
@@ -393,6 +393,13 @@ def compose_hpp(novas: Dict[str, NodeVariant]):
         enum_case_prefix = f"L_{nova.ty_name.to_screaming_snake_case()}_{nova.enum_name.to_screaming_snake_case()}_"
         enum_abbr = nova.enum_abbr.to_snake_case()
 
+        # Type aliases for convinience.
+        ty_prefix = nova.ty_name.to_pascal_case()
+        for subty in nova.subtys:
+            subty_prefix = subty.name.to_pascal_case()
+            out += [f"typedef Reference<struct {ty_prefix}{subty_prefix}> {ty_prefix}{subty_prefix}Ref;"]
+        out += [""]
+
         for subty in nova.subtys:
             subty_name = ty_name + subty.name.to_pascal_case()
             enum_case = enum_case_prefix + subty.name.to_screaming_snake_case()
@@ -467,14 +474,6 @@ def compose_hpp(novas: Dict[str, NodeVariant]):
                 "};",
                 ""
             ]
-
-        # Type aliases for convinience.
-        ty_prefix = nova.ty_name.to_pascal_case()
-        out += [f"typedef NodeRef<{ty_prefix}> {ty_prefix}Ref;"]
-        for subty in nova.subtys:
-            subty_prefix = subty.name.to_pascal_case()
-            out += [f"typedef NodeRef<{ty_prefix}{subty_prefix}> {ty_prefix}{subty_prefix}Ref;"]
-        out += [""]
 
         # Category identifier functions.
         categories = defaultdict(set)

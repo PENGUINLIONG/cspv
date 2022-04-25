@@ -16,8 +16,8 @@ enum MemoryClass {
 
 struct Memory : public Node {
   const MemoryClass cls;
-  NodeRef<Type> ty;
-  std::vector<NodeRef<Expr>> ac;
+  TypeRef ty;
+  std::vector<ExprRef> ac;
 
   template<typename T>
   const T& as() const {
@@ -32,8 +32,8 @@ struct Memory : public Node {
 protected:
   inline Memory(
     MemoryClass cls,
-    const NodeRef<Type>& ty,
-    const std::vector<NodeRef<Expr>>& ac
+    const TypeRef& ty,
+    const std::vector<ExprRef>& ac
   ) : Node(L_NODE_VARIANT_MEMORY), cls(cls), ty(ty), ac(ac)
   {
     liong::assert(ty != nullptr);

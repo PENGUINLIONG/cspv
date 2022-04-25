@@ -10,7 +10,7 @@
 
 struct Visitor {
   template<typename T>
-  void visit(const NodeRef<T>& node) {
+  void visit(const Reference<T>& node) {
     switch (node->nova) {
     case L_NODE_VARIANT_MEMORY: visit_mem(node.as<Memory>()); break;
     case L_NODE_VARIANT_TYPE: visit_ty(node.as<Type>()); break;
@@ -129,7 +129,7 @@ struct Visitor {
 
 struct Mutator {
   template<typename T>
-  NodeRef<Node> mutate(const NodeRef<T>& node) {
+  NodeRef mutate(const Reference<T>& node) {
     switch (node->nova) {
     case L_NODE_VARIANT_MEMORY: return mutate_mem(node.as<Memory>()).as<Node>();
     case L_NODE_VARIANT_TYPE: return mutate_ty(node.as<Type>()).as<Node>();
@@ -248,75 +248,75 @@ struct Mutator {
 
 template<typename T>
 struct MemoryFunctorVisitor : public Visitor {
-  std::function<void(NodeRef<T>)> f;
-  MemoryFunctorVisitor(std::function<void(NodeRef<T>)>&& f) :
-    f(std::forward<std::function<void(NodeRef<T>)>>(f)) {}
+  std::function<void(Reference<T>)> f;
+  MemoryFunctorVisitor(std::function<void(Reference<T>)>&& f) :
+    f(std::forward<std::function<void(Reference<T>)>>(f)) {}
 
-  virtual void visit_mem_(NodeRef<T> mem) override final { f(mem); }
+  virtual void visit_mem_(Reference<T> mem) override final { f(mem); }
 };
 template<typename T>
 void visit_mem_functor(
-  std::function<void(NodeRef<T>)>&& f,
-  const NodeRef<Memory>& x
+  std::function<void(Reference<T>)>&& f,
+  const Reference<Memory>& x
 ) {
-  MemoryFunctorVisitor<T> visitor(std::forward<std::function<void(NodeRef<T>)>>(f));
+  MemoryFunctorVisitor<T> visitor(std::forward<std::function<void(Reference<T>)>>(f));
   visitor.visit_mem(x);
 }
 
 template<typename T>
 struct TypeFunctorVisitor : public Visitor {
-  std::function<void(NodeRef<T>)> f;
-  TypeFunctorVisitor(std::function<void(NodeRef<T>)>&& f) :
-    f(std::forward<std::function<void(NodeRef<T>)>>(f)) {}
+  std::function<void(Reference<T>)> f;
+  TypeFunctorVisitor(std::function<void(Reference<T>)>&& f) :
+    f(std::forward<std::function<void(Reference<T>)>>(f)) {}
 
-  virtual void visit_ty_(NodeRef<T> ty) override final { f(ty); }
+  virtual void visit_ty_(Reference<T> ty) override final { f(ty); }
 };
 template<typename T>
 void visit_ty_functor(
-  std::function<void(NodeRef<T>)>&& f,
-  const NodeRef<Type>& x
+  std::function<void(Reference<T>)>&& f,
+  const Reference<Type>& x
 ) {
-  TypeFunctorVisitor<T> visitor(std::forward<std::function<void(NodeRef<T>)>>(f));
+  TypeFunctorVisitor<T> visitor(std::forward<std::function<void(Reference<T>)>>(f));
   visitor.visit_ty(x);
 }
 
 template<typename T>
 struct ExprFunctorVisitor : public Visitor {
-  std::function<void(NodeRef<T>)> f;
-  ExprFunctorVisitor(std::function<void(NodeRef<T>)>&& f) :
-    f(std::forward<std::function<void(NodeRef<T>)>>(f)) {}
+  std::function<void(Reference<T>)> f;
+  ExprFunctorVisitor(std::function<void(Reference<T>)>&& f) :
+    f(std::forward<std::function<void(Reference<T>)>>(f)) {}
 
-  virtual void visit_expr_(NodeRef<T> expr) override final { f(expr); }
+  virtual void visit_expr_(Reference<T> expr) override final { f(expr); }
 };
 template<typename T>
 void visit_expr_functor(
-  std::function<void(NodeRef<T>)>&& f,
-  const NodeRef<Expr>& x
+  std::function<void(Reference<T>)>&& f,
+  const Reference<Expr>& x
 ) {
-  ExprFunctorVisitor<T> visitor(std::forward<std::function<void(NodeRef<T>)>>(f));
+  ExprFunctorVisitor<T> visitor(std::forward<std::function<void(Reference<T>)>>(f));
   visitor.visit_expr(x);
 }
 
 template<typename T>
 struct StmtFunctorVisitor : public Visitor {
-  std::function<void(NodeRef<T>)> f;
-  StmtFunctorVisitor(std::function<void(NodeRef<T>)>&& f) :
-    f(std::forward<std::function<void(NodeRef<T>)>>(f)) {}
+  std::function<void(Reference<T>)> f;
+  StmtFunctorVisitor(std::function<void(Reference<T>)>&& f) :
+    f(std::forward<std::function<void(Reference<T>)>>(f)) {}
 
-  virtual void visit_stmt_(NodeRef<T> stmt) override final { f(stmt); }
+  virtual void visit_stmt_(Reference<T> stmt) override final { f(stmt); }
 };
 template<typename T>
 void visit_stmt_functor(
-  std::function<void(NodeRef<T>)>&& f,
-  const NodeRef<Stmt>& x
+  std::function<void(Reference<T>)>&& f,
+  const Reference<Stmt>& x
 ) {
-  StmtFunctorVisitor<T> visitor(std::forward<std::function<void(NodeRef<T>)>>(f));
+  StmtFunctorVisitor<T> visitor(std::forward<std::function<void(Reference<T>)>>(f));
   visitor.visit_stmt(x);
 }
 
 template<typename T>
 struct MemoryFunctorMutator : public MemoryMutator {
-  typedef NodeRef<T> TStmtRef;
+  typedef Reference<T> TStmtRef;
   std::function<MemoryRef(TStmtRef&)> f;
   MemoryFunctorMutator(std::function<MemoryRef(const TStmtRef&)>&& f) :
     f(std::forward<std::function<MemoryRef(const TStmtRef&)>>(f)) {}
@@ -325,16 +325,16 @@ struct MemoryFunctorMutator : public MemoryMutator {
 };
 template<typename T>
 void mutate_mem_functor(
-  std::function<MemoryRef(NodeRef<T>)>&& f,
+  std::function<MemoryRef(Reference<T>)>&& f,
   const Memory& x
 ) {
-  MemoryFunctorMutator<T> mutator(std::forward<std::function<MemoryRef(NodeRef<T>)>>(f));
+  MemoryFunctorMutator<T> mutator(std::forward<std::function<MemoryRef(Reference<T>)>>(f));
   return mutator.mutate_mem(x);
 }
 
 template<typename T>
 struct TypeFunctorMutator : public TypeMutator {
-  typedef NodeRef<T> TStmtRef;
+  typedef Reference<T> TStmtRef;
   std::function<TypeRef(TStmtRef&)> f;
   TypeFunctorMutator(std::function<TypeRef(const TStmtRef&)>&& f) :
     f(std::forward<std::function<TypeRef(const TStmtRef&)>>(f)) {}
@@ -343,16 +343,16 @@ struct TypeFunctorMutator : public TypeMutator {
 };
 template<typename T>
 void mutate_ty_functor(
-  std::function<TypeRef(NodeRef<T>)>&& f,
+  std::function<TypeRef(Reference<T>)>&& f,
   const Type& x
 ) {
-  TypeFunctorMutator<T> mutator(std::forward<std::function<TypeRef(NodeRef<T>)>>(f));
+  TypeFunctorMutator<T> mutator(std::forward<std::function<TypeRef(Reference<T>)>>(f));
   return mutator.mutate_ty(x);
 }
 
 template<typename T>
 struct ExprFunctorMutator : public ExprMutator {
-  typedef NodeRef<T> TStmtRef;
+  typedef Reference<T> TStmtRef;
   std::function<ExprRef(TStmtRef&)> f;
   ExprFunctorMutator(std::function<ExprRef(const TStmtRef&)>&& f) :
     f(std::forward<std::function<ExprRef(const TStmtRef&)>>(f)) {}
@@ -361,16 +361,16 @@ struct ExprFunctorMutator : public ExprMutator {
 };
 template<typename T>
 void mutate_expr_functor(
-  std::function<ExprRef(NodeRef<T>)>&& f,
+  std::function<ExprRef(Reference<T>)>&& f,
   const Expr& x
 ) {
-  ExprFunctorMutator<T> mutator(std::forward<std::function<ExprRef(NodeRef<T>)>>(f));
+  ExprFunctorMutator<T> mutator(std::forward<std::function<ExprRef(Reference<T>)>>(f));
   return mutator.mutate_expr(x);
 }
 
 template<typename T>
 struct StmtFunctorMutator : public StmtMutator {
-  typedef NodeRef<T> TStmtRef;
+  typedef Reference<T> TStmtRef;
   std::function<StmtRef(TStmtRef&)> f;
   StmtFunctorMutator(std::function<StmtRef(const TStmtRef&)>&& f) :
     f(std::forward<std::function<StmtRef(const TStmtRef&)>>(f)) {}
@@ -379,9 +379,9 @@ struct StmtFunctorMutator : public StmtMutator {
 };
 template<typename T>
 void mutate_stmt_functor(
-  std::function<StmtRef(NodeRef<T>)>&& f,
+  std::function<StmtRef(Reference<T>)>&& f,
   const Stmt& x
 ) {
-  StmtFunctorMutator<T> mutator(std::forward<std::function<StmtRef(NodeRef<T>)>>(f));
+  StmtFunctorMutator<T> mutator(std::forward<std::function<StmtRef(Reference<T>)>>(f));
   return mutator.mutate_stmt(x);
 }

@@ -19,7 +19,7 @@ Pass* reg_pass(std::unique_ptr<Pass>&& pass) {
     .emplace(pass->name, std::forward<std::unique_ptr<Pass>>(pass))
     .first->second.get();
 }
-void apply_pass(const std::string& name, NodeRef<Node>& node) {
+void apply_pass(const std::string& name, NodeRef& node) {
   auto it = PASS_REG->inner.find(name);
   assert(it != PASS_REG->inner.end(), "'", name, "' is not a registered pass");
   it->second->apply(node);

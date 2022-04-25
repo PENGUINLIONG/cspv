@@ -20,7 +20,7 @@ enum ExprOp {
 
 struct Expr : public Node {
   const ExprOp op;
-  NodeRef<Type> ty;
+  TypeRef ty;
 
   template<typename T>
   const T& as() const {
@@ -35,7 +35,7 @@ struct Expr : public Node {
 protected:
   inline Expr(
     ExprOp op,
-    const NodeRef<Type>& ty
+    const TypeRef& ty
   ) : Node(L_NODE_VARIANT_EXPR), op(op), ty(ty)
   {
     liong::assert(ty != nullptr);

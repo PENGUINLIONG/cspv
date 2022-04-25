@@ -4,12 +4,20 @@
 #pragma once
 #include "node/reg.hpp"
 
+typedef Reference<struct TypePatternCapture> TypePatternCaptureRef;
+typedef Reference<struct TypeVoid> TypeVoidRef;
+typedef Reference<struct TypeBool> TypeBoolRef;
+typedef Reference<struct TypeInt> TypeIntRef;
+typedef Reference<struct TypeFloat> TypeFloatRef;
+typedef Reference<struct TypeStruct> TypeStructRef;
+typedef Reference<struct TypePointer> TypePointerRef;
+
 struct TypePatternCapture : public Type {
   static const TypeClass CLS = L_TYPE_CLASS_PATTERN_CAPTURE;
-  NodeRef<Type> captured;
+  TypeRef captured;
 
   inline TypePatternCapture(
-    const NodeRef<Type>& captured
+    const TypeRef& captured
   ) : Type(L_TYPE_CLASS_PATTERN_CAPTURE), captured(captured) {
     liong::assert(captured != nullptr);
   }
@@ -72,10 +80,10 @@ struct TypeFloat : public Type {
 
 struct TypeStruct : public Type {
   static const TypeClass CLS = L_TYPE_CLASS_STRUCT;
-  std::vector<NodeRef<Type>> members;
+  std::vector<TypeRef> members;
 
   inline TypeStruct(
-    const std::vector<NodeRef<Type>>& members
+    const std::vector<TypeRef>& members
   ) : Type(L_TYPE_CLASS_STRUCT), members(members) {
     for (const auto& x : members) { liong::assert(x != nullptr); }
   }
@@ -87,10 +95,10 @@ struct TypeStruct : public Type {
 
 struct TypePointer : public Type {
   static const TypeClass CLS = L_TYPE_CLASS_POINTER;
-  NodeRef<Type> inner;
+  TypeRef inner;
 
   inline TypePointer(
-    const NodeRef<Type>& inner
+    const TypeRef& inner
   ) : Type(L_TYPE_CLASS_POINTER), inner(inner) {
     liong::assert(inner != nullptr);
   }
@@ -99,12 +107,3 @@ struct TypePointer : public Type {
     drain->push(inner);
   }
 };
-
-typedef NodeRef<Type> TypeRef;
-typedef NodeRef<TypePatternCapture> TypePatternCaptureRef;
-typedef NodeRef<TypeVoid> TypeVoidRef;
-typedef NodeRef<TypeBool> TypeBoolRef;
-typedef NodeRef<TypeInt> TypeIntRef;
-typedef NodeRef<TypeFloat> TypeFloatRef;
-typedef NodeRef<TypeStruct> TypeStructRef;
-typedef NodeRef<TypePointer> TypePointerRef;

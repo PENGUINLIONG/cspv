@@ -4,12 +4,26 @@
 #pragma once
 #include "node/reg.hpp"
 
+typedef Reference<struct StmtPatternCapture> StmtPatternCaptureRef;
+typedef Reference<struct StmtPatternHead> StmtPatternHeadRef;
+typedef Reference<struct StmtPatternTail> StmtPatternTailRef;
+typedef Reference<struct StmtNop> StmtNopRef;
+typedef Reference<struct StmtBlock> StmtBlockRef;
+typedef Reference<struct StmtConditionalBranch> StmtConditionalBranchRef;
+typedef Reference<struct StmtLoop> StmtLoopRef;
+typedef Reference<struct StmtReturn> StmtReturnRef;
+typedef Reference<struct StmtLoopMerge> StmtLoopMergeRef;
+typedef Reference<struct StmtLoopContinue> StmtLoopContinueRef;
+typedef Reference<struct StmtLoopBackEdge> StmtLoopBackEdgeRef;
+typedef Reference<struct StmtRangedLoop> StmtRangedLoopRef;
+typedef Reference<struct StmtStore> StmtStoreRef;
+
 struct StmtPatternCapture : public Stmt {
   static const StmtOp OP = L_STMT_OP_PATTERN_CAPTURE;
-  NodeRef<Stmt> captured;
+  StmtRef captured;
 
   inline StmtPatternCapture(
-    const NodeRef<Stmt>& captured
+    const StmtRef& captured
   ) : Stmt(L_STMT_OP_PATTERN_CAPTURE), captured(captured) {
     liong::assert(captured != nullptr);
   }
@@ -22,10 +36,10 @@ struct StmtPatternCapture : public Stmt {
 
 struct StmtPatternHead : public Stmt {
   static const StmtOp OP = L_STMT_OP_PATTERN_HEAD;
-  NodeRef<Stmt> inner;
+  StmtRef inner;
 
   inline StmtPatternHead(
-    const NodeRef<Stmt>& inner
+    const StmtRef& inner
   ) : Stmt(L_STMT_OP_PATTERN_HEAD), inner(inner) {
     liong::assert(inner != nullptr);
   }
@@ -37,10 +51,10 @@ struct StmtPatternHead : public Stmt {
 
 struct StmtPatternTail : public Stmt {
   static const StmtOp OP = L_STMT_OP_PATTERN_TAIL;
-  NodeRef<Stmt> inner;
+  StmtRef inner;
 
   inline StmtPatternTail(
-    const NodeRef<Stmt>& inner
+    const StmtRef& inner
   ) : Stmt(L_STMT_OP_PATTERN_TAIL), inner(inner) {
     liong::assert(inner != nullptr);
   }
@@ -63,10 +77,10 @@ struct StmtNop : public Stmt {
 
 struct StmtBlock : public Stmt {
   static const StmtOp OP = L_STMT_OP_BLOCK;
-  std::vector<NodeRef<Stmt>> stmts;
+  std::vector<StmtRef> stmts;
 
   inline StmtBlock(
-    const std::vector<NodeRef<Stmt>>& stmts
+    const std::vector<StmtRef>& stmts
   ) : Stmt(L_STMT_OP_BLOCK), stmts(stmts) {
     for (const auto& x : stmts) { liong::assert(x != nullptr); }
   }
@@ -78,14 +92,14 @@ struct StmtBlock : public Stmt {
 
 struct StmtConditionalBranch : public Stmt {
   static const StmtOp OP = L_STMT_OP_CONDITIONAL_BRANCH;
-  NodeRef<Expr> cond;
-  NodeRef<Stmt> then_block;
-  NodeRef<Stmt> else_block;
+  ExprRef cond;
+  StmtRef then_block;
+  StmtRef else_block;
 
   inline StmtConditionalBranch(
-    const NodeRef<Expr>& cond,
-    const NodeRef<Stmt>& then_block,
-    const NodeRef<Stmt>& else_block
+    const ExprRef& cond,
+    const StmtRef& then_block,
+    const StmtRef& else_block
   ) : Stmt(L_STMT_OP_CONDITIONAL_BRANCH), cond(cond), then_block(then_block), else_block(else_block) {
     liong::assert(cond != nullptr);
     liong::assert(then_block != nullptr);
@@ -101,13 +115,13 @@ struct StmtConditionalBranch : public Stmt {
 
 struct StmtLoop : public Stmt {
   static const StmtOp OP = L_STMT_OP_LOOP;
-  NodeRef<Stmt> body_block;
-  NodeRef<Stmt> continue_block;
+  StmtRef body_block;
+  StmtRef continue_block;
   std::shared_ptr<uint8_t> handle;
 
   inline StmtLoop(
-    const NodeRef<Stmt>& body_block,
-    const NodeRef<Stmt>& continue_block,
+    const StmtRef& body_block,
+    const StmtRef& continue_block,
     std::shared_ptr<uint8_t> handle
   ) : Stmt(L_STMT_OP_LOOP), body_block(body_block), continue_block(continue_block), handle(handle) {
     liong::assert(body_block != nullptr);
@@ -172,12 +186,12 @@ struct StmtLoopBackEdge : public Stmt {
 
 struct StmtRangedLoop : public Stmt {
   static const StmtOp OP = L_STMT_OP_RANGED_LOOP;
-  NodeRef<Stmt> body_block;
-  NodeRef<Memory> itervar;
+  StmtRef body_block;
+  MemoryRef itervar;
 
   inline StmtRangedLoop(
-    const NodeRef<Stmt>& body_block,
-    const NodeRef<Memory>& itervar
+    const StmtRef& body_block,
+    const MemoryRef& itervar
   ) : Stmt(L_STMT_OP_RANGED_LOOP), body_block(body_block), itervar(itervar) {
     liong::assert(body_block != nullptr);
     liong::assert(itervar != nullptr);
@@ -191,12 +205,12 @@ struct StmtRangedLoop : public Stmt {
 
 struct StmtStore : public Stmt {
   static const StmtOp OP = L_STMT_OP_STORE;
-  NodeRef<Memory> dst_ptr;
-  NodeRef<Expr> value;
+  MemoryRef dst_ptr;
+  ExprRef value;
 
   inline StmtStore(
-    const NodeRef<Memory>& dst_ptr,
-    const NodeRef<Expr>& value
+    const MemoryRef& dst_ptr,
+    const ExprRef& value
   ) : Stmt(L_STMT_OP_STORE), dst_ptr(dst_ptr), value(value) {
     liong::assert(dst_ptr != nullptr);
     liong::assert(value != nullptr);
@@ -207,18 +221,3 @@ struct StmtStore : public Stmt {
     drain->push(value);
   }
 };
-
-typedef NodeRef<Stmt> StmtRef;
-typedef NodeRef<StmtPatternCapture> StmtPatternCaptureRef;
-typedef NodeRef<StmtPatternHead> StmtPatternHeadRef;
-typedef NodeRef<StmtPatternTail> StmtPatternTailRef;
-typedef NodeRef<StmtNop> StmtNopRef;
-typedef NodeRef<StmtBlock> StmtBlockRef;
-typedef NodeRef<StmtConditionalBranch> StmtConditionalBranchRef;
-typedef NodeRef<StmtLoop> StmtLoopRef;
-typedef NodeRef<StmtReturn> StmtReturnRef;
-typedef NodeRef<StmtLoopMerge> StmtLoopMergeRef;
-typedef NodeRef<StmtLoopContinue> StmtLoopContinueRef;
-typedef NodeRef<StmtLoopBackEdge> StmtLoopBackEdgeRef;
-typedef NodeRef<StmtRangedLoop> StmtRangedLoopRef;
-typedef NodeRef<StmtStore> StmtStoreRef;

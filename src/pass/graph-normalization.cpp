@@ -39,7 +39,7 @@ struct GraphNormalizationMutator : Mutator {
 
 struct GraphNormalizationPass : public Pass {
   GraphNormalizationPass() : Pass("graph-normalization") {}
-  virtual void apply(NodeRef<Node>& x) override final {
+  virtual void apply(NodeRef& x) override final {
     GraphNormalizationMutator v;
     x = v.mutate(x);
   }

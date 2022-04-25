@@ -60,7 +60,7 @@ struct CtrlflowLinearizationMutator : public Mutator {
 
 struct CtrlflowLinearizationPass : public Pass {
   CtrlflowLinearizationPass() : Pass("ctrlflow-linearization") {}
-  virtual void apply(NodeRef<Node>& x) override final {
+  virtual void apply(NodeRef& x) override final {
     CtrlflowLinearizationMutator v;
     x = v.mutate(x);
   }
