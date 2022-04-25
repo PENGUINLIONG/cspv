@@ -9,25 +9,64 @@ using namespace liong;
 
 struct IntExprSimplificationMutator : public Mutator {
   virtual ExprRef mutate_expr_(ExprAddRef x) override final {
-    if (!x->ty->is<TypeInt>()) { return x; }
-    ExprRef a = mutate_expr(x->a);
-    ExprRef b = mutate_expr(x->b);
+    // Rotate to make a leftist tree.
+    // ```
+    //   expr1 const    expr0 expr1
+    //      \   /          \   /
+    // expr0 add1    =>     add0 const
+    //   \   /                \   /
+    //    add0                 add1
+    // ```
+    while (x->b->is<ExprAdd>()) {
+      ExprAddRef xb = x->b;
+      x = new ExprAdd(
+        x->ty,
+        new ExprAdd(
+          x->ty,
+          x->a,
+          xb->a
+        ),
+        xb->b
+      );
+    }
 
-    if (b->is<ExprIntImm>()) {
-      int64_t b_lit = ExprIntImmRef(b)->lit;
-      if (a->is<ExprIntImm>()) {
-        return new ExprIntImm(x->ty, ExprIntImmRef(a)->lit + b_lit);
-      } else if (a->is<ExprAdd>()) {
-        ExprAddRef a2 = a;
-        if (a2->b->is<ExprIntImm>()) {
-          int64_t ab_lit = ExprIntImmRef(a2->b)->lit;
-          return new ExprAdd(x->ty, a2->a, new ExprIntImm(x->ty, b_lit + ab_lit));
+    // Recursively reduce the tree complexity.
+    x = new ExprAdd(
+      mutate_ty(x->ty),
+      mutate_expr(x->a),
+      mutate_expr(x->b)
+    );
+
+    if (x->a->is<ExprAdd>()) {
+      ExprAddRef xa = x->a;
+      if (xa->b->is<ExprIntImm>()) {
+        ExprIntImmRef xab = xa->b;
+        if (x->b->is<ExprIntImm>()) {
+          ExprIntImmRef xb = x->b;
+          // Add up two constants.
+          x = new ExprAdd(
+            x->ty,
+            xa->a,
+            new ExprIntImm(x->ty, xab->lit + xb->lit)
+          );
+        } else {
+          // Pull the constant out.
+          x = new ExprAdd(
+            x->ty,
+            new ExprAdd(x->ty, xa->a, x->b),
+            new ExprIntImm(x->ty, xab->lit)
+          );
         }
       }
     }
 
-    x->a = std::move(a);
-    x->b = std::move(b);
+    // If the two children are both constants, add them up to a single one.
+    if (x->a->is<ExprIntImm>() && x->b->is<ExprIntImm>()) {
+      ExprIntImmRef xa = x->a;
+      ExprIntImmRef xb = x->b;
+      return new ExprIntImm(x->ty, xa->lit + xb->lit);
+    }
+
     return x;
   }
 };

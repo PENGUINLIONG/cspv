@@ -7,13 +7,12 @@ uniform Uniform {
 
 void main() {
     int _0 = 1;
-    int _1 = 1 + 1;
-    int _2 = 1 + 1 + 1;
-    int _3 = 1 + (1 + 1);
-    int _4 = u.x + (1 + 1);
-    int _5 = 1 + (u.x + 1);
-    int _6 = 1 + (1 + u.x);
-    int _7 = 1 + (u.x + u.x);
-    int _8 = u.x + (1 + u.x);
-    int _9 = u.x + (u.x + u.x);
+    int _1 = u.x + 1;
+    int _2 = 1 + (u.x + 1);
+    int _3 = 1 + (1 + u.x);
+    int _4 = 1 + (u.x + u.x);
+    int _5 = u.x + (1 + u.x);
+    int _6 = u.x + u.x + u.x;
+    int _7 = u.x + (u.x + u.x);
+    int _8 = (1 + u.x) + (2 + u.x);
 }
