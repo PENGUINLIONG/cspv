@@ -37,26 +37,6 @@ struct IntExprSimplificationMutator : public Mutator {
       mutate_expr(x->b)
     );
 
-    /*
-    std::vector<ExprRef> terms;
-    for (ExprRef x2 = x;;) {
-      if (x2->is<ExprAdd>()) {
-        ExprAddRef x3 = x2;
-        terms.emplace_back(x3->b);
-        x2 = x3->a;
-      } else if (x2->is<ExprPolynomial>()) {
-        ExprPolynomialRef x3 = x2;
-        for (const auto& term : x3->terms) {
-          terms.emplace_back(term);
-        }
-      } else {
-        terms.emplace_back(x2);
-        break;
-      }
-    }
-    ExprPolynomialRef poly = new ExprPolynomial(x->ty, std::move(terms));
-    */
-
     if (x->a->is<ExprAdd>()) {
       ExprAddRef xa = x->a;
       if (xa->b->is<ExprIntImm>()) {
@@ -70,7 +50,7 @@ struct IntExprSimplificationMutator : public Mutator {
             new ExprIntImm(x->ty, xab->lit + xb->lit)
           );
         } else {
-          // Pull the constant out.
+          // Pull the lhs constant out.
           x = new ExprAdd(
             x->ty,
             new ExprAdd(x->ty, xa->a, x->b),
@@ -78,21 +58,20 @@ struct IntExprSimplificationMutator : public Mutator {
           );
         }
       }
-    }
-
-
-    if (x->b->is<ExprIntImm>()) {
-      ExprIntImmRef xb = x->b;
-
-      // Add by zero is nop.
-      if (xb->lit == 0) {
-        return x->a;
-      }
-
-      // If the two children are both constants, add them up to a single one.
-      if (x->a->is<ExprIntImm>()) {
+    } else if (x->a->is<ExprIntImm>()) {
+      if (x->b->is<ExprIntImm>()) {
         ExprIntImmRef xa = x->a;
+        ExprIntImmRef xb = x->b;
+        // Add up two constants.
         return new ExprIntImm(x->ty, xa->lit + xb->lit);
+      } else {
+        // Flip the node to ensure non-constants are always on the left.
+        x = new ExprAdd(x->ty, x->b, x->a);
+      }
+    } else {
+      // Identity.
+      if (x->b->is<ExprIntImm>() && x->b->as<ExprIntImm>().lit == 0) {
+        return x->a;
       }
     }
 
@@ -162,6 +141,11 @@ struct IntExprSimplificationMutator : public Mutator {
       } else {
         // Flip the node to ensure non-constants are always on the left.
         x = new ExprMul(x->ty, x->b, x->a);
+      }
+    } else {
+      // Identity.
+      if (x->b->is<ExprIntImm>() && x->b->as<ExprIntImm>().lit == 1) {
+        return x->a;
       }
     }
 
