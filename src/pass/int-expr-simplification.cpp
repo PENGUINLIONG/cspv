@@ -150,14 +150,16 @@ struct IntExprSimplificationMutator : public Mutator {
         }
       }
     } else if (x->a->is<ExprIntImm>()) {
-      if (x->b->is<ExprIntImm>()) {
-        ExprIntImmRef xa = x->a;
+      ExprIntImmRef xa = x->a;
+      if (xa->lit == 0) {
+        return new ExprIntImm(x->ty, 0);
+      } else if (x->b->is<ExprIntImm>()) {
         ExprIntImmRef xb = x->b;
         // Multiply two constants.
         return new ExprIntImm(x->ty, xa->lit * xb->lit);
       } else {
         // Flip the node to ensure non-constants are always on the left.
-        x = new ExprMul(x->ty, x->b, x->a);
+        x = new ExprMul(x->ty, x->b, xa);
       }
     } else {
       if (x->b->is<ExprAdd>()) {
@@ -169,12 +171,140 @@ struct IntExprSimplificationMutator : public Mutator {
           new ExprMul(x->ty, x->a, xb->b)
         );
         return mutate_expr(x2);
-      } else if (x->b->is<ExprIntImm>() && x->b->as<ExprIntImm>().lit == 1) {
-        // Identity.
-        return x->a;
+      } else if (x->b->is<ExprIntImm>()) {
+        ExprIntImmRef xb = x->b;
+        if (xb->as<ExprIntImm>().lit == 0) {
+          // Zero.
+          return new ExprIntImm(x->ty, 0);
+        } else if (xb->as<ExprIntImm>().lit == 1) {
+          // Identity.
+          return x->a;
+        }
       }
     }
 
+    return x;
+  }
+
+  struct SolvePolynomialCoeGcd {
+    int64_t gcd;
+
+    int64_t get_term_coe(ExprRef a) {
+      if (a->is<ExprIntImm>()) {
+        ExprIntImmRef a2 = a;
+        return a2->lit;
+
+      } else if (a->is<ExprMul>()) {
+        ExprMulRef a2 = a;
+        if (a2->b->is<ExprIntImm>()) {
+          ExprIntImmRef ab = a2->b;
+          return ab->lit;
+        }
+      } else {
+      }
+      return 0;
+    }
+    int64_t solve_gcd(int64_t a, int64_t b) {
+      int64_t c;
+      while (b != 0) {
+        c = std::remainder(a, b);
+        a = b;
+        b = c;
+      }
+      return a;
+    }
+    void visit_add(ExprAddRef x) {
+      if (x->a->is<ExprAdd>()) {
+        visit_add(x->a);
+        if (gcd != 0) {
+          gcd = solve_gcd(gcd, get_term_coe(x->b));
+        }
+      } else {
+        gcd = solve_gcd(get_term_coe(x->a), get_term_coe(x->b));
+      }
+    }
+    int64_t solve(ExprRef x, int64_t divisor) {
+      if (!x->is<ExprAdd>() && !x->is<ExprMul>()) { return 0; }
+      visit_add(x);
+      return solve_gcd(gcd, divisor);
+    }
+  };
+  virtual ExprRef mutate_expr_(ExprDivRef x) override final {
+    if (!x->b->is<ExprIntImm>()) { return x; }
+    ExprIntImmRef xb = x->b;
+
+    // Keep division-by-zero as-is.
+    int64_t divisor = xb->lit;
+    if (divisor == 0) { return x; }
+
+    if (x->a->is<ExprIntImm>()) {
+      ExprIntImmRef xa = x->a;
+      return new ExprIntImm(x->ty, xa->lit / divisor);
+    } else if (x->a->is<ExprMul>()) {
+      // Divisor must equal GCD otherwise pushing the division in would generate
+      // more division computation.
+      if (SolvePolynomialCoeGcd().solve(x->a, divisor) == divisor) {
+        ExprMulRef xa = x->a;
+
+        if (xa->b->is<ExprIntImm>()) {
+          ExprIntImmRef xab = xa->b;
+
+          ExprRef x2 = new ExprMul(
+            x->ty,
+            xa->a,
+            new ExprIntImm(x->ty, xab->lit / divisor)
+          );
+          return mutate_expr(x2);
+        }
+      }
+    } else if (x->a->is<ExprAdd>()) {
+      if (SolvePolynomialCoeGcd().solve(x->a, divisor) == divisor) {
+        ExprAddRef xa = x->a;
+
+        if (xa->b->is<ExprIntImm>()) {
+          ExprIntImmRef xab = xa->b;
+
+          ExprRef x2 = new ExprAdd(
+            x->ty,
+            new ExprDiv(
+              x->ty,
+              xa->a,
+              xb
+            ),
+            new ExprIntImm(x->ty, xab->lit / divisor)
+          );
+          return mutate_expr(x2);
+
+        } else if (xa->b->is<ExprMul>()) {
+          ExprMulRef xab = xa->b;
+          if (xab->b->is<ExprIntImm>()) {
+            ExprIntImmRef xabb = xab->b;
+
+            ExprRef x2 = new ExprAdd(
+              x->ty,
+              new ExprDiv(
+                x->ty,
+                xa->a,
+                xb
+              ),
+              new ExprMul(
+                x->ty,
+                xab->a,
+                new ExprIntImm(x->ty, xabb->lit / divisor)
+              )
+            );
+            return mutate_expr(x2);
+          }
+        }
+
+      }
+    }
+
+    x = new ExprDiv(
+      mutate_ty(x->ty),
+      mutate_expr(x->a),
+      mutate_expr(x->b)
+    );
     return x;
   }
 };
