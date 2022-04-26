@@ -119,33 +119,33 @@ struct IntExprSimplificationMutator : public Mutator {
       mutate_expr(x->b)
     );
 
-    // Push-in constant multiplicants with multiplication's distributive
-    // property.
     if (x->a->is<ExprAdd>()) {
+      // Distributive property: (a + b) * c = (a * c) + (b * c)
       ExprAddRef xa = x->a;
-      ExprIntImmRef xb = x->b;
+      ExprRef xb = x->b;
+
       ExprRef x2 = new ExprAdd(
         x->ty,
         new ExprMul(x->ty, xa->a, xb),
         new ExprMul(x->ty, xa->b, xb)
       );
       return mutate_expr(x2);
-    }
 
-    if (x->a->is<ExprMul>()) {
+    } else if (x->a->is<ExprMul>()) {
+      // Note that the rhs is always a non-`ExprMul` node.
       ExprMulRef xa = x->a;
       if (xa->b->is<ExprIntImm>()) {
         ExprIntImmRef xab = xa->b;
         if (x->b->is<ExprIntImm>()) {
           ExprIntImmRef xb = x->b;
-          // Add up two constants.
+          // Multiply two constants.
           x = new ExprMul(
             x->ty,
             xa->a,
             new ExprIntImm(x->ty, xab->lit * xb->lit)
           );
         } else {
-          // Pull the constant out.
+          // Pull the lhs constant out.
           x = new ExprMul(
             x->ty,
             new ExprMul(x->ty, xa->a, x->b),
@@ -153,21 +153,15 @@ struct IntExprSimplificationMutator : public Mutator {
           );
         }
       }
-    }
-
-    if (x->b->is<ExprIntImm>()) {
-      ExprIntImmRef xb = x->b;
-
-      // Add by zero is nop.
-      if (xb->lit == 1) {
-        return x->a;
-      }
-
-      // If the two children are both constants, multiply them up to a single
-      // one.
-      if (x->a->is<ExprIntImm>()) {
+    } else if (x->a->is<ExprIntImm>()) {
+      if (x->b->is<ExprIntImm>()) {
         ExprIntImmRef xa = x->a;
+        ExprIntImmRef xb = x->b;
+        // Multiply two constants.
         return new ExprIntImm(x->ty, xa->lit * xb->lit);
+      } else {
+        // Flip the node to ensure non-constants are always on the left.
+        x = new ExprMul(x->ty, x->b, x->a);
       }
     }
 
