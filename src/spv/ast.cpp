@@ -191,6 +191,17 @@ struct ControlFlowParser {
       expr = ExprRef(new ExprMul(ty, a, b));
       break;
     }
+    case spv::Op::OpSDiv:
+    case spv::Op::OpUDiv:
+    case spv::Op::OpFDiv:
+    {
+      auto ty = mod.ty_map.at(instr.result_ty_id());
+      auto e = instr.extract_params();
+      auto a = mod.expr_map.at(e.read_id());
+      auto b = mod.expr_map.at(e.read_id());
+      expr = ExprRef(new ExprDiv(ty, a, b));
+      break;
+    }
     case spv::Op::OpSLessThan:
     case spv::Op::OpULessThan:
     case spv::Op::OpFOrdLessThan:

@@ -24,14 +24,6 @@ struct GraphNormalizationMutator : Mutator {
     prioritize_binary_op_var(x->a, x->b);
     return x;
   }
-  virtual ExprRef mutate_expr_(ExprDivRef x) override final {
-    prioritize_binary_op_var(x->a, x->b);
-    return x;
-  }
-  virtual ExprRef mutate_expr_(ExprModRef x) override final {
-    prioritize_binary_op_var(x->a, x->b);
-    return x;
-  }
   virtual ExprRef mutate_expr_(ExprEqRef x) override final {
     prioritize_binary_op_var(x->a, x->b);
     return x;

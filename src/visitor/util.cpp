@@ -152,6 +152,13 @@ struct DebugPrintVisitor : public Visitor {
     visit(x->b);
     s << ")";
   }
+  virtual void visit_expr_(ExprDivRef x) override final {
+    s << "(";
+    visit(x->a);
+    s << " / ";
+    visit(x->b);
+    s << ")";
+  }
   virtual void visit_expr_(ExprLtRef x) override final {
     s << "(";
     visit( x->a);
