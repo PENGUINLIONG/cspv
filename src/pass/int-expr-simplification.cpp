@@ -307,6 +307,50 @@ struct IntExprSimplificationMutator : public Mutator {
     );
     return x;
   }
+  virtual ExprRef mutate_expr_(ExprModRef x) override final {
+    if (!x->b->is<ExprIntImm>()) { return x; }
+    ExprIntImmRef xb = x->b;
+
+    // Keep division-by-zero as-is.
+    int64_t divisor = xb->lit;
+    if (divisor == 0) { return x; }
+
+    if (x->a->is<ExprIntImm>()) {
+      ExprIntImmRef xa = x->a;
+      return new ExprIntImm(x->ty, xa->lit % divisor);
+    } else if (x->a->is<ExprMul>()) {
+      ExprMulRef xa = x->a;
+
+      if (xa->b->is<ExprIntImm>()) {
+        ExprIntImmRef xab = xa->b;
+
+        if (xab->lit % divisor == 0) {
+          return new ExprIntImm(x->ty, 0);
+        }
+      }
+    } else if (x->a->is<ExprMod>()) {
+      ExprModRef xa = x->a;
+
+      if (xa->b->is<ExprIntImm>()) {
+        ExprIntImmRef xab = xa->b;
+
+        if (xab->lit % divisor == 0) {
+          x = new ExprMod(x->ty, xa->a, xb);
+          return mutate_expr(x);
+        } else if (divisor % xab->lit == 0) {
+          x = new ExprMod(x->ty, xa->a, xab);
+          return mutate_expr(x);
+        }
+      }
+    }
+
+    x = new ExprMod(
+      mutate_ty(x->ty),
+      mutate_expr(x->a),
+      mutate_expr(x->b)
+    );
+    return x;
+  }
 };
 
 struct IntExprSimplificationPass : public Pass {

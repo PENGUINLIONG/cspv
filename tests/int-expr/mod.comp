@@ -1,0 +1,18 @@
+#version 460
+
+layout(binding=1)
+uniform Uniform {
+    int x;
+} u;
+
+void main() {
+    int _0 = (1 * u.x) % 2;
+    int _1 = (2 * u.x) % 2;
+    int _2 = (u.x % 8) % 2;
+    int _3 = (u.x % 2) % 4;
+    int _4 = (u.x / 8) % 4;
+    int _5 = (u.x % 4) / 8;
+    int _6 = (3 % u.x) / 8;
+    int _7 = (u.x / 8 + u.x * 4 + u.x % u.x + 6) % 4;
+    int _8 = (u.x / 8 + u.x * 4 + u.x % u.x + 6) % u.x;
+}
