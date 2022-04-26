@@ -99,16 +99,33 @@ struct IntExprSimplificationMutator : public Mutator {
     );
 
     if (x->a->is<ExprAdd>()) {
-      // Distributive property: (a + b) * c = (a * c) + (b * c)
       ExprAddRef xa = x->a;
-      ExprRef xb = x->b;
-
-      ExprRef x2 = new ExprAdd(
-        x->ty,
-        new ExprMul(x->ty, xa->a, xb),
-        new ExprMul(x->ty, xa->b, xb)
-      );
-      return mutate_expr(x2);
+      if (x->b->is<ExprAdd>()) {
+        ExprAddRef xb = x->b;
+        // (a + b) * (c + d) = (ac + ad + bc + bd)
+        ExprRef x2 = new ExprAdd(
+          x->ty,
+          new ExprAdd(
+            x->ty,
+            new ExprMul(x->ty, xa->a, xb->a),
+            new ExprMul(x->ty, xa->a, xb->b)
+          ),
+          new ExprAdd(
+            x->ty,
+            new ExprMul(x->ty, xa->b, xb->a),
+            new ExprMul(x->ty, xa->b, xb->b)
+          )
+        );
+        return mutate_expr(x2);
+      } else {
+        // Distributive property: c(a + b) = (ac) + (bc)
+        ExprRef x2 = new ExprAdd(
+          x->ty,
+          new ExprMul(x->ty, xa->a, x->b),
+          new ExprMul(x->ty, xa->b, x->b)
+        );
+        return mutate_expr(x2);
+      }
 
     } else if (x->a->is<ExprMul>()) {
       // Note that the rhs is always a non-`ExprMul` node.
@@ -143,8 +160,17 @@ struct IntExprSimplificationMutator : public Mutator {
         x = new ExprMul(x->ty, x->b, x->a);
       }
     } else {
-      // Identity.
-      if (x->b->is<ExprIntImm>() && x->b->as<ExprIntImm>().lit == 1) {
+      if (x->b->is<ExprAdd>()) {
+        ExprAddRef xb = x->b;
+        // Distributive property: c(a + b) = (ac) + (bc)
+        ExprRef x2 = new ExprAdd(
+          x->ty,
+          new ExprMul(x->ty, x->a, xb->a),
+          new ExprMul(x->ty, x->a, xb->b)
+        );
+        return mutate_expr(x2);
+      } else if (x->b->is<ExprIntImm>() && x->b->as<ExprIntImm>().lit == 1) {
+        // Identity.
         return x->a;
       }
     }
