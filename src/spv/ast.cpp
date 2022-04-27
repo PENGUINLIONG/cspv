@@ -147,7 +147,7 @@ struct ControlFlowParser {
     }
     case L_MEMORY_CLASS_STORAGE_BUFFER:
     {
-      const auto& base2 = *(const MemoryUniformBuffer*)base.get();
+      const auto& base2 = *(const MemoryStorageBuffer*)base.get();
       mem = MemoryRef(new MemoryStorageBuffer(ty, std::move(ac), base2.binding, base2.set));
       break;
     }

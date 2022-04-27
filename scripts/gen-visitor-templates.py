@@ -657,6 +657,7 @@ novas = {
             "pointer": {
                 "fields": {
                     "inner": "Type",
+                    "storage_cls": "spv::StorageClass",
                 }
             },
         },

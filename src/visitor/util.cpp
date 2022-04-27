@@ -81,6 +81,12 @@ struct DebugPrintVisitor : public Visitor {
     s << "]:";
     visit(x->ty);
   }
+  virtual void visit_mem_(MemoryStorageBufferRef x) override final {
+    s << "StorageBuffer@" << x->binding << "," << x->set << "[";
+    visit_access_chain(x->ac);
+    s << "]:";
+    visit(x->ty);
+  }
 
 
 

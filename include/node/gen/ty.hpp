@@ -96,10 +96,12 @@ struct TypeStruct : public Type {
 struct TypePointer : public Type {
   static const TypeClass CLS = L_TYPE_CLASS_POINTER;
   TypeRef inner;
+  spv::StorageClass storage_cls;
 
   inline TypePointer(
-    const TypeRef& inner
-  ) : Type(L_TYPE_CLASS_POINTER), inner(inner) {
+    const TypeRef& inner,
+    spv::StorageClass storage_cls
+  ) : Type(L_TYPE_CLASS_POINTER), inner(inner), storage_cls(storage_cls) {
     liong::assert(inner != nullptr);
   }
 

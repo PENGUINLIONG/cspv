@@ -4,6 +4,7 @@
 #include <memory>
 #include <vector>
 #include "gft/assert.hpp"
+#include "spirv/unified1/spirv.hpp"
 
 enum AttributeClass;
 struct Attribute;

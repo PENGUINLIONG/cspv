@@ -235,8 +235,16 @@ struct SpirvVisitor {
     {
       auto e = instr.extract_params();
       spv::StorageClass storage_cls = e.read_u32_as<spv::StorageClass>();
-      auto inner = out.ty_map.at(e.read_id());
-      return TypeRef(new TypePointer(inner));
+      spv::Id inner_id = e.read_id();
+      auto inner = out.ty_map.at(inner_id);
+      if (
+        storage_cls == spv::StorageClass::Uniform &&
+        inner->is<TypeStruct>() &&
+        has_deco(spv::Decoration::BufferBlock, out.abstr.id2instr_map.at(inner_id))
+      ) {
+        storage_cls = spv::StorageClass::StorageBuffer;
+      }
+      return TypeRef(new TypePointer(inner, storage_cls));
     }
     case spv::Op::OpTypeFunction:
     {
@@ -361,19 +369,14 @@ struct SpirvVisitor {
   MemoryRef parse_global_mem(const InstructionRef& ptr) {
     auto op = ptr.op();
     if (op == spv::Op::OpVariable) {
-      auto ptr_ty = out.ty_map.at(ptr.result_ty_id());
-      assert(ptr_ty->cls == L_TYPE_CLASS_POINTER);
-      auto var_ty = ((const TypePointer*)ptr_ty.get())->inner;
+      auto ptr_ty = out.ty_map.at(ptr.result_ty_id()).as<TypePointer>();
+      auto var_ty = ptr_ty->inner;
 
-      auto e = ptr.extract_params();
-      spv::StorageClass store_cls = e.read_u32_as<spv::StorageClass>();
+      spv::StorageClass store_cls = ptr_ty->storage_cls;
       assert(store_cls != spv::StorageClass::Function,
         "function variables are parsed within functions");
 
       // Descriptor resources.
-      if (has_deco(spv::Decoration::BufferBlock, ptr)) {
-        store_cls = spv::StorageClass::StorageBuffer;
-      }
       uint32_t binding = get_deco_u32(spv::Decoration::Binding, ptr);
       uint32_t set = get_deco_u32(spv::Decoration::DescriptorSet, ptr);
       if (store_cls == spv::StorageClass::Uniform) {
