@@ -11,6 +11,7 @@ typedef Reference<struct StmtNop> StmtNopRef;
 typedef Reference<struct StmtBlock> StmtBlockRef;
 typedef Reference<struct StmtConditionalBranch> StmtConditionalBranchRef;
 typedef Reference<struct StmtLoop> StmtLoopRef;
+typedef Reference<struct StmtConditionalLoop> StmtConditionalLoopRef;
 typedef Reference<struct StmtReturn> StmtReturnRef;
 typedef Reference<struct StmtLoopMerge> StmtLoopMergeRef;
 typedef Reference<struct StmtLoopContinue> StmtLoopContinueRef;
@@ -129,6 +130,31 @@ struct StmtLoop : public Stmt {
   }
 
   virtual void collect_children(NodeDrain* drain) const override final {
+    drain->push(body_block);
+    drain->push(continue_block);
+  }
+};
+
+struct StmtConditionalLoop : public Stmt {
+  static const StmtOp OP = L_STMT_OP_CONDITIONAL_LOOP;
+  ExprRef cond;
+  StmtRef body_block;
+  StmtRef continue_block;
+  std::shared_ptr<uint8_t> handle;
+
+  inline StmtConditionalLoop(
+    const ExprRef& cond,
+    const StmtRef& body_block,
+    const StmtRef& continue_block,
+    std::shared_ptr<uint8_t> handle
+  ) : Stmt(L_STMT_OP_CONDITIONAL_LOOP), cond(cond), body_block(body_block), continue_block(continue_block), handle(handle) {
+    liong::assert(cond != nullptr);
+    liong::assert(body_block != nullptr);
+    liong::assert(continue_block != nullptr);
+  }
+
+  virtual void collect_children(NodeDrain* drain) const override final {
+    drain->push(cond);
     drain->push(body_block);
     drain->push(continue_block);
   }

@@ -823,6 +823,14 @@ novas = {
                     "handle": "std::shared_ptr<uint8_t>",
                 }
             },
+            "conditional_loop": {
+                "fields": {
+                    "cond": "Expr",
+                    "body_block": "Stmt",
+                    "continue_block": "Stmt",
+                    "handle": "std::shared_ptr<uint8_t>",
+                }
+            },
             "return": {
                 "fields": {}
             },

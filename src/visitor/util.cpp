@@ -245,6 +245,19 @@ struct DebugPrintVisitor : public Visitor {
     s.pop_indent();
     s << "}" << std::endl;
   }
+  virtual void visit_stmt_(StmtConditionalLoopRef x) override final {
+    s << "while@" << s.get_var_name_by_handle(x->handle) << " ";
+    visit(x->cond);
+    s << " {" << std::endl;
+    s.push_indent();
+    visit(x->body_block);
+    s.pop_indent();
+    s << "} continue@" << s.get_var_name_by_handle(x->handle) << " {" << std::endl;
+    s.push_indent();
+    visit(x->continue_block);
+    s.pop_indent();
+    s << "}" << std::endl;
+  }
   virtual void visit_stmt_(StmtReturnRef x) override final {
     s << "return" << std::endl;
   }

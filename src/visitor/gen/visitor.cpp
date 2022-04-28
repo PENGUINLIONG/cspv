@@ -115,6 +115,10 @@ void Visitor::visit_stmt_(StmtLoopRef x) {
   visit_stmt(x->body_block);
   visit_stmt(x->continue_block);
 }
+void Visitor::visit_stmt_(StmtConditionalLoopRef x) {
+  visit_stmt(x->body_block);
+  visit_stmt(x->continue_block);
+}
 void Visitor::visit_stmt_(StmtReturnRef x) {
 }
 void Visitor::visit_stmt_(StmtLoopMergeRef x) {
@@ -278,6 +282,12 @@ StmtRef Mutator::mutate_stmt_(StmtConditionalBranchRef x) {
   return x.as<Stmt>();
 }
 StmtRef Mutator::mutate_stmt_(StmtLoopRef x) {
+  x->body_block = mutate_stmt(x->body_block);
+  x->continue_block = mutate_stmt(x->continue_block);
+  return x.as<Stmt>();
+}
+StmtRef Mutator::mutate_stmt_(StmtConditionalLoopRef x) {
+  x->cond = mutate_expr(x->cond);
   x->body_block = mutate_stmt(x->body_block);
   x->continue_block = mutate_stmt(x->continue_block);
   return x.as<Stmt>();

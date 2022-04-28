@@ -327,7 +327,22 @@ struct ControlFlowParser {
       continue_parser_state2.loop_back_edge_target = parser_state.cur_block_label;
       auto continue_stmt = parse(mod, std::move(continue_parser_state2));
 
-      auto stmt = StmtRef(new StmtLoop(body_stmt, continue_stmt, handle));
+      ExprRef cond;
+      if (body_stmt->is<StmtConditionalBranch>()) {
+        StmtConditionalBranchRef branch = body_stmt;
+        if (branch->else_block->is<StmtLoopMerge>()) {
+          cond = branch->cond;
+          body_stmt = branch->then_block;
+        }
+      }
+
+      StmtRef stmt;
+      if (cond != nullptr) {
+        stmt = new StmtConditionalLoop(cond, body_stmt, continue_stmt, handle);
+      } else {
+        stmt = new StmtLoop(body_stmt, continue_stmt, handle);
+      }
+
       stmts.emplace_back(std::move(stmt));
       break;
     }
@@ -461,8 +476,12 @@ struct ControlFlowParser {
     ControlFlowParser parser(mod, std::forward<ParserState>(parser_state));
     parser.parse();
 
-    auto stmt = StmtRef(new StmtBlock(std::move(parser.stmts)));
-    return stmt;
+    StmtBlockRef stmt = new StmtBlock(std::move(parser.stmts));
+    switch (stmt->stmts.size()) {
+    case 0: return new StmtNop;
+    case 1: return std::move(stmt->stmts.at(0));
+    default: return stmt;
+    }
   }
   static StmtRef parse(
     SpirvModule& mod,
