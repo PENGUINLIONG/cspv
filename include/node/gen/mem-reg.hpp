@@ -28,6 +28,7 @@ struct Memory : public Node {
   bool is() const {
     return cls == T::CLS;
   }
+  virtual bool structured_eq(MemoryRef b_) const { liong::unimplemented(); }
 
 protected:
   inline Memory(

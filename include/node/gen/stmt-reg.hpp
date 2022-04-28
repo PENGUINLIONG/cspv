@@ -33,6 +33,7 @@ struct Stmt : public Node {
   bool is() const {
     return op == T::OP;
   }
+  virtual bool structured_eq(StmtRef b_) const { liong::unimplemented(); }
 
 protected:
   inline Stmt(

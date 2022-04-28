@@ -25,6 +25,17 @@ struct MemoryPatternCapture : public Memory {
   }
   inline MemoryPatternCapture(const TypeRef& ty, const std::vector<ExprRef>& ac) : Memory(L_MEMORY_CLASS_PATTERN_CAPTURE, ty, ac) {}
 
+  virtual bool structured_eq(MemoryRef b_) const override final {
+    if (!b_->is<MemoryPatternCapture>()) { return false; }
+    const auto& b2_ = b_->as<MemoryPatternCapture>();
+    if (!ty->structured_eq(b2_.ty)) { return false; }
+    if (ac.size() != b2_.ac.size()) { return false; }
+    for (size_t i = 0; i < ac.size(); ++i) {
+      if (!ac.at(i)->structured_eq(b2_.ac.at(i))) { return false; }
+    }
+    if (!captured->structured_eq(b2_.captured)) { return false; }
+    return true;
+  }
   virtual void collect_children(NodeDrain* drain) const override final {
     drain->push(ty);
     for (const auto& x : ac) { drain->push(x); }
@@ -43,6 +54,17 @@ struct MemoryFunctionVariable : public Memory {
   ) : Memory(L_MEMORY_CLASS_FUNCTION_VARIABLE, ty, ac), handle(handle) {
   }
 
+  virtual bool structured_eq(MemoryRef b_) const override final {
+    if (!b_->is<MemoryFunctionVariable>()) { return false; }
+    const auto& b2_ = b_->as<MemoryFunctionVariable>();
+    if (!ty->structured_eq(b2_.ty)) { return false; }
+    if (ac.size() != b2_.ac.size()) { return false; }
+    for (size_t i = 0; i < ac.size(); ++i) {
+      if (!ac.at(i)->structured_eq(b2_.ac.at(i))) { return false; }
+    }
+    if (handle != b2_.handle) { return false; }
+    return true;
+  }
   virtual void collect_children(NodeDrain* drain) const override final {
     drain->push(ty);
     for (const auto& x : ac) { drain->push(x); }
@@ -67,6 +89,19 @@ struct MemoryIterationVariable : public Memory {
     liong::assert(stride != nullptr);
   }
 
+  virtual bool structured_eq(MemoryRef b_) const override final {
+    if (!b_->is<MemoryIterationVariable>()) { return false; }
+    const auto& b2_ = b_->as<MemoryIterationVariable>();
+    if (!ty->structured_eq(b2_.ty)) { return false; }
+    if (ac.size() != b2_.ac.size()) { return false; }
+    for (size_t i = 0; i < ac.size(); ++i) {
+      if (!ac.at(i)->structured_eq(b2_.ac.at(i))) { return false; }
+    }
+    if (!begin->structured_eq(b2_.begin)) { return false; }
+    if (!end->structured_eq(b2_.end)) { return false; }
+    if (!stride->structured_eq(b2_.stride)) { return false; }
+    return true;
+  }
   virtual void collect_children(NodeDrain* drain) const override final {
     drain->push(ty);
     for (const auto& x : ac) { drain->push(x); }
@@ -89,6 +124,18 @@ struct MemoryUniformBuffer : public Memory {
   ) : Memory(L_MEMORY_CLASS_UNIFORM_BUFFER, ty, ac), binding(binding), set(set) {
   }
 
+  virtual bool structured_eq(MemoryRef b_) const override final {
+    if (!b_->is<MemoryUniformBuffer>()) { return false; }
+    const auto& b2_ = b_->as<MemoryUniformBuffer>();
+    if (!ty->structured_eq(b2_.ty)) { return false; }
+    if (ac.size() != b2_.ac.size()) { return false; }
+    for (size_t i = 0; i < ac.size(); ++i) {
+      if (!ac.at(i)->structured_eq(b2_.ac.at(i))) { return false; }
+    }
+    if (binding != b2_.binding) { return false; }
+    if (set != b2_.set) { return false; }
+    return true;
+  }
   virtual void collect_children(NodeDrain* drain) const override final {
     drain->push(ty);
     for (const auto& x : ac) { drain->push(x); }
@@ -108,6 +155,18 @@ struct MemoryStorageBuffer : public Memory {
   ) : Memory(L_MEMORY_CLASS_STORAGE_BUFFER, ty, ac), binding(binding), set(set) {
   }
 
+  virtual bool structured_eq(MemoryRef b_) const override final {
+    if (!b_->is<MemoryStorageBuffer>()) { return false; }
+    const auto& b2_ = b_->as<MemoryStorageBuffer>();
+    if (!ty->structured_eq(b2_.ty)) { return false; }
+    if (ac.size() != b2_.ac.size()) { return false; }
+    for (size_t i = 0; i < ac.size(); ++i) {
+      if (!ac.at(i)->structured_eq(b2_.ac.at(i))) { return false; }
+    }
+    if (binding != b2_.binding) { return false; }
+    if (set != b2_.set) { return false; }
+    return true;
+  }
   virtual void collect_children(NodeDrain* drain) const override final {
     drain->push(ty);
     for (const auto& x : ac) { drain->push(x); }
@@ -127,6 +186,18 @@ struct MemorySampledImage : public Memory {
   ) : Memory(L_MEMORY_CLASS_SAMPLED_IMAGE, ty, ac), binding(binding), set(set) {
   }
 
+  virtual bool structured_eq(MemoryRef b_) const override final {
+    if (!b_->is<MemorySampledImage>()) { return false; }
+    const auto& b2_ = b_->as<MemorySampledImage>();
+    if (!ty->structured_eq(b2_.ty)) { return false; }
+    if (ac.size() != b2_.ac.size()) { return false; }
+    for (size_t i = 0; i < ac.size(); ++i) {
+      if (!ac.at(i)->structured_eq(b2_.ac.at(i))) { return false; }
+    }
+    if (binding != b2_.binding) { return false; }
+    if (set != b2_.set) { return false; }
+    return true;
+  }
   virtual void collect_children(NodeDrain* drain) const override final {
     drain->push(ty);
     for (const auto& x : ac) { drain->push(x); }
@@ -146,6 +217,18 @@ struct MemoryStorageImage : public Memory {
   ) : Memory(L_MEMORY_CLASS_STORAGE_IMAGE, ty, ac), binding(binding), set(set) {
   }
 
+  virtual bool structured_eq(MemoryRef b_) const override final {
+    if (!b_->is<MemoryStorageImage>()) { return false; }
+    const auto& b2_ = b_->as<MemoryStorageImage>();
+    if (!ty->structured_eq(b2_.ty)) { return false; }
+    if (ac.size() != b2_.ac.size()) { return false; }
+    for (size_t i = 0; i < ac.size(); ++i) {
+      if (!ac.at(i)->structured_eq(b2_.ac.at(i))) { return false; }
+    }
+    if (binding != b2_.binding) { return false; }
+    if (set != b2_.set) { return false; }
+    return true;
+  }
   virtual void collect_children(NodeDrain* drain) const override final {
     drain->push(ty);
     for (const auto& x : ac) { drain->push(x); }

@@ -33,6 +33,13 @@ struct ExprPatternCapture : public Expr {
   }
   inline ExprPatternCapture(const TypeRef& ty) : Expr(L_EXPR_OP_PATTERN_CAPTURE, ty) {}
 
+  virtual bool structured_eq(ExprRef b_) const override final {
+    if (!b_->is<ExprPatternCapture>()) { return false; }
+    const auto& b2_ = b_->as<ExprPatternCapture>();
+    if (!ty->structured_eq(b2_.ty)) { return false; }
+    if (!captured->structured_eq(b2_.captured)) { return false; }
+    return true;
+  }
   virtual void collect_children(NodeDrain* drain) const override final {
     drain->push(ty);
     drain->push(captured);
@@ -56,6 +63,15 @@ struct ExprPatternBinaryOp : public Expr {
   }
   inline ExprPatternBinaryOp(const TypeRef& ty) : Expr(L_EXPR_OP_PATTERN_BINARY_OP, ty) {}
 
+  virtual bool structured_eq(ExprRef b_) const override final {
+    if (!b_->is<ExprPatternBinaryOp>()) { return false; }
+    const auto& b2_ = b_->as<ExprPatternBinaryOp>();
+    if (!ty->structured_eq(b2_.ty)) { return false; }
+    if (op != b2_.op) { return false; }
+    if (!a->structured_eq(b2_.a)) { return false; }
+    if (!b->structured_eq(b2_.b)) { return false; }
+    return true;
+  }
   virtual void collect_children(NodeDrain* drain) const override final {
     drain->push(ty);
     drain->push(a);
@@ -73,6 +89,13 @@ struct ExprBoolImm : public Expr {
   ) : Expr(L_EXPR_OP_BOOL_IMM, ty), lit(lit) {
   }
 
+  virtual bool structured_eq(ExprRef b_) const override final {
+    if (!b_->is<ExprBoolImm>()) { return false; }
+    const auto& b2_ = b_->as<ExprBoolImm>();
+    if (!ty->structured_eq(b2_.ty)) { return false; }
+    if (lit != b2_.lit) { return false; }
+    return true;
+  }
   virtual void collect_children(NodeDrain* drain) const override final {
     drain->push(ty);
   }
@@ -88,6 +111,13 @@ struct ExprIntImm : public Expr {
   ) : Expr(L_EXPR_OP_INT_IMM, ty), lit(lit) {
   }
 
+  virtual bool structured_eq(ExprRef b_) const override final {
+    if (!b_->is<ExprIntImm>()) { return false; }
+    const auto& b2_ = b_->as<ExprIntImm>();
+    if (!ty->structured_eq(b2_.ty)) { return false; }
+    if (lit != b2_.lit) { return false; }
+    return true;
+  }
   virtual void collect_children(NodeDrain* drain) const override final {
     drain->push(ty);
   }
@@ -103,6 +133,13 @@ struct ExprFloatImm : public Expr {
   ) : Expr(L_EXPR_OP_FLOAT_IMM, ty), lit(lit) {
   }
 
+  virtual bool structured_eq(ExprRef b_) const override final {
+    if (!b_->is<ExprFloatImm>()) { return false; }
+    const auto& b2_ = b_->as<ExprFloatImm>();
+    if (!ty->structured_eq(b2_.ty)) { return false; }
+    if (lit != b2_.lit) { return false; }
+    return true;
+  }
   virtual void collect_children(NodeDrain* drain) const override final {
     drain->push(ty);
   }
@@ -119,6 +156,13 @@ struct ExprLoad : public Expr {
     liong::assert(src_ptr != nullptr);
   }
 
+  virtual bool structured_eq(ExprRef b_) const override final {
+    if (!b_->is<ExprLoad>()) { return false; }
+    const auto& b2_ = b_->as<ExprLoad>();
+    if (!ty->structured_eq(b2_.ty)) { return false; }
+    if (!src_ptr->structured_eq(b2_.src_ptr)) { return false; }
+    return true;
+  }
   virtual void collect_children(NodeDrain* drain) const override final {
     drain->push(ty);
     drain->push(src_ptr);
@@ -139,6 +183,14 @@ struct ExprAdd : public Expr {
     liong::assert(b != nullptr);
   }
 
+  virtual bool structured_eq(ExprRef b_) const override final {
+    if (!b_->is<ExprAdd>()) { return false; }
+    const auto& b2_ = b_->as<ExprAdd>();
+    if (!ty->structured_eq(b2_.ty)) { return false; }
+    if (!a->structured_eq(b2_.a)) { return false; }
+    if (!b->structured_eq(b2_.b)) { return false; }
+    return true;
+  }
   virtual void collect_children(NodeDrain* drain) const override final {
     drain->push(ty);
     drain->push(a);
@@ -160,6 +212,14 @@ struct ExprSub : public Expr {
     liong::assert(b != nullptr);
   }
 
+  virtual bool structured_eq(ExprRef b_) const override final {
+    if (!b_->is<ExprSub>()) { return false; }
+    const auto& b2_ = b_->as<ExprSub>();
+    if (!ty->structured_eq(b2_.ty)) { return false; }
+    if (!a->structured_eq(b2_.a)) { return false; }
+    if (!b->structured_eq(b2_.b)) { return false; }
+    return true;
+  }
   virtual void collect_children(NodeDrain* drain) const override final {
     drain->push(ty);
     drain->push(a);
@@ -181,6 +241,14 @@ struct ExprMul : public Expr {
     liong::assert(b != nullptr);
   }
 
+  virtual bool structured_eq(ExprRef b_) const override final {
+    if (!b_->is<ExprMul>()) { return false; }
+    const auto& b2_ = b_->as<ExprMul>();
+    if (!ty->structured_eq(b2_.ty)) { return false; }
+    if (!a->structured_eq(b2_.a)) { return false; }
+    if (!b->structured_eq(b2_.b)) { return false; }
+    return true;
+  }
   virtual void collect_children(NodeDrain* drain) const override final {
     drain->push(ty);
     drain->push(a);
@@ -202,6 +270,14 @@ struct ExprDiv : public Expr {
     liong::assert(b != nullptr);
   }
 
+  virtual bool structured_eq(ExprRef b_) const override final {
+    if (!b_->is<ExprDiv>()) { return false; }
+    const auto& b2_ = b_->as<ExprDiv>();
+    if (!ty->structured_eq(b2_.ty)) { return false; }
+    if (!a->structured_eq(b2_.a)) { return false; }
+    if (!b->structured_eq(b2_.b)) { return false; }
+    return true;
+  }
   virtual void collect_children(NodeDrain* drain) const override final {
     drain->push(ty);
     drain->push(a);
@@ -223,6 +299,14 @@ struct ExprMod : public Expr {
     liong::assert(b != nullptr);
   }
 
+  virtual bool structured_eq(ExprRef b_) const override final {
+    if (!b_->is<ExprMod>()) { return false; }
+    const auto& b2_ = b_->as<ExprMod>();
+    if (!ty->structured_eq(b2_.ty)) { return false; }
+    if (!a->structured_eq(b2_.a)) { return false; }
+    if (!b->structured_eq(b2_.b)) { return false; }
+    return true;
+  }
   virtual void collect_children(NodeDrain* drain) const override final {
     drain->push(ty);
     drain->push(a);
@@ -244,6 +328,14 @@ struct ExprLt : public Expr {
     liong::assert(b != nullptr);
   }
 
+  virtual bool structured_eq(ExprRef b_) const override final {
+    if (!b_->is<ExprLt>()) { return false; }
+    const auto& b2_ = b_->as<ExprLt>();
+    if (!ty->structured_eq(b2_.ty)) { return false; }
+    if (!a->structured_eq(b2_.a)) { return false; }
+    if (!b->structured_eq(b2_.b)) { return false; }
+    return true;
+  }
   virtual void collect_children(NodeDrain* drain) const override final {
     drain->push(ty);
     drain->push(a);
@@ -265,6 +357,14 @@ struct ExprEq : public Expr {
     liong::assert(b != nullptr);
   }
 
+  virtual bool structured_eq(ExprRef b_) const override final {
+    if (!b_->is<ExprEq>()) { return false; }
+    const auto& b2_ = b_->as<ExprEq>();
+    if (!ty->structured_eq(b2_.ty)) { return false; }
+    if (!a->structured_eq(b2_.a)) { return false; }
+    if (!b->structured_eq(b2_.b)) { return false; }
+    return true;
+  }
   virtual void collect_children(NodeDrain* drain) const override final {
     drain->push(ty);
     drain->push(a);
@@ -283,6 +383,13 @@ struct ExprNot : public Expr {
     liong::assert(a != nullptr);
   }
 
+  virtual bool structured_eq(ExprRef b_) const override final {
+    if (!b_->is<ExprNot>()) { return false; }
+    const auto& b2_ = b_->as<ExprNot>();
+    if (!ty->structured_eq(b2_.ty)) { return false; }
+    if (!a->structured_eq(b2_.a)) { return false; }
+    return true;
+  }
   virtual void collect_children(NodeDrain* drain) const override final {
     drain->push(ty);
     drain->push(a);
@@ -300,6 +407,13 @@ struct ExprTypeCast : public Expr {
     liong::assert(src != nullptr);
   }
 
+  virtual bool structured_eq(ExprRef b_) const override final {
+    if (!b_->is<ExprTypeCast>()) { return false; }
+    const auto& b2_ = b_->as<ExprTypeCast>();
+    if (!ty->structured_eq(b2_.ty)) { return false; }
+    if (!src->structured_eq(b2_.src)) { return false; }
+    return true;
+  }
   virtual void collect_children(NodeDrain* drain) const override final {
     drain->push(ty);
     drain->push(src);
@@ -323,6 +437,15 @@ struct ExprSelect : public Expr {
     liong::assert(b != nullptr);
   }
 
+  virtual bool structured_eq(ExprRef b_) const override final {
+    if (!b_->is<ExprSelect>()) { return false; }
+    const auto& b2_ = b_->as<ExprSelect>();
+    if (!ty->structured_eq(b2_.ty)) { return false; }
+    if (!cond->structured_eq(b2_.cond)) { return false; }
+    if (!a->structured_eq(b2_.a)) { return false; }
+    if (!b->structured_eq(b2_.b)) { return false; }
+    return true;
+  }
   virtual void collect_children(NodeDrain* drain) const override final {
     drain->push(ty);
     drain->push(cond);
@@ -333,22 +456,22 @@ struct ExprSelect : public Expr {
 
 constexpr bool is_expr_binary_op(ExprOp op) {
   switch (op) {
+  case L_EXPR_OP_MOD:
   case L_EXPR_OP_ADD:
   case L_EXPR_OP_DIV:
   case L_EXPR_OP_EQ:
   case L_EXPR_OP_MUL:
   case L_EXPR_OP_LT:
   case L_EXPR_OP_SUB:
-  case L_EXPR_OP_MOD:
     return true;
   default: return false;
   }
 }
 constexpr bool is_expr_constant(ExprOp op) {
   switch (op) {
-  case L_EXPR_OP_BOOL_IMM:
   case L_EXPR_OP_INT_IMM:
   case L_EXPR_OP_FLOAT_IMM:
+  case L_EXPR_OP_BOOL_IMM:
     return true;
   default: return false;
   }

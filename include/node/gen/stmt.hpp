@@ -30,6 +30,12 @@ struct StmtPatternCapture : public Stmt {
   }
   inline StmtPatternCapture() : Stmt(L_STMT_OP_PATTERN_CAPTURE) {}
 
+  virtual bool structured_eq(StmtRef b_) const override final {
+    if (!b_->is<StmtPatternCapture>()) { return false; }
+    const auto& b2_ = b_->as<StmtPatternCapture>();
+    if (!captured->structured_eq(b2_.captured)) { return false; }
+    return true;
+  }
   virtual void collect_children(NodeDrain* drain) const override final {
     drain->push(captured);
   }
@@ -45,6 +51,12 @@ struct StmtPatternHead : public Stmt {
     liong::assert(inner != nullptr);
   }
 
+  virtual bool structured_eq(StmtRef b_) const override final {
+    if (!b_->is<StmtPatternHead>()) { return false; }
+    const auto& b2_ = b_->as<StmtPatternHead>();
+    if (!inner->structured_eq(b2_.inner)) { return false; }
+    return true;
+  }
   virtual void collect_children(NodeDrain* drain) const override final {
     drain->push(inner);
   }
@@ -60,6 +72,12 @@ struct StmtPatternTail : public Stmt {
     liong::assert(inner != nullptr);
   }
 
+  virtual bool structured_eq(StmtRef b_) const override final {
+    if (!b_->is<StmtPatternTail>()) { return false; }
+    const auto& b2_ = b_->as<StmtPatternTail>();
+    if (!inner->structured_eq(b2_.inner)) { return false; }
+    return true;
+  }
   virtual void collect_children(NodeDrain* drain) const override final {
     drain->push(inner);
   }
@@ -72,6 +90,11 @@ struct StmtNop : public Stmt {
   ) : Stmt(L_STMT_OP_NOP) {
   }
 
+  virtual bool structured_eq(StmtRef b_) const override final {
+    if (!b_->is<StmtNop>()) { return false; }
+    const auto& b2_ = b_->as<StmtNop>();
+    return true;
+  }
   virtual void collect_children(NodeDrain* drain) const override final {
   }
 };
@@ -86,6 +109,15 @@ struct StmtBlock : public Stmt {
     for (const auto& x : stmts) { liong::assert(x != nullptr); }
   }
 
+  virtual bool structured_eq(StmtRef b_) const override final {
+    if (!b_->is<StmtBlock>()) { return false; }
+    const auto& b2_ = b_->as<StmtBlock>();
+    if (stmts.size() != b2_.stmts.size()) { return false; }
+    for (size_t i = 0; i < stmts.size(); ++i) {
+      if (!stmts.at(i)->structured_eq(b2_.stmts.at(i))) { return false; }
+    }
+    return true;
+  }
   virtual void collect_children(NodeDrain* drain) const override final {
     for (const auto& x : stmts) { drain->push(x); }
   }
@@ -107,6 +139,14 @@ struct StmtConditionalBranch : public Stmt {
     liong::assert(else_block != nullptr);
   }
 
+  virtual bool structured_eq(StmtRef b_) const override final {
+    if (!b_->is<StmtConditionalBranch>()) { return false; }
+    const auto& b2_ = b_->as<StmtConditionalBranch>();
+    if (!cond->structured_eq(b2_.cond)) { return false; }
+    if (!then_block->structured_eq(b2_.then_block)) { return false; }
+    if (!else_block->structured_eq(b2_.else_block)) { return false; }
+    return true;
+  }
   virtual void collect_children(NodeDrain* drain) const override final {
     drain->push(cond);
     drain->push(then_block);
@@ -129,6 +169,14 @@ struct StmtLoop : public Stmt {
     liong::assert(continue_block != nullptr);
   }
 
+  virtual bool structured_eq(StmtRef b_) const override final {
+    if (!b_->is<StmtLoop>()) { return false; }
+    const auto& b2_ = b_->as<StmtLoop>();
+    if (!body_block->structured_eq(b2_.body_block)) { return false; }
+    if (!continue_block->structured_eq(b2_.continue_block)) { return false; }
+    if (handle != b2_.handle) { return false; }
+    return true;
+  }
   virtual void collect_children(NodeDrain* drain) const override final {
     drain->push(body_block);
     drain->push(continue_block);
@@ -153,6 +201,15 @@ struct StmtConditionalLoop : public Stmt {
     liong::assert(continue_block != nullptr);
   }
 
+  virtual bool structured_eq(StmtRef b_) const override final {
+    if (!b_->is<StmtConditionalLoop>()) { return false; }
+    const auto& b2_ = b_->as<StmtConditionalLoop>();
+    if (!cond->structured_eq(b2_.cond)) { return false; }
+    if (!body_block->structured_eq(b2_.body_block)) { return false; }
+    if (!continue_block->structured_eq(b2_.continue_block)) { return false; }
+    if (handle != b2_.handle) { return false; }
+    return true;
+  }
   virtual void collect_children(NodeDrain* drain) const override final {
     drain->push(cond);
     drain->push(body_block);
@@ -167,6 +224,11 @@ struct StmtReturn : public Stmt {
   ) : Stmt(L_STMT_OP_RETURN) {
   }
 
+  virtual bool structured_eq(StmtRef b_) const override final {
+    if (!b_->is<StmtReturn>()) { return false; }
+    const auto& b2_ = b_->as<StmtReturn>();
+    return true;
+  }
   virtual void collect_children(NodeDrain* drain) const override final {
   }
 };
@@ -180,6 +242,12 @@ struct StmtLoopMerge : public Stmt {
   ) : Stmt(L_STMT_OP_LOOP_MERGE), handle(handle) {
   }
 
+  virtual bool structured_eq(StmtRef b_) const override final {
+    if (!b_->is<StmtLoopMerge>()) { return false; }
+    const auto& b2_ = b_->as<StmtLoopMerge>();
+    if (handle != b2_.handle) { return false; }
+    return true;
+  }
   virtual void collect_children(NodeDrain* drain) const override final {
   }
 };
@@ -193,6 +261,12 @@ struct StmtLoopContinue : public Stmt {
   ) : Stmt(L_STMT_OP_LOOP_CONTINUE), handle(handle) {
   }
 
+  virtual bool structured_eq(StmtRef b_) const override final {
+    if (!b_->is<StmtLoopContinue>()) { return false; }
+    const auto& b2_ = b_->as<StmtLoopContinue>();
+    if (handle != b2_.handle) { return false; }
+    return true;
+  }
   virtual void collect_children(NodeDrain* drain) const override final {
   }
 };
@@ -206,6 +280,12 @@ struct StmtLoopBackEdge : public Stmt {
   ) : Stmt(L_STMT_OP_LOOP_BACK_EDGE), handle(handle) {
   }
 
+  virtual bool structured_eq(StmtRef b_) const override final {
+    if (!b_->is<StmtLoopBackEdge>()) { return false; }
+    const auto& b2_ = b_->as<StmtLoopBackEdge>();
+    if (handle != b2_.handle) { return false; }
+    return true;
+  }
   virtual void collect_children(NodeDrain* drain) const override final {
   }
 };
@@ -223,6 +303,13 @@ struct StmtRangedLoop : public Stmt {
     liong::assert(itervar != nullptr);
   }
 
+  virtual bool structured_eq(StmtRef b_) const override final {
+    if (!b_->is<StmtRangedLoop>()) { return false; }
+    const auto& b2_ = b_->as<StmtRangedLoop>();
+    if (!body_block->structured_eq(b2_.body_block)) { return false; }
+    if (!itervar->structured_eq(b2_.itervar)) { return false; }
+    return true;
+  }
   virtual void collect_children(NodeDrain* drain) const override final {
     drain->push(body_block);
     drain->push(itervar);
@@ -242,6 +329,13 @@ struct StmtStore : public Stmt {
     liong::assert(value != nullptr);
   }
 
+  virtual bool structured_eq(StmtRef b_) const override final {
+    if (!b_->is<StmtStore>()) { return false; }
+    const auto& b2_ = b_->as<StmtStore>();
+    if (!dst_ptr->structured_eq(b2_.dst_ptr)) { return false; }
+    if (!value->structured_eq(b2_.value)) { return false; }
+    return true;
+  }
   virtual void collect_children(NodeDrain* drain) const override final {
     drain->push(dst_ptr);
     drain->push(value);

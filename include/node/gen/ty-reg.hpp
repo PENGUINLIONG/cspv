@@ -26,6 +26,7 @@ struct Type : public Node {
   bool is() const {
     return cls == T::CLS;
   }
+  virtual bool structured_eq(TypeRef b_) const { liong::unimplemented(); }
 
 protected:
   inline Type(

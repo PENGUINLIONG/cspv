@@ -35,6 +35,9 @@ struct Node {
 
 template<typename T>
 struct Reference {
+  std::shared_ptr<Node> alloc;
+  T* ref;
+
   Reference() : alloc(nullptr), ref(nullptr) {}
   Reference(T* ptr) : alloc(std::shared_ptr<Node>(ptr)), ref(ptr) {}
   Reference(const Reference<T>& b) : alloc(b.alloc), ref(b.ref) {}
@@ -43,6 +46,9 @@ struct Reference {
     ref(std::exchange(b.ref, nullptr)) {}
   Reference(std::shared_ptr<Node>&& alloc, T* ref) :
     alloc(std::forward<std::shared_ptr<Node>>(alloc)), ref(ref) {}
+  template<typename U,
+    typename _ = std::enable_if_t<std::is_base_of_v<T, U> || std::is_base_of_v<U, T>>>
+  Reference(const Reference<U>& b) : alloc(b.alloc), ref((T*)b.ref) {}
 
   inline Reference<T>& operator=(const Reference<T>& b) {
     alloc = b.alloc;
@@ -92,10 +98,6 @@ struct Reference {
   constexpr bool operator<(const Reference<U>& b) const {
     return get_alloc() < b.get_alloc();
   }
-
-private:
-  std::shared_ptr<Node> alloc;
-  T* ref;
 };
 
 typedef Reference<Node> NodeRef;

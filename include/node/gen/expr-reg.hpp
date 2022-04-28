@@ -36,6 +36,7 @@ struct Expr : public Node {
   bool is() const {
     return op == T::OP;
   }
+  virtual bool structured_eq(ExprRef b_) const { liong::unimplemented(); }
 
 protected:
   inline Expr(

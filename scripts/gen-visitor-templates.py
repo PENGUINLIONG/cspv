@@ -334,6 +334,7 @@ def compose_node_ty_declr(nova: NodeVariant):
         "  bool is() const {",
         f"    return {enum_var_name} == T::{nova.enum_abbr.to_screaming_snake_case()};",
         "  }",
+        f"  virtual bool structured_eq({ty_name}Ref b_) const {{ liong::unimplemented(); }}",
         "",
         "protected:",
         f"  inline {ty_name}(",
@@ -453,6 +454,27 @@ def compose_hpp(novas: Dict[str, NodeVariant]):
                 out[-1] += ") {}"
             out += [
                 "",
+                f"  virtual bool structured_eq({ty_name}Ref b_) const override final {{",
+                f"    if (!b_->is<{subty_name}>()) {{ return false; }}",
+                f"    const auto& b2_ = b_->as<{subty_name}>();",
+            ]
+            for field in nova.fields + subty.fields:
+                field_name = field.name.to_snake_case()
+                if field.ty.is_ref_ty:
+                    if field.ty.is_plural:
+                        out += [
+                            f"    if ({field_name}.size() != b2_.{field_name}.size()) {{ return false; }}",
+                            f"    for (size_t i = 0; i < {field_name}.size(); ++i) {{",
+                            f"      if (!{field_name}.at(i)->structured_eq(b2_.{field_name}.at(i))) {{ return false; }}",
+                            f"    }}",
+                        ]
+                    else:
+                        out += [f"    if (!{field_name}->structured_eq(b2_.{field_name})) {{ return false; }}"]
+                else:
+                    out += [f"    if ({field_name} != b2_.{field_name}) {{ return false; }}"]
+            out += [
+                "    return true;",
+                "  }",
                 "  virtual void collect_children(NodeDrain* drain) const override final {",
             ]
             for field in nova.fields:

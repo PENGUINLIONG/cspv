@@ -51,7 +51,7 @@ struct RangedLoopElevationMutator : public Mutator {
     }
     return x;
   }
-  virtual StmtRef mutate_stmt_(StmtLoopRef x) override final {
+  virtual StmtRef mutate_stmt_(StmtConditionalLoopRef x) override final {
 
     // Ranged loop has an only itervar mutated in the continue block.
     TypePatternCaptureRef func_var_ty_pat = new TypePatternCapture;
