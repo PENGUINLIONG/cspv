@@ -1,0 +1,4 @@
+{
+  Store(StorageBuffer@1,0[0]:i32, 0)
+  Store(StorageBuffer@1,0[1]:i32, 3)
+}
