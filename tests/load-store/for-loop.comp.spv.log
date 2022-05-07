@@ -1,4 +1,20 @@
 {
+  {
+    Store($_0:i32, 0)
+    Store($_1:i32, 0)
+    Store($_2:i32, 1)
+    Store($_1:i32, (Load($_1:i32) + 2))
+    while@_3 (Load($_0:i32) < Load(UniformBuffer@1,0[0]:i32)) {
+      {
+        continue@_3
+      }
+    } continue@_3 {
+      {
+        back-edge@_3
+      }
+    }
+  }
   Store(StorageBuffer@1,0[0]:i32, 0)
   Store(StorageBuffer@1,0[1]:i32, 3)
+  return
 }

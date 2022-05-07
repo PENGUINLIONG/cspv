@@ -2,45 +2,6 @@
 
 using namespace liong;
 
-struct SelectionMerge {
-  spv::Id merge_target;
-  spv::SelectionControlMask sel_ctrl;
-  SelectionMerge(const InstructionRef& instr) {
-    auto e = instr.extract_params();
-    merge_target = e.read_id();
-    sel_ctrl = e.read_u32_as<spv::SelectionControlMask>();
-  }
-};
-struct LoopMerge {
-  spv::Id merge_target;
-  spv::Id continue_target;
-  spv::LoopControlMask loop_ctrl;
-  LoopMerge(const InstructionRef& instr) {
-    auto e = instr.extract_params();
-    merge_target = e.read_id();
-    continue_target = e.read_id();
-    loop_ctrl = e.read_u32_as<spv::LoopControlMask>();
-  }
-};
-struct Branch {
-  spv::Id target_label;
-  Branch(const InstructionRef& instr) {
-    auto e = instr.extract_params();
-    target_label = e.read_id();
-  }
-};
-struct BranchConditional {
-  spv::Id cond;
-  spv::Id then_label;
-  spv::Id else_label;
-  BranchConditional(const InstructionRef& instr) {
-    auto e = instr.extract_params();
-    cond = e.read_id();
-    then_label = e.read_id();
-    else_label = e.read_id();
-  }
-};
-
 struct ParserState {
   InstructionRef cur;
   InstructionRef cur_block_label;
@@ -290,8 +251,9 @@ struct ControlFlowParser {
     switch (instr.op()) {
     case spv::Op::OpSelectionMerge:
     {
-      SelectionMerge sr(instr);
-      merge_target = mod.lookup_instr(sr.merge_target);
+      auto e = instr.extract_params();
+      merge_target = mod.lookup_instr(e.read_id());
+      auto sel_ctrl = e.read_u32_as<spv::SelectionControlMask>();
       std::shared_ptr<uint8_t> handle = std::make_shared<uint8_t>();
 
       ParserState parser_state2 = parser_state;
@@ -306,9 +268,10 @@ struct ControlFlowParser {
     }
     case spv::Op::OpLoopMerge:
     {
-      LoopMerge sr(instr);
-      merge_target = mod.lookup_instr(sr.merge_target);
-      auto continue_target = mod.lookup_instr(sr.continue_target);
+      auto e = instr.extract_params();
+      merge_target = mod.lookup_instr(e.read_id());
+      auto continue_target = mod.lookup_instr(e.read_id());
+      auto loop_ctrl = e.read_u32_as<spv::LoopControlMask>();
       std::shared_ptr<uint8_t> handle = std::make_shared<uint8_t>();
 
       ParserState body_parser_state2 = parser_state;
@@ -362,23 +325,22 @@ struct ControlFlowParser {
     case spv::Op::OpBranch:
     {
       parser_state.is_inside_block = false;
-      Branch sr(instr);
-      parser_state.cur = mod.lookup_instr(sr.target_label);
+      auto e = instr.extract_params();
+      parser_state.cur = mod.lookup_instr(e.read_id());
       break;
     }
     case spv::Op::OpBranchConditional:
     {
       parser_state.is_inside_block = false;
-      BranchConditional sr(instr);
-
-      auto cond_expr = mod.expr_map.at(sr.cond);
+      auto e = instr.extract_params();
+      auto cond_expr = mod.expr_map.at(e.read_id());
 
       ParserState then_parser_state2 = parser_state;
-      then_parser_state2.cur = mod.lookup_instr(sr.then_label);
+      then_parser_state2.cur = mod.lookup_instr(e.read_id());
       auto then_stmt = parse(mod, std::move(then_parser_state2));
 
       ParserState else_parser_state2 = parser_state;
-      else_parser_state2.cur = mod.lookup_instr(sr.else_label);
+      else_parser_state2.cur = mod.lookup_instr(e.read_id());
       auto else_stmt = parse(mod, std::move(else_parser_state2));
 
       auto stmt = StmtRef(new StmtConditionalBranch(cond_expr, then_stmt, else_stmt));

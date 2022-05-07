@@ -1,4 +1,5 @@
 {
   Store(StorageBuffer@1,0[0]:i32, (((Load(UniformBuffer@1,0[0]:i32) == 0)?1:2) * 2))
   Store(StorageBuffer@1,0[1]:i32, (((Load(UniformBuffer@1,0[0]:i32) == 0)?2:2) + 2))
+  return
 }
