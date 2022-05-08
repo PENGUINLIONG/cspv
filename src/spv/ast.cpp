@@ -2,7 +2,14 @@
 
 using namespace liong;
 
+enum BlockClass {
+  L_BLOCK_CLASS_USUAL,
+  L_BLOCK_CLASS_LOOP_BODY,
+  L_BLOCK_CLASS_LOOP_CONTINUE,
+};
+
 struct ParserState {
+  BlockClass block_cls;
   InstructionRef cur;
   InstructionRef cur_block_label;
 
@@ -40,14 +47,20 @@ struct ControlFlowParser {
     if (instr == parser_state.sel_merge_target) {
       parser_state.cur = nullptr;
     } else if (instr == parser_state.loop_merge_target) {
+      assert(parser_state.block_cls == L_BLOCK_CLASS_LOOP_BODY,
+        "loop break is only allowed in the body part");
       auto stmt = StmtRef(new StmtLoopMerge(parser_state.loop_handle));
       stmts.emplace_back(std::move(stmt));
       parser_state.cur = nullptr;
     } else if (instr == parser_state.loop_continue_target) {
+      assert(parser_state.block_cls == L_BLOCK_CLASS_LOOP_BODY,
+        "loop continue is only allowed in the body part");
       auto stmt = StmtRef(new StmtLoopContinue(parser_state.loop_handle));
       stmts.emplace_back(std::move(stmt));
       parser_state.cur = nullptr;
     } else if (instr == parser_state.loop_back_edge_target) {
+      assert(parser_state.block_cls == L_BLOCK_CLASS_LOOP_CONTINUE,
+        "loop back-edge is only allowed in the continue part");
       auto stmt = StmtRef(new StmtLoopBackEdge(parser_state.loop_handle));
       stmts.emplace_back(stmt);
       parser_state.cur = nullptr;
@@ -275,6 +288,7 @@ struct ControlFlowParser {
       std::shared_ptr<uint8_t> handle = std::make_shared<uint8_t>();
 
       ParserState body_parser_state2 = parser_state;
+      body_parser_state2.block_cls = L_BLOCK_CLASS_LOOP_BODY;
       body_parser_state2.cur = instr.next();
       body_parser_state2.loop_handle = handle;
       body_parser_state2.loop_merge_target = merge_target;
@@ -283,6 +297,7 @@ struct ControlFlowParser {
       auto body_stmt = parse(mod, std::move(body_parser_state2));
 
       ParserState continue_parser_state2 = parser_state;
+      continue_parser_state2.block_cls = L_BLOCK_CLASS_LOOP_CONTINUE;
       continue_parser_state2.cur = continue_target.next();
       continue_parser_state2.loop_handle = handle;
       continue_parser_state2.loop_merge_target = merge_target;
