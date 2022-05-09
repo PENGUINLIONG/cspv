@@ -3,10 +3,10 @@
   while@_1 (Load($_0:i32) < 7) {
     {
       Store($_0:i32, (Load($_0:i32) + 1))
-      continue@_1
     }
   } continue@_1 {
-    back-edge@_1
+    {
+    }
   }
   return
 }

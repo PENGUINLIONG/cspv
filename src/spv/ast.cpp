@@ -294,7 +294,7 @@ struct ControlFlowParser {
       body_parser_state2.loop_merge_target = merge_target;
       body_parser_state2.loop_continue_target = continue_target;
       body_parser_state2.loop_back_edge_target = parser_state.cur_block_label;
-      auto body_stmt = parse(mod, std::move(body_parser_state2));
+      StmtBlockRef body_stmt = parse(mod, std::move(body_parser_state2));
 
       ParserState continue_parser_state2 = parser_state;
       continue_parser_state2.block_cls = L_BLOCK_CLASS_LOOP_CONTINUE;
@@ -303,24 +303,9 @@ struct ControlFlowParser {
       continue_parser_state2.loop_merge_target = merge_target;
       continue_parser_state2.loop_continue_target = continue_target;
       continue_parser_state2.loop_back_edge_target = parser_state.cur_block_label;
-      auto continue_stmt = parse(mod, std::move(continue_parser_state2));
+      StmtBlockRef continue_stmt = parse(mod, std::move(continue_parser_state2));
 
-      ExprRef cond;
-      if (body_stmt->is<StmtConditionalBranch>()) {
-        StmtConditionalBranchRef branch = body_stmt;
-        if (branch->else_block->is<StmtLoopMerge>()) {
-          cond = branch->cond;
-          body_stmt = branch->then_block;
-        }
-      }
-
-      StmtRef stmt;
-      if (cond != nullptr) {
-        stmt = new StmtConditionalLoop(cond, body_stmt, continue_stmt, handle);
-      } else {
-        stmt = new StmtLoop(body_stmt, continue_stmt, handle);
-      }
-
+      StmtRef stmt = new StmtLoop(body_stmt, continue_stmt, handle);
       stmts.emplace_back(std::move(stmt));
       break;
     }
@@ -452,13 +437,7 @@ struct ControlFlowParser {
   ) {
     ControlFlowParser parser(mod, std::forward<ParserState>(parser_state));
     parser.parse();
-
-    StmtBlockRef stmt = new StmtBlock(std::move(parser.stmts));
-    switch (stmt->stmts.size()) {
-    case 0: return new StmtNop;
-    case 1: return std::move(stmt->stmts.at(0));
-    default: return stmt;
-    }
+    return new StmtBlock(std::move(parser.stmts));
   }
   static StmtRef parse(
     SpirvModule& mod,

@@ -7,7 +7,6 @@
 typedef Reference<struct StmtPatternCapture> StmtPatternCaptureRef;
 typedef Reference<struct StmtPatternHead> StmtPatternHeadRef;
 typedef Reference<struct StmtPatternTail> StmtPatternTailRef;
-typedef Reference<struct StmtNop> StmtNopRef;
 typedef Reference<struct StmtBlock> StmtBlockRef;
 typedef Reference<struct StmtConditionalBranch> StmtConditionalBranchRef;
 typedef Reference<struct StmtLoop> StmtLoopRef;
@@ -80,22 +79,6 @@ struct StmtPatternTail : public Stmt {
   }
   virtual void collect_children(NodeDrain* drain) const override final {
     drain->push(inner);
-  }
-};
-
-struct StmtNop : public Stmt {
-  static const StmtOp OP = L_STMT_OP_NOP;
-
-  inline StmtNop(
-  ) : Stmt(L_STMT_OP_NOP) {
-  }
-
-  virtual bool structured_eq(StmtRef b_) const override final {
-    if (!b_->is<StmtNop>()) { return false; }
-    const auto& b2_ = b_->as<StmtNop>();
-    return true;
-  }
-  virtual void collect_children(NodeDrain* drain) const override final {
   }
 };
 

@@ -1,4 +1,6 @@
+obvious-ctrlflow-removal
 graph-normalization
-ctrlflow-linearization
 ctrlflow-stmt2expr
+loop-comprehension
+block-flattening
 int-expr-simplification

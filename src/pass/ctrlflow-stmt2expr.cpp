@@ -7,13 +7,6 @@
 
 using namespace liong;
 
-bool func_var_eq(
-  const MemoryFunctionVariableRef& a,
-  const MemoryFunctionVariableRef& b
-) {
-  return a->structured_eq(b);
-}
-
 struct FunctionVariableRecord {
   MemoryFunctionVariableRef func_var;
   uint32_t scope_lv;
@@ -21,9 +14,11 @@ struct FunctionVariableRecord {
 };
 struct ScopeRecord {
   uint32_t scope_lv;
-  std::vector<StmtRef> prelude;
+  // Function variables that are overriden by new assignments within the scope.
+  // The changes should propagate to the outer scope so that the mutator stop
+  // using the out-dated values.
+  std::vector<MemoryRef> overriden_func_vars;
   std::vector<FunctionVariableRecord> func_vars;
-  bool is_within_loop;
   
   bool try_get_func_var(
     const MemoryFunctionVariableRef& func_var,
@@ -47,16 +42,27 @@ struct ScopeRecord {
     assert(try_get_func_var(func_var, record));
     return *record;
   }
-  void set_func_var(const MemoryFunctionVariableRef& func_var, const ExprRef& value) {
+  // Returns whether the function variable state specified by the outer scope
+  // has been overriden.
+  bool set_func_var(const MemoryFunctionVariableRef& func_var, const ExprRef& value) {
     FunctionVariableRecord* record = nullptr;
     if (try_get_func_var(func_var, record)) {
+      bool is_overriden = scope_lv > record->scope_lv;
       record->value = value;
+      record->scope_lv = scope_lv;
+      if (is_overriden) {
+        // Notify the outer scope to fix value states.
+        overriden_func_vars.emplace_back(func_var);
+        return true;
+      }
     } else {
       FunctionVariableRecord record {};
       record.func_var = func_var;
+      record.scope_lv = scope_lv;
       record.value = value;
       func_vars.emplace_back(std::move(record));
     }
+    return false;
   }
   void remove_func_var(const MemoryFunctionVariableRef& func_var) {
     auto it = std::find_if(
@@ -78,11 +84,10 @@ struct CtrlflowStmt2ExprMutator : public Mutator {
     return scope_stack.back();
   }
 
-  void push_scope(bool is_within_loop) {
+  void push_scope() {
     ScopeRecord record {};
     record.scope_lv = scope_stack.back().scope_lv + 1;
     record.func_vars = scope_stack.back().func_vars;
-    record.is_within_loop = is_within_loop || scope_stack.back().is_within_loop;
     scope_stack.emplace_back(std::move(record));
   }
   ScopeRecord pop_scope() {
@@ -99,17 +104,13 @@ struct CtrlflowStmt2ExprMutator : public Mutator {
       MemoryFunctionVariableRef src_ptr = x->src_ptr;
       FunctionVariableRecord* func_var_record = nullptr;
       if (get_scope().try_get_func_var(src_ptr, func_var_record)) {
-        if (func_var_record->scope_lv < get_scope().scope_lv) {
-          // The variable got its value from an outer scope. In case of loops, the value might change over time if it's referenced within iterations.
-          get_scope().prelude.emplace_back(new StmtStore(src_ptr, func_var_record->value));
-          get_scope().remove_func_var(src_ptr);
-          return x;
-        } else if (func_var_record->scope_lv == get_scope().scope_lv) {
-          // This value is make within the scope. In terms of loops, the value is assigned in this current iteration.
+        if (func_var_record->scope_lv == get_scope().scope_lv) {
+          // This value is made within the scope. In terms of loops, the value is assigned in this current iteration.
           return func_var_record->value;
         } else {
           // The variable is created by an inner scope? It should not happen and these inner variables should be carried out by algorithms.
-          unreachable();
+          assert(func_var_record->scope_lv < get_scope().scope_lv);
+          return x;
         }
       } else {
         // The only case a function variable cannot be found is that, it's been removed because its created by an outer scope and the variable has been loaded before.
@@ -121,38 +122,59 @@ struct CtrlflowStmt2ExprMutator : public Mutator {
     }
   }
 
-  virtual StmtRef mutate_stmt_(StmtConditionalLoopRef x) override final {
-    push_scope(true);
-    x = Mutator::mutate_stmt_(x);
-    ScopeRecord scope = pop_scope();
-    if (scope.prelude.empty()) {
-      return x;
+  virtual StmtRef mutate_stmt_(StmtLoopRef x) override final {
+    std::vector<StmtRef> stmts;
+
+    push_scope();
+    StmtBlockRef body_block = mutate_stmt(x->body_block).as<StmtBlock>();
+    ScopeRecord body_scope = pop_scope();
+    for (auto func_var : body_scope.overriden_func_vars) {
+      ExprRef outer_value = get_scope().get_func_var(func_var).value;
+      stmts.emplace_back(new StmtStore(func_var, outer_value));
+    }
+    body_block = body_block;
+
+    push_scope();
+    StmtBlockRef continue_block = mutate_stmt(x->continue_block).as<StmtBlock>();
+    ScopeRecord continue_scope = pop_scope();
+    for (auto func_var : continue_scope.overriden_func_vars) {
+      ExprRef outer_value = get_scope().get_func_var(func_var).value;
+      stmts.emplace_back(new StmtStore(func_var, outer_value));
+    }
+    continue_block = continue_block;
+
+    stmts.emplace_back(new StmtLoop(body_block, continue_block, x->handle));
+    return new StmtBlock(std::move(stmts));
+  }
+
+  virtual StmtRef mutate_stmt_(StmtStoreRef x) override final {
+    if (!x->dst_ptr->is<MemoryFunctionVariable>()) {
+      return Mutator::mutate_stmt_(x);
+    }
+
+    auto dst_ptr = mutate_mem(x->dst_ptr);
+    auto value = mutate_expr(x->value);
+
+    if (get_scope().set_func_var(dst_ptr, value)) {
+      return new StmtStore(dst_ptr, value);
     } else {
-      scope.prelude.emplace_back(x);
-      return new StmtBlock(std::move(scope.prelude));
+      return new StmtBlock({});
     }
   }
 
   virtual StmtRef mutate_stmt_(StmtBlockRef x) override final {
     std::vector<StmtRef> out_stmts;
     for (StmtRef stmt : x->stmts) {
-      if (stmt->is<StmtStore>()) {
-        StmtStoreRef stmt2 = mutate_stmt(stmt);
-        if (stmt2->dst_ptr->is<MemoryFunctionVariable>()) {
-          get_scope().set_func_var(stmt2->dst_ptr, mutate_expr(stmt2->value));
-        } else {
-          out_stmts.emplace_back(stmt);
-        }
-      } else if (stmt->is<StmtConditionalBranch>()) {
+      if (stmt->is<StmtConditionalBranch>()) {
         StmtConditionalBranchRef stmt2 = stmt;
-        ExprRef cond = mutate_expr(stmt2->cond);
+        ExprRef cond = stmt2->cond;
 
         auto func_vars2 = scope_stack.back().func_vars;
-        StmtRef then_block = mutate_stmt(stmt2->then_block);
+        StmtBlockRef then_block = mutate_stmt(stmt2->then_block);
         auto func_vars_then = std::move(scope_stack.back().func_vars);
 
         scope_stack.back().func_vars = std::move(func_vars2);
-        StmtRef else_block = mutate_stmt(stmt2->else_block);
+        StmtBlockRef else_block = mutate_stmt(stmt2->else_block);
         auto func_vars_else = std::move(scope_stack.back().func_vars);
 
         // Mapping from handle to function variable. A variable must exist in
@@ -163,7 +185,8 @@ struct CtrlflowStmt2ExprMutator : public Mutator {
             func_vars_else.begin(),
             func_vars_else.end(),
             [&](const FunctionVariableRecord& else_var) {
-              return then_var.func_var->structured_eq(else_var.func_var);
+              return then_var.func_var->structured_eq(else_var.func_var) &&
+                !then_var.value->structured_eq(else_var.value);
             });
           if (it != func_vars_else.end()) {
             ExprRef expr = new ExprSelect(
@@ -175,9 +198,9 @@ struct CtrlflowStmt2ExprMutator : public Mutator {
           }
         }
 
-        if (!then_block->is<StmtNop>() || !else_block->is<StmtNop>()) {
+        if (!then_block->stmts.empty() || !else_block->stmts.empty()) {
           StmtRef branch = new StmtConditionalBranch(cond, then_block, else_block);
-          out_stmts.emplace_back(mutate_stmt(branch));
+          out_stmts.emplace_back(branch);
         }
 
       } else {
@@ -185,11 +208,8 @@ struct CtrlflowStmt2ExprMutator : public Mutator {
       }
     }
 
-    if (out_stmts.empty()) {
-      return new StmtNop;
-    } else {
-      return new StmtBlock(std::move(out_stmts));
-    }
+    StmtRef stmt = new StmtBlock(std::move(out_stmts));
+    return stmt;
   }
 
 };

@@ -2,9 +2,12 @@
   Store($_0:i32, 0)
   Store($_1:i32, 2)
   if !(Load(UniformBuffer@1,0[0]:i32) == 0) {
-    Store($_0:i32, 3)
+    {
+      Store($_0:i32, 3)
+    }
   } else {
-    nop
+    {
+    }
   }
   if (Load(UniformBuffer@1,0[0]:i32) == 9) {
     {

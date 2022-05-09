@@ -80,7 +80,7 @@ struct RangedLoopElevationMutator : public Mutator {
           )
         ),
         new StmtLoopMerge(x->handle),
-        new StmtNop
+        new StmtBlock({})
       )
     );
 
@@ -106,7 +106,7 @@ struct RangedLoopElevationMutator : public Mutator {
       func_var_ty, {}, begin_expr, end_expr, stride_expr);
     StmtRef new_body = x->body_block->is<StmtBlock>() ?
       StmtRef(new StmtBlock({ x->body_block.as<StmtBlock>()->stmts.begin() + 1, x->body_block.as<StmtBlock>()->stmts.end() })) :
-      StmtRef(new StmtNop);
+      StmtRef(new StmtBlock({}));
 
     return StmtRef(new StmtBlock({
       new StmtRangedLoop(new_body, itervar),

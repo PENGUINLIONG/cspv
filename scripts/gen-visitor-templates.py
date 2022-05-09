@@ -823,9 +823,6 @@ novas = {
                     "inner": "Stmt",
                 }
             },
-            "nop": {
-                "fields": {}
-            },
             "block": {
                 "fields": {
                     "stmts": "Stmt[]",

@@ -208,10 +208,6 @@ struct DebugPrintVisitor : public Visitor {
     s << ")";
   }
 
-
-  virtual void visit_stmt_(StmtNopRef x) override final {
-    s << "nop" << std::endl;
-  }
   virtual void visit_stmt_(StmtBlockRef x) override final {
     s << "{" << std::endl;
     s.push_indent();
@@ -294,56 +290,6 @@ std::string dbg_print(const NodeRef& node) {
   DebugPrintVisitor v(s);
   v.visit(node);
   return s.str();
-}
-
-bool is_tail_stmt(const StmtRef& x) {
-  switch (x->op) {
-  case L_STMT_OP_BLOCK:
-    return is_tail_stmt(x->as<StmtBlock>().stmts.back());
-  case L_STMT_OP_CONDITIONAL_BRANCH:
-  {
-    const auto& stmt = x->as<StmtConditionalBranch>();
-    return is_tail_stmt(stmt.then_block) && is_tail_stmt(stmt.else_block);
-  }
-  case L_STMT_OP_RETURN:
-  case L_STMT_OP_LOOP_MERGE:
-  case L_STMT_OP_LOOP_CONTINUE:
-  case L_STMT_OP_LOOP_BACK_EDGE:
-    return true;
-  default:
-    return false;
-  }
-}
-StmtRef flatten_block(const StmtRef& x) {
-  if (!x->is<StmtBlock>()) { return x; }
-  auto block = x.as<StmtBlock>();
-
-  std::vector<StmtRef> stmts;
-  stmts.reserve(block->stmts.size());
-  for (const StmtRef& stmt : block->stmts) {
-    if (stmt->is<StmtBlock>()) {
-      const auto& stmts2 = stmt.as<StmtBlock>()->stmts;
-      // If it's a nested block, flatten its content to remove indirection.
-      for (auto stmt : stmts2) {
-        stmts.emplace_back(stmt);
-      }
-    } else if (stmt->is<StmtNop>()) {
-      // Ignore nops.
-      continue;
-    } else {
-      stmts.emplace_back(stmt);
-    }
-
-    // If it's a tail statement, any other statement after it becomes dead
-    // code and will never be reached. So it's okay to ignore them.
-    if (is_tail_stmt(stmts.back())) { break; }
-  }
-
-  switch (stmts.size()) {
-  case 0: return new StmtNop();
-  case 1: return std::move(stmts[0]);
-  default: return new StmtBlock(std::move(stmts));
-  }
 }
 
 StmtRef& get_head_stmt(StmtRef& stmt) {

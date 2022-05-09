@@ -2,17 +2,18 @@
   Store($_0:i32, 0)
   while@_1 (Load($_0:i32) < Load(UniformBuffer@1,0[0]:i32)) {
     {
-      if !(Load($_0:i32) == 7) {
-        break@_1
+      if (Load($_0:i32) == 7) {
+        {
+        }
       } else {
-        nop
+        {
+          break@_1
+        }
       }
-      continue@_1
     }
   } continue@_1 {
     {
       Store($_0:i32, (Load($_0:i32) + 1))
-      back-edge@_1
     }
   }
   return

@@ -102,8 +102,6 @@ void Visitor::visit_stmt_(StmtPatternHeadRef x) {
 void Visitor::visit_stmt_(StmtPatternTailRef x) {
   visit_stmt(x->inner);
 }
-void Visitor::visit_stmt_(StmtNopRef x) {
-}
 void Visitor::visit_stmt_(StmtBlockRef x) {
   for (const auto& x : x->stmts) { visit_stmt(x); }
 }
@@ -266,9 +264,6 @@ StmtRef Mutator::mutate_stmt_(StmtPatternHeadRef x) {
 }
 StmtRef Mutator::mutate_stmt_(StmtPatternTailRef x) {
   x->inner = mutate_stmt(x->inner);
-  return x.as<Stmt>();
-}
-StmtRef Mutator::mutate_stmt_(StmtNopRef x) {
   return x.as<Stmt>();
 }
 StmtRef Mutator::mutate_stmt_(StmtBlockRef x) {

@@ -456,22 +456,22 @@ struct ExprSelect : public Expr {
 
 constexpr bool is_expr_binary_op(ExprOp op) {
   switch (op) {
+  case L_EXPR_OP_LT:
+  case L_EXPR_OP_SUB:
   case L_EXPR_OP_MOD:
   case L_EXPR_OP_ADD:
   case L_EXPR_OP_DIV:
   case L_EXPR_OP_EQ:
   case L_EXPR_OP_MUL:
-  case L_EXPR_OP_LT:
-  case L_EXPR_OP_SUB:
     return true;
   default: return false;
   }
 }
 constexpr bool is_expr_constant(ExprOp op) {
   switch (op) {
+  case L_EXPR_OP_BOOL_IMM:
   case L_EXPR_OP_INT_IMM:
   case L_EXPR_OP_FLOAT_IMM:
-  case L_EXPR_OP_BOOL_IMM:
     return true;
   default: return false;
   }

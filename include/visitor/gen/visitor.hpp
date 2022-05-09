@@ -74,7 +74,6 @@ struct Visitor {
     case L_STMT_OP_PATTERN_CAPTURE: visit_stmt_(stmt.as<StmtPatternCapture>()); break;
     case L_STMT_OP_PATTERN_HEAD: visit_stmt_(stmt.as<StmtPatternHead>()); break;
     case L_STMT_OP_PATTERN_TAIL: visit_stmt_(stmt.as<StmtPatternTail>()); break;
-    case L_STMT_OP_NOP: visit_stmt_(stmt.as<StmtNop>()); break;
     case L_STMT_OP_BLOCK: visit_stmt_(stmt.as<StmtBlock>()); break;
     case L_STMT_OP_CONDITIONAL_BRANCH: visit_stmt_(stmt.as<StmtConditionalBranch>()); break;
     case L_STMT_OP_LOOP: visit_stmt_(stmt.as<StmtLoop>()); break;
@@ -125,7 +124,6 @@ struct Visitor {
   virtual void visit_stmt_(StmtPatternCaptureRef);
   virtual void visit_stmt_(StmtPatternHeadRef);
   virtual void visit_stmt_(StmtPatternTailRef);
-  virtual void visit_stmt_(StmtNopRef);
   virtual void visit_stmt_(StmtBlockRef);
   virtual void visit_stmt_(StmtConditionalBranchRef);
   virtual void visit_stmt_(StmtLoopRef);
@@ -205,7 +203,6 @@ struct Mutator {
     case L_STMT_OP_PATTERN_CAPTURE: return mutate_stmt_(stmt.as<StmtPatternCapture>());
     case L_STMT_OP_PATTERN_HEAD: return mutate_stmt_(stmt.as<StmtPatternHead>());
     case L_STMT_OP_PATTERN_TAIL: return mutate_stmt_(stmt.as<StmtPatternTail>());
-    case L_STMT_OP_NOP: return mutate_stmt_(stmt.as<StmtNop>());
     case L_STMT_OP_BLOCK: return mutate_stmt_(stmt.as<StmtBlock>());
     case L_STMT_OP_CONDITIONAL_BRANCH: return mutate_stmt_(stmt.as<StmtConditionalBranch>());
     case L_STMT_OP_LOOP: return mutate_stmt_(stmt.as<StmtLoop>());
@@ -256,7 +253,6 @@ struct Mutator {
   virtual StmtRef mutate_stmt_(StmtPatternCaptureRef);
   virtual StmtRef mutate_stmt_(StmtPatternHeadRef);
   virtual StmtRef mutate_stmt_(StmtPatternTailRef);
-  virtual StmtRef mutate_stmt_(StmtNopRef);
   virtual StmtRef mutate_stmt_(StmtBlockRef);
   virtual StmtRef mutate_stmt_(StmtConditionalBranchRef);
   virtual StmtRef mutate_stmt_(StmtLoopRef);

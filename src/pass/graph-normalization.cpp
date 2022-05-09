@@ -35,7 +35,7 @@ struct GraphNormalizationMutator : Mutator {
 
   virtual StmtRef mutate_stmt_(StmtBlockRef x) override final {
     x = Mutator::mutate_stmt_(x);
-    return flatten_block(x);
+    return x;
   }
 
 };

@@ -1,3 +1,6 @@
+obvious-ctrlflow-removal
 graph-normalization
-ctrlflow-linearization
-ranged-loop-elevation
+
+loop-comprehension
+block-flattening
+int-expr-simplification

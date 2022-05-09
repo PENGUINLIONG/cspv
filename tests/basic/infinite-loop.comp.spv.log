@@ -1,5 +1,9 @@
-loop@_0 {
-  nop
-} continue@_0 {
-  nop
+{
+  loop@_0 {
+    {
+    }
+  } continue@_0 {
+    {
+    }
+  }
 }
