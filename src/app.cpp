@@ -11,6 +11,7 @@
 #include "spv/ast.hpp"
 #include "visitor/util.hpp"
 #include "pass/pass.hpp"
+#include "lo/lo.hpp"
 
 using namespace liong;
 
@@ -86,16 +87,8 @@ void guarded_main() {
   }
   std::vector<uint32_t> spv = load_spv(CFG.in_file_path.c_str());
   SpirvAbstract abstr = scan_spirv(spv);
-  SpirvModule mod = parse_spirv_module(std::move(abstr));
-  NodeRef entry_point = extract_entry_points(mod)[CFG.entry_name];
+  lo::Module mod = lo::spv2lo(abstr);
 
-  // Apply passes, if any.
-  for (auto& pass : CFG.passes) {
-    apply_pass(pass, entry_point);
-  }
-
-  // Print the human-readable representation for convenience.
-  std::string code = dbg_print(entry_point);
   if (CFG.dbg_print_file_path.empty()) {
     log::info(code);
   } else {
